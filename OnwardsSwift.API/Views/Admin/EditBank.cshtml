@@ -1,0 +1,45 @@
+@{ ViewData["Title"] = "Edit Bank Partner"; }
+
+<div class="page-header"><h1>Edit Bank Partner</h1></div>
+
+<div class="content-body">
+<form asp-action="EditBank" asp-route-id="@Model.Id" method="post">
+    @Html.AntiForgeryToken()
+    <div class="row"><div class="col-lg-6">
+        <div class="card mb-3">
+            <div class="card-header">Partner Details</div>
+            <div class="card-body row g-3">
+                <div class="col-md-8">
+                    <label class="form-label">Institution Name <span class="text-danger">*</span></label>
+                    <input name="name" value="@Model.Name" class="form-control" required />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Short Code <span class="text-danger">*</span></label>
+                    <input name="shortCode" value="@Model.ShortCode" class="form-control" required />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Institution Type</label>
+                    <select name="institutionType" class="form-select" asp-items="ViewBag.InstTypes"
+                        asp-selected-values="@Model.InstitutionType"></select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Licence Number</label>
+                    <input name="licenceNumber" value="@Model.LicenceNumber" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Contact Email</label>
+                    <input name="contactEmail" value="@Model.ContactEmail" class="form-control" type="email" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Contact Phone</label>
+                    <input name="contactPhone" value="@Model.ContactPhone" class="form-control" />
+                </div>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-navy px-4">Save Changes</button>
+            <a asp-action="Banks" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </div></div>
+</form>
+</div>

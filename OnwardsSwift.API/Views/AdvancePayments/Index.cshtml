@@ -1,0 +1,37 @@
+@{ ViewData["Title"] = "Advance Payments"; }
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div><h1>Advance Payment Bonds</h1></div>
+    <a asp-action="Create" class="btn btn-navy"><i class="bi bi-plus-circle me-1"></i>New Application</a>
+</div>
+
+<div class="content-body">
+<div class="card"><div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr><th>Reference</th><th>Client</th><th>Contract Ref.</th><th>Beneficiary</th>
+                <th>Bond Amount</th><th>Total Fee</th><th>Status</th><th>Date</th></tr>
+        </thead>
+        <tbody>
+            @if (ViewBag.Items != null)
+            {
+                foreach (var r in (List<dynamic>)ViewBag.Items)
+                {
+                    <tr>
+                        <td><code class="small">@r.ContractRef</code></td>
+                        <td>@r.ClientName</td>
+                        <td class="small">@r.ContractRef</td>
+                        <td class="small">@r.Beneficiary</td>
+                        <td class="amt">@((decimal)r.BondAmount).ToString("N0")</td>
+                        <td class="amt">@((decimal)r.TotalFee).ToString("N0")</td>
+                        <td><span class="badge-status status-@((string)r.Status).ToLower()">@r.Status</span></td>
+                        <td class="small text-muted">@((DateTime)r.CreatedAt).ToString("dd MMM yy")</td>
+                    </tr>
+                }
+            }
+            @if (ViewBag.Items == null || ((List<dynamic>)ViewBag.Items).Count == 0)
+            { <tr><td colspan="8" class="text-center text-muted py-4">No advance payment bonds yet</td></tr> }
+        </tbody>
+    </table>
+</div></div>
+</div>

@@ -1,0 +1,51 @@
+@{ ViewData["Title"] = "User Management"; }
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div><h1>User Management</h1><div class="subtitle">@ViewBag.Total total users</div></div>
+    <a asp-action="CreateUser" class="btn btn-navy"><i class="bi bi-person-plus me-1"></i>New User</a>
+</div>
+
+<div class="content-body">
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="d-flex gap-2" style="max-width:360px">
+            <input name="search" value="@ViewBag.Search" class="form-control form-control-sm" placeholder="Search name or email…" />
+            <button class="btn btn-sm btn-outline-secondary">Search</button>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Status</th><th>Last Login</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var u in (List<dynamic>)Model)
+                {
+                    <tr>
+                        <td>@u.FullName</td>
+                        <td class="small">@u.Email</td>
+                        <td><span class="badge bg-secondary">@(u.Role == null ? "" : ((OnwardsSwift.Core.Enums.UserRole)(int)u.Role).ToString())</span></td>
+                        <td class="small text-muted">@u.Department</td>
+                        <td>
+                            @if (u.IsActive != null && (bool)u.IsActive)
+                            { <span class="text-success small">Active</span> }
+                            else
+                            { <span class="text-muted small">Inactive</span> }
+                        </td>
+                        <td class="small text-muted">@(u.LastLoginAt == null ? "Never" : ((DateTime)u.LastLoginAt).ToString("dd MMM yyyy"))</td>
+                        <td>
+                            <a asp-action="EditUser" asp-route-id="@u.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                            <form asp-action="ToggleUser" asp-route-id="@u.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button class="btn btn-sm @(u.IsActive != null && (bool)u.IsActive ? "btn-outline-warning" : "btn-outline-success")">
+                                    @(u.IsActive != null && (bool)u.IsActive ? "Deactivate" : "Activate")
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                @if (!((List<dynamic>)Model).Any())
+                { <tr><td colspan="7" class="text-center text-muted py-4">No users found</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>

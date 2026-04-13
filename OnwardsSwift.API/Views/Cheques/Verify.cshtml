@@ -1,0 +1,66 @@
+﻿@model dynamic
+<div class="page-header mb-4 d-flex justify-content-between">
+    <h1 class="h3 fw-bold text-navy">Verify Cheque Discounting Request</h1>
+    <span class="badge bg-warning text-dark py-2 px-3">Status: @Model.Status</span>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-bold">Cheque Document</div>
+            <div class="card-body text-center p-2">
+                @if (!string.IsNullOrEmpty(Model.PhotoPath))
+                {
+                    <img src="@Model.PhotoPath" class="img-fluid rounded shadow-sm border" alt="Cheque Photo" />
+                }
+                else
+                {
+                    <div class="py-5 bg-light text-muted">No image uploaded</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white fw-bold">Verification Checklist</div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr><td class="text-muted">Client:</td><td class="fw-bold">@Model.CompanyName</td></tr>
+                    <tr><td class="text-muted">Cheque No:</td><td class="fw-bold">@Model.ChequeNumber</td></tr>
+                    <tr><td class="text-muted">Drawer:</td><td>@Model.DrawerBank (@Model.DrawerAccountNo)</td></tr>
+                    <tr><td class="text-muted">Maturity:</td><td class="text-primary fw-bold">@Model.ExpiryDate.ToString("dd MMM yyyy")</td></tr>
+                    <tr class="table-light"><td class="fw-bold">Gross Amount:</td><td class="fw-bold">KES @Model.ChequeAmount.ToString("N2")</td></tr>
+                    <tr class="table-light"><td class="fw-bold">Discount (@Model.DiscountRate%):</td><td class="text-danger fw-bold">- KES @((Model.ChequeAmount * Model.DiscountRate / 100).ToString("N2"))</td></tr>
+                    <tr class="bg-primary text-white">
+                        <td class="fw-bold">NET PAYOUT:</td>
+                        <td class="fw-bold">KES @Model.AdvanceAmount.ToString("N2")</td>
+                    </tr>
+                </table>
+
+                <div class="alert alert-info py-2 small">
+                    <i class="bi bi-info-circle me-2"></i> Confirming this will trigger entries in the <b>General Ledger</b> and release the funds via <b>@Model.PaymentMethod</b>.
+                </div>
+
+                <form asp-action="Authorize" method="post" class="mt-4">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <input type="hidden" name="queueId" value="@Model.QueueId" />
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Transaction Fee (to be recorded in GL)</label>
+                        <input type="number" name="bankFee" value="15.00" step="0.01" class="form-control" />
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success flex-grow-1 py-2 fw-bold">
+                            <i class="bi bi-check-circle me-2"></i> APPROVE & RELEASE
+                        </button>
+                        <button type="button" class="btn btn-outline-danger py-2" onclick="showRejectModal()">
+                            REJECT
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

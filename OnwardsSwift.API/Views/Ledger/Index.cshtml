@@ -1,0 +1,77 @@
+@{ ViewData["Title"] = "Daily Ledger"; var day = (DateTime)ViewBag.Date; }
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div><h1>Daily Ledger</h1><div class="subtitle">@day.ToString("dddd, dd MMMM yyyy")</div></div>
+    <form method="get" class="d-flex gap-2 align-items-center">
+        <input type="date" name="date" value="@day.ToString("yyyy-MM-dd")" class="form-control form-control-sm" style="width:180px" />
+        <button class="btn btn-sm btn-outline-secondary">Go</button>
+        <a asp-action="Index" class="btn btn-sm btn-outline-secondary">Today</a>
+    </form>
+</div>
+
+<div class="content-body">
+
+@if (ViewBag.Error != null)
+{
+    <div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-2"></i>@ViewBag.Error</div>
+}
+else
+{
+    <!-- Summary Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-icon blue"><i class="bi bi-wallet2"></i></div>
+                <div><div class="stat-val small">@((decimal)ViewBag.OpeningBalance).ToString("N0")</div><div class="stat-lbl">Opening Balance</div></div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-icon green"><i class="bi bi-arrow-down-circle"></i></div>
+                <div><div class="stat-val small">@((decimal)ViewBag.TotalReceipts).ToString("N0")</div><div class="stat-lbl">Total Receipts</div></div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-icon purple"><i class="bi bi-graph-up"></i></div>
+                <div><div class="stat-val small">@((decimal)ViewBag.TotalProfit).ToString("N0")</div><div class="stat-lbl">Commission Earned</div></div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-icon navy"><i class="bi bi-bank"></i></div>
+                <div><div class="stat-val small">@((decimal)ViewBag.ClosingBalance).ToString("N0")</div><div class="stat-lbl">Closing Balance</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receipts -->
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between">
+            <span>Receipts</span>
+            <span class="text-success fw-bold">KSh @((decimal)ViewBag.TotalReceipts).ToString("N2")</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead><tr><th>Reference</th><th>Client</th><th>Description</th><th>Amount</th><th>Commission</th><th>Paid</th></tr></thead>
+                <tbody>
+                    @if (ViewBag.Receipts != null) {
+                        foreach (var e in (IEnumerable<dynamic>)ViewBag.Receipts) {
+                            <tr>
+                                <td><code class="small">@e.Reference</code></td>
+                                <td class="small">@e.ClientName</td>
+                                <td class="small">@e.Description</td>
+                                <td class="amt">@((decimal)e.Amount).ToString("N0")</td>
+                                <td class="amt text-success">@((decimal)e.CommissionAmount).ToString("N0")</td>
+                                <td>@((bool)e.IsPaid ? "<span class='text-success'>✓</span>" : "<span class='text-muted'>–</span>")</td>
+                            </tr>
+                        }
+                    }
+                    @if (ViewBag.Receipts == null || !((IEnumerable<dynamic>)ViewBag.Receipts).Any())
+                    { <tr><td colspan="6" class="text-center text-muted py-3">No receipts today</td></tr> }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+</div>

@@ -1,0 +1,219 @@
+﻿@model OnwardsSwift.Core.DTOs.BidBondResponse
+
+@{
+    ViewData["Title"] = "Review Bond Application";
+}
+
+<div class="container-fluid py-4 animate__animated animate__fadeIn">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-1">
+                        <li class="breadcrumb-item"><a asp-action="Pending" class="text-decoration-none">Approvals</a></li>
+                        <li class="breadcrumb-item active">Review Bond</li>
+                    </ol>
+                </nav>
+                <h2 class="fw-bold mb-0">Application Review: @Model.TenderNumber</h2>
+            </div>
+            <a asp-action="Pending" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back to List
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-info-circle me-2"></i>Project Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="text-muted small fw-bold text-uppercase">Client / Company</label>
+                            <p class="fs-5 fw-bold mb-0 text-dark">@Model.ClientName</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small fw-bold text-uppercase">Procuring Entity (Obligee)</label>
+                            <p class="fs-5 mb-0">@Model.ProcuringEntityName</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small fw-bold text-uppercase">Issuing Agent</label>
+                            <p class="mb-0 fw-bold text-secondary">
+                                <i class="bi bi-person-badge me-1"></i> @Model.AgentName
+                            </p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <label class="text-muted small fw-bold text-uppercase">Bond Type</label>
+                            <div><span class="badge bg-soft-primary text-primary border border-primary px-3">@Model.BondTypeName</span></div>
+                        </div>
+                        <div class="col-12">
+                            <label class="text-muted small fw-bold text-uppercase">Tender Name / Project Description</label>
+                            <div class="p-3 bg-light rounded border-start border-4 border-primary mt-1">
+                                @Model.TenderName
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-3">
+                        <div class="col-md-4">
+                            <div class="p-3 border rounded text-center">
+                                <label class="text-muted small d-block">Bond Amount</label>
+                                <span class="h5 fw-bold">KES @Model.Amount.ToString("N2")</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 border rounded text-center">
+                                <label class="text-muted small d-block">Tenor</label>
+                                <span class="h5 fw-bold">@Model.TenorDays Days</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 border rounded text-center text-danger">
+                                <label class="text-muted small d-block">Closing Date</label>
+                                <span class="h5 fw-bold">@Model.TenderClosingDate.ToString("dd MMM yyyy")</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-files me-2"></i>Verification Documents</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <a href="@Model.TenderDocPath" target="_blank" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-file-earmark-pdf text-danger me-2 fs-5"></i> Tender Advertisement Document</span>
+                            <span class="btn btn-sm btn-light border shadow-sm">View <i class="bi bi-box-arrow-up-right ms-1"></i></span>
+                        </a>
+                        <a href="@Model.CR12Path" target="_blank" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-file-earmark-person text-info me-2 fs-5"></i> CR12 / Legal Compliance</span>
+                            <span class="btn btn-sm btn-light border shadow-sm">View <i class="bi bi-box-arrow-up-right ms-1"></i></span>
+                        </a>
+                        @if (!string.IsNullOrEmpty(Model.PaymentReceiptPath))
+                        {
+                            <a href="@Model.PaymentReceiptPath" target="_blank" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-receipt text-success me-2 fs-5"></i> Fee Payment Receipt</span>
+                                <span class="btn btn-sm btn-outline-success fw-bold">View Receipt <i class="bi bi-check-all ms-1"></i></span>
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+
+            <div class="card border-0 shadow-sm bg-primary text-white mb-4">
+                <div class="card-body py-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="text-uppercase small fw-bold opacity-75 mb-0">Processing Charge Due</h6>
+                        <i class="bi bi-cash-coin fs-3 opacity-50"></i>
+                    </div>
+                    <h2 class="fw-bold mb-1">KES @Model.PayableCharge.ToString("N2")</h2>
+                    @if (Model.IsDeferredPayment)
+                    {
+                        <div class="badge bg-warning text-dark animate__animated animate__pulse animate__infinite mt-2">
+                            <i class="bi bi-clock-history me-1"></i> Payment Deferred
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="badge bg-white text-primary mt-2">
+                            <i class="bi bi-check-circle-fill me-1"></i> Payment Verified
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @if (Model.HasCashCover)
+            {
+                <div class="card border-0 shadow-sm bg-success text-white mb-4 overflow-hidden">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-3">
+                            <div>
+                                <p class="text-uppercase small fw-bold mb-1 opacity-75">Cash Cover Secured</p>
+                                <h3 class="fw-bold mb-0">KES @Model.CashCoverAmount?.ToString("N0")</h3>
+                            </div>
+                            <i class="bi bi-shield-lock-fill fs-1 opacity-25"></i>
+                        </div>
+                        <div class="bg-dark bg-opacity-10 p-2 rounded mb-3 small">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="opacity-75">Maturity Date:</span>
+                                <span class="fw-bold">@Model.CashCoverMaturityDate?.ToString("dd MMM yyyy")</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="opacity-75">Reference:</span>
+                                <span class="fw-bold">@Model.CashCoverReceiptRef</span>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(Model.CashCoverReceiptPath))
+                        {
+                            <a href="@Model.CashCoverReceiptPath" target="_blank" class="btn btn-sm btn-light w-100 fw-bold text-success">
+                                <i class="bi bi-file-earmark-medical me-1"></i> View Bank Slip
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-light border shadow-sm mb-4 d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill text-secondary fs-4 me-3"></i>
+                    <div>
+                        <h6 class="mb-0 fw-bold text-secondary">Unsecured Bond</h6>
+                        <small class="text-muted">No cash cover linked to this application.</small>
+                    </div>
+                </div>
+            }
+
+            <div class="card border-0 shadow-sm border-top border-4 border-dark">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold">Approval Decision</h5>
+                </div>
+                <div class="card-body pt-0">
+                    <form asp-action="ProcessBond" method="post" id="approvalForm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="BondId" value="@Model.Id" />
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted">Internal Remarks / Reason</label>
+                            <textarea name="Remarks" id="Remarks" class="form-control bg-light" rows="4"
+                                      placeholder="Provide context for your decision..."></textarea>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" name="IsApproved" value="true" class="btn btn-success btn-lg py-3 shadow-sm fw-bold">
+                                <i class="bi bi-check-circle-fill me-2"></i> Approve Bond
+                            </button>
+                            <button type="submit" name="IsApproved" value="false" class="btn btn-outline-danger btn-lg py-2">
+                                <i class="bi bi-x-circle me-2"></i> Decline Application
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Validation: Remarks required for rejection
+        $('#approvalForm').on('submit', function (e) {
+            const isRejection = $(document.activeElement).val() === "false";
+            const remarks = $('#Remarks').val().trim();
+
+            if (isRejection && remarks.length < 1) {
+                alert("Please provide a reason for declining this application.");
+                e.preventDefault();
+            }
+        });
+    </script>
+}

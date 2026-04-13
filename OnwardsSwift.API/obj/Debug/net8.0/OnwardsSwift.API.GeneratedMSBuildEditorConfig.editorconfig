@@ -1,0 +1,281 @@
+is_global = true
+build_property.TargetFramework = net8.0
+build_property.TargetFramework = net8.0
+build_property.TargetPlatformMinVersion = 
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.ProjectTypeGuids = 
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = OnwardsSwift.API
+build_property.RootNamespace = OnwardsSwift.API
+build_property.ProjectDir = C:\Users\Sharon Chepchumba\source\repos\OnwardsSwift.API\OnwardsSwift.API\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.RazorLangVersion = 8.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = C:\Users\Sharon Chepchumba\source\repos\OnwardsSwift.API\OnwardsSwift.API
+build_property._RazorSourceGeneratorDebug = 
+build_property.EffectiveAnalysisLevelStyle = 8.0
+build_property.EnableCodeStyleSeverity = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Account/ChangePassword.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWNjb3VudFxDaGFuZ2VQYXNzd29yZC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Account/Login.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWNjb3VudFxMb2dpbi5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Admin/Banks.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cQmFua3MuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Admin/CreateBank.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cQ3JlYXRlQmFuay5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Admin/CreateInternalBank.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cQ3JlYXRlSW50ZXJuYWxCYW5rLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Admin/CreateMenu.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cQ3JlYXRlTWVudS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Admin/CreateRate.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cQ3JlYXRlUmF0ZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Admin/CreateUser.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cQ3JlYXRlVXNlci5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Admin/EditBank.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cRWRpdEJhbmsuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Admin/EditInternalBank.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cRWRpdEludGVybmFsQmFuay5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Admin/EditMenu.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cRWRpdE1lbnUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Admin/EditRate.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cRWRpdFJhdGUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Admin/EditUser.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cRWRpdFVzZXIuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Admin/InternalBanksList.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cSW50ZXJuYWxCYW5rc0xpc3QuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Admin/ManageMenus.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cTWFuYWdlTWVudXMuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Admin/Rates.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cUmF0ZXMuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Admin/Settings.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cU2V0dGluZ3MuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Admin/Users.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cVXNlcnMuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/AdvancePayments/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWR2YW5jZVBheW1lbnRzXENyZWF0ZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/AdvancePayments/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWR2YW5jZVBheW1lbnRzXEluZGV4LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Approvals/Pending.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQXBwcm92YWxzXFBlbmRpbmcuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Approvals/Review.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQXBwcm92YWxzXFJldmlldy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/BidBonds/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQmlkQm9uZHNcQ3JlYXRlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/BidBonds/Details.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQmlkQm9uZHNcRGV0YWlscy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/BidBonds/GenerateReceipt.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQmlkQm9uZHNcR2VuZXJhdGVSZWNlaXB0LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/BidBonds/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQmlkQm9uZHNcSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/BidBonds/QuotePreview.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQmlkQm9uZHNcUXVvdGVQcmV2aWV3LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/BondClaims/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQm9uZENsYWltc1xDcmVhdGUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/BondClaims/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQm9uZENsYWltc1xJbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/CashCovers/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ2FzaENvdmVyc1xDcmVhdGUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/CashCovers/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ2FzaENvdmVyc1xJbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/CashCovers/PendingReleases.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ2FzaENvdmVyc1xQZW5kaW5nUmVsZWFzZXMuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/CashCovers/_ReleaseModal.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ2FzaENvdmVyc1xfUmVsZWFzZU1vZGFsLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Cheques/Approvals.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ2hlcXVlc1xBcHByb3ZhbHMuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Cheques/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ2hlcXVlc1xDcmVhdGUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Cheques/Details.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ2hlcXVlc1xEZXRhaWxzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Cheques/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ2hlcXVlc1xJbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Cheques/Portfolio.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ2hlcXVlc1xQb3J0Zm9saW8uY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Cheques/Verify.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ2hlcXVlc1xWZXJpZnkuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Clients/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ2xpZW50c1xDcmVhdGUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Clients/Details.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ2xpZW50c1xEZXRhaWxzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Clients/Edit.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ2xpZW50c1xFZGl0LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Clients/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ2xpZW50c1xJbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Finance/GenerateStatement.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRmluYW5jZVxHZW5lcmF0ZVN0YXRlbWVudC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Finance/Invoices.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRmluYW5jZVxJbnZvaWNlcy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Finance/Statements.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRmluYW5jZVxTdGF0ZW1lbnRzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Home/Error.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxFcnJvci5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Home/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxJbmRleC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Invoices/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSW52b2ljZXNcQ3JlYXRlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Invoices/Details.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSW52b2ljZXNcRGV0YWlscy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Invoices/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSW52b2ljZXNcSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Ledger/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcTGVkZ2VyXEluZGV4LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Obligees/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcT2JsaWdlZXNcQ3JlYXRlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Obligees/Edit.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcT2JsaWdlZXNcRWRpdC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Obligees/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcT2JsaWdlZXNcSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Reports/BankCharges.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUmVwb3J0c1xCYW5rQ2hhcmdlcy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Reports/GeneralLedger.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUmVwb3J0c1xHZW5lcmFsTGVkZ2VyLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Reports/Revenue.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUmVwb3J0c1xSZXZlbnVlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Shared/Components/Sidebar/Default.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXENvbXBvbmVudHNcU2lkZWJhclxEZWZhdWx0LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Shared/_Layout.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9MYXlvdXQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/Workflow/Configure.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcV29ya2Zsb3dcQ29uZmlndXJlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/_ViewImports.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Sharon Chepchumba/source/repos/OnwardsSwift.API/OnwardsSwift.API/Views/_ViewStart.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdTdGFydC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 

@@ -1,0 +1,178 @@
+@{
+    ViewData["Title"] = "Bond System Dashboard";
+}
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div>
+        <h1>Bond Portfolio Overview</h1>
+        <div class="subtitle">@DateTime.Now.ToString("dddd, dd MMMM yyyy")</div>
+    </div>
+</div>
+
+<div class="content-body">
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-2">
+            <div class="stat-card">
+                <div class="stat-icon blue"><i class="bi bi-shield-check"></i></div>
+                <div>
+                    <div class="stat-val">384</div>
+                    <div class="stat-lbl">Active Bonds</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-2">
+            <div class="stat-card">
+                <div class="stat-icon amber"><i class="bi bi-hourglass-split"></i></div>
+                <div>
+                    <div class="stat-val">14</div>
+                    <div class="stat-lbl">Pending Review</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-2">
+            <div class="stat-card">
+                <div class="stat-icon green"><i class="bi bi-safe"></i></div>
+                <div>
+                    <div class="stat-val">42</div>
+                    <div class="stat-lbl">Cash Covers</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-2">
+            <div class="stat-card">
+                <div class="stat-icon navy"><i class="bi bi-building-check"></i></div>
+                <div>
+                    <div class="stat-val">12</div>
+                    <div class="stat-lbl">Issuing Banks</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-2">
+            <div class="stat-card">
+                <div class="stat-icon purple"><i class="bi bi-briefcase"></i></div>
+                <div>
+                    <div class="stat-val">45.2M</div>
+                    <div class="stat-lbl">Total Exposure</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-2">
+            <div class="stat-card">
+                <div class="stat-icon green"><i class="bi bi-piggy-bank"></i></div>
+                <div>
+                    <div class="stat-val">2.8M</div>
+                    <div class="stat-lbl">Comm. Earned</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-header bg-transparent fw-bold">Bond Distribution</div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>Bid Bonds (Tender)</span>
+                            <span class="fw-bold">245</span>
+                        </div>
+                        <div class="progress" style="height:8px">
+                            <div class="progress-bar bg-primary" style="width: 64%"></div>
+                        </div>
+                        <div class="small text-muted mt-1">Exposure: KSh 12,400,000</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>Performance Bonds</span>
+                            <span class="fw-bold">98</span>
+                        </div>
+                        <div class="progress" style="height:8px">
+                            <div class="progress-bar bg-success" style="width: 25%"></div>
+                        </div>
+                        <div class="small text-muted mt-1">Exposure: KSh 22,850,000</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>Advance Payment Bonds</span>
+                            <span class="fw-bold">41</span>
+                        </div>
+                        <div class="progress" style="height:8px">
+                            <div class="progress-bar bg-warning" style="width: 11%"></div>
+                        </div>
+                        <div class="small text-muted mt-1">Exposure: KSh 9,950,000</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                    <span class="fw-bold">Recent Bond Requests</span>
+                    <a href="#" class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus-lg me-1"></i> Issue New Bond
+                    </a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Bond Ref</th>
+                                <th>Applicant</th>
+                                <th>Issuing Bank</th>
+                                <th>Value (KSh)</th>
+                                <th>Status</th>
+                                <th>Closing</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><a href="#" class="fw-bold text-primary">BND/2026/0842</a></td>
+                                <td>Green Energy Solutions</td>
+                                <td class="small">KCB Bank</td>
+                                <td class="fw-bold">1,500,000</td>
+                                <td><span class="badge rounded-pill bg-warning text-dark">Awaiting Docs</span></td>
+                                <td class="text-muted small">12 Apr 2026</td>
+                            </tr>
+                            <tr>
+                                <td><a href="#" class="fw-bold text-primary">BND/2026/0841</a></td>
+                                <td>Rapid Logistics Ltd</td>
+                                <td class="small">Equity Bank</td>
+                                <td class="fw-bold">450,000</td>
+                                <td><span class="badge rounded-pill bg-success">Approved</span></td>
+                                <td class="text-muted small">15 Apr 2026</td>
+                            </tr>
+                            <tr>
+                                <td><a href="#" class="fw-bold text-primary">BND/2026/0839</a></td>
+                                <td>Apex Construction</td>
+                                <td class="small">Absa Kenya</td>
+                                <td class="fw-bold">5,200,000</td>
+                                <td><span class="badge rounded-pill bg-info text-dark">Under Review</span></td>
+                                <td class="text-muted small">10 Apr 2026</td>
+                            </tr>
+                            <tr>
+                                <td><a href="#" class="fw-bold text-primary">BND/2026/0835</a></td>
+                                <td>Coastal Water Works</td>
+                                <td class="small">NCBA Bank</td>
+                                <td class="fw-bold">850,000</td>
+                                <td><span class="badge rounded-pill bg-danger">Rejected</span></td>
+                                <td class="text-muted small">08 Apr 2026</td>
+                            </tr>
+                            <tr>
+                                <td><a href="#" class="fw-bold text-primary">BND/2026/0830</a></td>
+                                <td>Safari Telecoms</td>
+                                <td class="small">Standard Chartered</td>
+                                <td class="fw-bold">2,100,000</td>
+                                <td><span class="badge rounded-pill bg-success">Approved</span></td>
+                                <td class="text-muted small">20 Apr 2026</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

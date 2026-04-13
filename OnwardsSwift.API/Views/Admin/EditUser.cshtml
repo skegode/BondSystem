@@ -1,0 +1,71 @@
+@{ ViewData["Title"] = "Edit User"; }
+
+<div class="page-header"><h1>Edit User</h1></div>
+
+<div class="content-body">
+<div class="row g-3">
+<div class="col-lg-6">
+    <form asp-action="EditUser" asp-route-id="@Model.Id" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card mb-3">
+            <div class="card-header">User Details</div>
+            <div class="card-body row g-3">
+                <div class="col-12">
+                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                    <input name="fullName" value="@Model.FullName" class="form-control" required />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    <input value="@Model.Email" class="form-control" readonly />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Phone</label>
+                    <input name="phone" value="@Model.Phone" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Role <span class="text-danger">*</span></label>
+                    <select name="role" class="form-select" asp-items="ViewBag.Roles"
+                        asp-selected-values="@(Model.Role?.ToString())"></select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Department</label>
+                    <input name="department" value="@Model.Department" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Status</label>
+                    <div class="form-check mt-1">
+                        <input class="form-check-input" type="checkbox" name="isActive" value="true"
+                            @(Model.IsActive != null && (bool)Model.IsActive ? "checked" : "") id="isActiveCheck" />
+                        <label class="form-check-label" for="isActiveCheck">Active</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-navy px-4">Save Changes</button>
+            <a asp-action="Users" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<div class="col-lg-4">
+    <div class="card">
+        <div class="card-header">Reset Password</div>
+        <form asp-action="ResetPassword" asp-route-id="@Model.Id" method="post">
+            @Html.AntiForgeryToken()
+            <div class="card-body">
+                <label class="form-label">New Password</label>
+                <input name="newPassword" class="form-control mb-3" type="password" minlength="8"
+                    placeholder="Min 8 characters" required />
+            </div>
+            <div class="card-footer">
+                <button type="submit" class="btn btn-outline-warning btn-sm w-100"
+                    data-confirm="Reset password for this user?">
+                    <i class="bi bi-key me-1"></i>Reset Password
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+</div>

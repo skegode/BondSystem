@@ -1,0 +1,65 @@
+@model IEnumerable<dynamic>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">Bond Applications</h2>
+            <p class="text-muted small">Manage and track your active bond requests</p>
+        </div>
+        <a asp-action="Create" class="btn btn-success shadow-sm">
+            <i class="bi bi-plus-circle me-1"></i> New Bond Application
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle shadow-sm border">
+            <thead class="table-dark">
+                <tr>
+                    <th>Date</th>
+                    <th>Client</th>
+                    <th>Tender Details</th>
+                    <th class="text-end">Amount (KSh)</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-center">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            No bond applications found. Click "New Bond Application" to start.
+                        </td>
+                    </tr>
+                }
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.CreatedAt.ToString("dd-MM-yyyy")</td>
+                        <td class="fw-bold">@item.ClientName</td>
+                        <td>
+                            <div class="small fw-bold text-primary">@item.TenderNumber</div>
+                            <div class="small text-muted">@item.TenderName</div>
+                        </td>
+                        <td class="text-end fw-bold">@item.Amount.ToString("N2")</td>
+                        <td class="text-center">
+                            @if (item.Status == 1)
+                            {
+                                <span class="badge bg-success rounded-pill">Approved</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark rounded-pill">Pending</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <a asp-action="Details" asp-route-id="@item.BondId" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

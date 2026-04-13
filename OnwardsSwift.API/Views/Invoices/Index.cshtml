@@ -1,0 +1,31 @@
+@model OnwardsSwift.Core.DTOs.PagedResult<OnwardsSwift.Core.DTOs.InvoiceDiscountResponse>
+@{ ViewData["Title"] = "Invoice Discounting"; }
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div><h1>Invoice Discounting</h1><div class="subtitle">@Model.TotalCount applications</div></div>
+    <a asp-action="Create" class="btn btn-navy"><i class="bi bi-plus-circle me-1"></i>New Application</a>
+</div>
+<div class="content-body">
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead><tr><th>Reference</th><th>Client</th><th>Invoice No.</th><th>Debtor</th><th>Face Value</th><th>Advance</th><th>Due Date</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var i in Model.Items) {
+                        <tr>
+                            <td><code class="small">@i.ReferenceNo</code></td>
+                            <td>@i.ClientName</td>
+                            <td class="small">@i.InvoiceNumber</td>
+                            <td class="small">@i.DebtorName</td>
+                            <td class="amt">@i.InvoiceFaceValue.ToString("N0")</td>
+                            <td class="amt">@i.AdvanceAmount.ToString("N0")</td>
+                            <td class="small text-muted">@i.InvoiceDueDate.ToString("dd MMM yy")</td>
+                            <td><span class="badge-status status-@i.Status.ToLower()">@i.Status</span></td>
+                            <td><a asp-action="Details" asp-route-id="@i.FacilityId" class="btn btn-sm btn-outline-primary">View</a></td>
+                        </tr>
+                    }
+                    @if (!Model.Items.Any()) { <tr><td colspan="9" class="text-center text-muted py-4">No applications yet</td></tr> }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

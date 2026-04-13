@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] — Onwards Swift</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        :root {
+            --sidebar-width: 270px;
+            --demo-navy: #002D72;
+        }
+
+        body {
+            background-color: #f4f7f6;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background: #fff;
+            height: 100vh;
+            position: fixed;
+            border-right: 2px solid #dee2e6;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-brand {
+            padding: 1.5rem;
+            font-weight: 800;
+            color: var(--demo-navy);
+            border-bottom: 1px solid #f8f9fa;
+        }
+
+        .sidebar-content {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .sidebar-section {
+            padding: 1.2rem 1.5rem 0.4rem;
+            font-size: 0.7rem;
+            font-weight: 800;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-link {
+            padding: 0.7rem 1.5rem;
+            color: #333;
+            font-weight: 600;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+
+            .nav-link i {
+                margin-right: 12px;
+                color: var(--demo-navy);
+            }
+
+            .nav-link.active {
+                background: var(--demo-navy) !important;
+                color: #fff !important;
+            }
+
+                .nav-link.active i {
+                    color: #fff !important;
+                }
+
+        .submenu-container {
+            background: #f8f9fa;
+            margin: 5px 10px;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+
+        .submenu-active {
+            color: #0d6efd !important;
+            font-weight: 800 !important;
+            border-left: 3px solid #0d6efd;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+
+        .sidebar-footer {
+            padding: 1rem;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <div class="d-flex">
+            <nav class="sidebar">
+                <div class="sidebar-brand">ONWARDS SWIFT</div>
+                <div class="sidebar-content">
+                    @await Component.InvokeAsync("Sidebar")
+                </div>
+                <div class="sidebar-footer text-center">
+                    <p class="small mb-2">@User.Identity.Name</p>
+                    <a asp-controller="Account" asp-action="Logout" class="btn btn-sm btn-outline-danger w-100">Sign Out</a>
+                </div>
+            </nav>
+            <main class="main-content flex-grow-1 p-4">
+                @RenderBody()
+            </main>
+        </div>
+    }
+    else
+    {
+
+        @RenderBody()
+    }
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,59 @@
+﻿@model List<dynamic>
+@{
+    ViewData["Title"] = "Pending Fund Releases";
+}
+
+<div class="page-header mb-4">
+    <h1 class="h3 fw-bold text-navy">Release Authorizations</h1>
+    <p class="text-muted small">Review and authorize cash cover disbursements</p>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light extra-small text-uppercase">
+                <tr>
+                    <th class="ps-4">Request Date</th>
+                    <th>Bond Ref</th>
+                    <th>Amount</th>
+                    <th>Payment Destination</th>
+                    <th>Notes</th>
+                    <th class="text-end pe-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Model)
+                {
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-bold">@p.CreatedAt.ToString("dd MMM yyyy")</div>
+                            <div class="extra-small text-muted">@p.CreatedAt.ToString("HH:mm")</div>
+                        </td>
+                        <td><span class="badge bg-navy-subtle text-navy">@p.BondRef</span></td>
+                        <td class="fw-bold text-navy">KES @p.Amount.ToString("N2")</td>
+                        <td>
+                            @if (p.PaymentMethod == "MPESA")
+                            {
+                                <div class="small"><i class="bi bi-phone text-success me-1"></i>M-Pesa: <strong>@p.BankAccount</strong></div>
+                            }
+                            else
+                            {
+                                <div class="small"><i class="bi bi-bank text-primary me-1"></i>@p.BankName</div>
+                                <div class="extra-small text-muted">Acc: @p.BankAccount</div>
+                            }
+                        </td>
+                        <td class="small italic">@p.Narration</td>
+                        <td class="text-end pe-4">
+                            <form asp-action="AuthorizeRelease" method="post" class="d-inline">
+                                <input type="hidden" name="queueId" value="@p.Id" />
+                                <input type="hidden" name="cashCoverId" value="@p.ReferenceId" />
+                                <button type="submit" name="decision" value="Approve" class="btn btn-sm btn-success px-3">Approve</button>
+                                <button type="submit" name="decision" value="Reject" class="btn btn-sm btn-outline-danger px-2">Reject</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

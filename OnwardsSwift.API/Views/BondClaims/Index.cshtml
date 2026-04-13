@@ -1,0 +1,33 @@
+@{ ViewData["Title"] = "Bond Claims"; }
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div><h1>Bond Claims</h1><div class="subtitle">Called bonds and claim records</div></div>
+    <a asp-action="Create" class="btn btn-danger"><i class="bi bi-exclamation-triangle me-1"></i>Record Claim</a>
+</div>
+
+<div class="content-body">
+<div class="card"><div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr><th>Bond Ref</th><th>Obligee</th><th>Penal Sum</th><th>Claim Amount</th>
+                <th>Claim Date</th><th>Claim Ref</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var r in (List<dynamic>)Model)
+            {
+                <tr>
+                    <td><code class="small">@r.BondRef</code></td>
+                    <td>@r.Obligee</td>
+                    <td class="amt">@((decimal)r.PenalSum).ToString("N0")</td>
+                    <td class="amt text-danger fw-bold">@((decimal)r.ClaimAmount).ToString("N0")</td>
+                    <td class="small text-muted">@(r.ClaimDate == null ? "—" : ((DateTime)r.ClaimDate).ToString("dd MMM yyyy"))</td>
+                    <td class="small">@r.ClaimReference</td>
+                    <td><span class="badge-status status-rejected">@r.ClaimStatus</span></td>
+                </tr>
+            }
+            @if (!((List<dynamic>)Model).Any())
+            { <tr><td colspan="7" class="text-center text-muted py-4">No bond claims recorded</td></tr> }
+        </tbody>
+    </table>
+</div></div>
+</div>

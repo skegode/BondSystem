@@ -1,0 +1,55 @@
+﻿@model IEnumerable<dynamic>
+@{
+    ViewData["Title"] = "Manage Internal Banks";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold text-primary mb-0">Internal Partner Banks</h4>
+            <p class="text-muted small">Configure banks used for bond issuance</p>
+        </div>
+        <a asp-action="CreateInternalBank" class="btn btn-primary shadow-sm">
+            <i class="bi bi-plus-lg me-1"></i> Add Internal Bank
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4">Bank Name</th>
+                        <th>Account Number</th>
+                        <th>Paybill No</th>
+                        <th>Created At</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var bank in Model)
+                    {
+                        <tr>
+                            <td class="ps-4">
+                                <span class="fw-bold text-dark">@bank.BankName</span>
+                            </td>
+                            <td><code>@bank.AccountNumber</code></td>
+                            <td><span class="badge bg-light text-dark border">@bank.PaybillNo</span></td>
+                            <td class="small text-muted">@bank.CreatedAt.ToString("dd MMM yyyy")</td>
+                            <td class="text-end pe-4">
+                                <a asp-action="EditInternalBank" asp-route-id="@bank.Id" class="btn btn-sm btn-outline-primary me-2">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </a>
+                                <form asp-action="DeleteInternalBank" asp-route-id="@bank.Id" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to remove this bank?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

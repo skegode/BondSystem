@@ -1,0 +1,40 @@
+﻿@{
+    ViewData["Title"] = "Register Internal Bank";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card border-0 shadow-lg">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <i class="bi bi-bank2 text-primary" style="font-size: 2.5rem;"></i>
+                        <h5 class="fw-bold mt-2">New Internal Bank</h5>
+                    </div>
+
+                    <form asp-action="CreateInternalBank" method="post">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">BANK NAME</label>
+                            <input type="text" name="BankName" class="form-control" placeholder="e.g. Standard Chartered" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">SETTLEMENT ACCOUNT NUMBER</label>
+                            <input type="text" name="AccountNumber" class="form-control" placeholder="010XXXXXXXX" required />
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold">PAYBILL NUMBER (OPTIONAL)</label>
+                            <input type="text" name="PaybillNo" class="form-control" placeholder="888999" />
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">Save Bank Details</button>
+                            <a asp-action="Banks" class="btn btn-link text-muted">Back to List</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

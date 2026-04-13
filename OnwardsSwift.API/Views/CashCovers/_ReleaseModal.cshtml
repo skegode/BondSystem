@@ -1,0 +1,114 @@
+﻿@model OnwardsSwift.Core.DTOs.CashCoverViewModel
+
+<div class="modal fade" id="releaseModal-@Model.Id" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-navy text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-shield-check me-2"></i>Initiate Release</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="Release" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+
+                <div class="modal-body p-4">
+                    <div class="p-3 bg-light rounded-3 border mb-4">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <small class="text-muted text-uppercase d-block mb-1">Total Refundable</small>
+                                <h4 class="fw-bold text-navy mb-0">KES @Model.CashCoverAmount.ToString("N2")</h4>
+                            </div>
+                            <div class="col-auto text-end">
+                                <div class="badge bg-white text-navy border">@Model.BondRef</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">PAYMENT METHOD</label>
+                        <select name="paymentMethod" id="paymentMethod-@Model.Id" class="form-select border-2"
+                                onchange="togglePaymentFields(@Model.Id)" required>
+                            <option value="">Select Method...</option>
+                            <option value="MPESA">M-Pesa B2C</option>
+                            <option value="BANK">Bank Transfer (EFT/RTGS)</option>
+                        </select>
+                    </div>
+
+                    <div id="mpesaGroup-@Model.Id" style="display:none;" class="p-3 border rounded bg-light-subtle mb-3">
+                        <label class="form-label small fw-bold text-success"><i class="bi bi-phone me-1"></i>M-PESA RECIPIENT PHONE</label>
+                        <input type="text" name="phone" class="form-control form-control-lg" placeholder="e.g. 254712345678" />
+                        <div class="form-text extra-small">Ensure format starts with 254 for automated processing.</div>
+                    </div>
+
+                    <div id="bankGroup-@Model.Id" style="display:none;" class="p-3 border rounded bg-light-subtle mb-3">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-primary">SELECT BANK</label>
+                            <select name="bankName" class="form-select">
+                                <option value="">Select Bank...</option>
+                                <option value="KCB">KCB Bank</option>
+                                <option value="EQUITY">Equity Bank</option>
+                                <option value="COOP">Co-operative Bank</option>
+                                <option value="ABSA">ABSA Kenya</option>
+                                <option value="STANBIC">Stanbic Bank</option>
+                                <option value="STANCHART">Standard Chartered</option>
+                                <option value="I&M">I&M Bank</option>
+                                <option value="NCBA">NCBA Bank</option>
+                                <option value="DTB">Diamond Trust Bank (DTB)</option>
+                                <option value="FAMILY">Family Bank</option>
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-7 mb-3">
+                                <label class="form-label small fw-bold text-primary">ACCOUNT NUMBER</label>
+                                <input type="text" name="accountNo" class="form-control" placeholder="Account digits" />
+                            </div>
+                            <div class="col-md-5 mb-3">
+                                <label class="form-label small fw-bold text-primary">BRANCH</label>
+                                <input type="text" name="branchName" class="form-control" placeholder="Branch name" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="form-label small fw-bold text-muted">RELEASE NOTES</label>
+                        <textarea name="notes" class="form-control border-2" rows="2"
+                                  placeholder="Why are these funds being released? (Required)" required></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light border-0 px-4 py-3">
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-navy px-4 fw-bold shadow-sm">
+                        <i class="bi bi-layers-half me-1"></i> Queue for Authorization
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function togglePaymentFields(id) {
+        const method = document.getElementById('paymentMethod-' + id).value;
+        const mpesaGroup = document.getElementById('mpesaGroup-' + id);
+        const bankGroup = document.getElementById('bankGroup-' + id);
+
+        // Hide all initially
+        mpesaGroup.style.display = 'none';
+        bankGroup.style.display = 'none';
+
+        // Toggle based on selection
+        if (method === 'MPESA') {
+            mpesaGroup.style.display = 'block';
+            // Optional: make phone required if MPESA is selected
+            mpesaGroup.querySelector('input').setAttribute('required', 'required');
+            bankGroup.querySelectorAll('input, select').forEach(el => el.removeAttribute('required'));
+        }
+        else if (method === 'BANK') {
+            bankGroup.style.display = 'block';
+            // Optional: make bank fields required if BANK is selected
+            bankGroup.querySelectorAll('input, select').forEach(el => el.setAttribute('required', 'required'));
+            mpesaGroup.querySelector('input').removeAttribute('required');
+        }
+    }
+</script>

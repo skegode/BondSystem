@@ -1,0 +1,157 @@
+﻿@model IEnumerable<dynamic>
+@{
+    var client = ViewBag.Client;
+    ViewData["Title"] = "Statement - " + client.Name;
+}
+
+<style>
+    /* Professional PDF/Print Styles */
+    @@media print {
+        .no-print {
+            display: none !important;
+        }
+
+        .sidebar {
+            display: none !important;
+        }
+
+        .main-content {
+            margin-left: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        body {
+            background-color: white !important;
+        }
+    }
+
+    .table-statement thead {
+        background-color: #f8f9fa;
+        border-top: 2px solid #333;
+    }
+
+    .bof-row {
+        background-color: #fafafa;
+        font-style: italic;
+    }
+
+    .summary-box {
+        background: #f4f7f6;
+        border-radius: 10px;
+        padding: 20px;
+        border-right: 5px solid #0d6efd;
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+        <button onclick="history.back()" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Back to Search
+        </button>
+        <div>
+            <button onclick="window.print()" class="btn btn-primary shadow-sm">
+                <i class="bi bi-file-earmark-pdf"></i> Print / Save PDF
+            </button>
+            <button id="btnExcel" class="btn btn-success shadow-sm ms-2">
+                <i class="bi bi-file-earmark-excel"></i> Export Excel
+            </button>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm p-4" id="printableArea">
+        <div class="row mb-5">
+            <div class="col-7">
+                <h2 class="fw-bold text-primary mb-0">ONWARDS SWIFT</h2>
+                <p class="text-muted small">
+                    Nairobi, Kenya<br />
+                    FinTech Infrastructure & Payments
+                </p>
+            </div>
+            <div class="col-5 text-end">
+                <h3 class="fw-bold text-uppercase">Statement of Account</h3>
+                <p class="mb-0 text-muted">Period: <strong>@ViewBag.From.ToString("dd-MMM-yyyy")</strong> to <strong>@ViewBag.To.ToString("dd-MMM-yyyy")</strong></p>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <h5 class="fw-bold text-dark mb-1">@client.Name</h5>
+                <p class="mb-0 text-muted">@client.Email</p>
+                <p class="mb-0 text-muted">@client.PhoneNumber</p>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle" id="statementTable">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 15%">Date</th>
+                        <th style="width: 45%">Description</th>
+                        <th class="text-end" style="width: 13%">Debit (+)</th>
+                        <th class="text-end" style="width: 13%">Credit (-)</th>
+                        <th class="text-end" style="width: 14%">Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="bof-row">
+                        <td>@ViewBag.From.ToString("dd-MMM-yyyy")</td>
+                        <td>Balance Brought Forward</td>
+                        <td class="text-end">-</td>
+                        <td class="text-end">-</td>
+                        <td class="text-end fw-bold">@ViewBag.Bof.ToString("N2")</td>
+                    </tr>
+
+                    @foreach (var line in Model)
+                    {
+                        <tr>
+                            <td>@line.TransactionDate.ToString("dd-MMM-yyyy")</td>
+                            <td>@line.Description</td>
+                            <td class="text-end text-danger">@(line.Debit > 0 ? ((decimal)line.Debit).ToString("N2") : "-")</td>
+                            <td class="text-end text-success">@(line.Credit > 0 ? ((decimal)line.Credit).ToString("N2") : "-")</td>
+                            <td class="text-end fw-bold">@(((decimal)line.RunningBalance).ToString("N2"))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-7">
+                <p class="small text-muted">
+                    <strong>Notes:</strong><br />
+                    1. All amounts are in Kenya Shillings (KES).<br />
+                    2. Please report any discrepancies within 14 days of the statement date.
+                </p>
+            </div>
+            <div class="col-md-5">
+                <div class="summary-box">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Closing Balance:</span>
+                        <h4 class="fw-bold mb-0">KES @ViewBag.TotalDue.ToString("N2")</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/gh/linways/table-to-excel@v1.0.4/dist/tableToExcel.js"></script>
+    <script>
+        $(document).ready(function () {
+            $("#btnExcel").click(function () {
+                let table = document.getElementById("statementTable");
+                TableToExcel.convert(table, {
+                    name: "Statement_@client.Name" + ".xlsx",
+                    sheet: { name: "Transaction History" }
+                });
+            });
+        });
+    </script>
+}

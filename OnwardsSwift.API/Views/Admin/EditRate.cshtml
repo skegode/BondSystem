@@ -1,0 +1,113 @@
+﻿@model dynamic
+@{
+    var isEdit = ViewContext.RouteData.Values["action"].ToString().Contains("Edit");
+    var products = ViewBag.ProductTypes as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var banks = ViewBag.Banks as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+    var commTypes = ViewBag.CommTypes as IEnumerable<SelectListItem> ?? new List<SelectListItem>();
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h5 class="mb-0 fw-bold text-primary">
+                        <i class="bi bi-calculator me-2"></i>@(isEdit ? "Update" : "New") Rate Configuration
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="@(isEdit ? "EditRate" : "CreateRate")" method="post">
+                        @if (isEdit)
+                        {
+                            <input type="hidden" name="id" value="@Model.Id" />
+                        }
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">PARTNER BANK</label>
+                                <select name="bankPartnerId" class="form-select select2" required>
+                                    <option value="">-- Select Bank --</option>
+                                    @foreach (var b in banks)
+                                    {
+                                        <option value="@b.Value" selected="@(isEdit && Model.BankPartnerId?.ToString() == b.Value)">@b.Text</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">PRODUCT</label>
+                                <select name="productType" class="form-select" required>
+                                    <option value="">-- Select Product --</option>
+                                    @foreach (var p in products)
+                                    {
+                                        <option value="@p.Value" selected="@(isEdit && Model.ProductType?.ToString() == p.Value)">@p.Text</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <hr class="my-4 text-muted opacity-25">
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">BANK CHARGES (%)</label>
+                                <div class="input-group">
+                                    <input type="number" step="0.0001" name="rate" class="form-control"
+                                           value="@(isEdit? Model.Rate * 100 : "")" placeholder="e.g. 2.5" required />
+                                    <span class="input-group-text bg-light">%</span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold">APP FEE</label>
+                                <input type="number" step="0.0001" name="applicationFee" class="form-control"
+                                       value="@(isEdit? Model.ApplicationFee: "")" placeholder="0.005" required />
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold">FEE TYPE</label>
+                                <select name="applicationFeeType" class="form-select">
+                                    <option value="1" selected="@(isEdit && Model.ApplicationFeeType == 1)">% Percentage</option>
+                                    <option value="2" selected="@(isEdit && Model.ApplicationFeeType == 2)">Fixed (KES)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-success">COMMISSION VALUE</label>
+                                <input type="number" step="0.001" name="commission" class="form-control border-success-subtle"
+                                       value="@(isEdit? Model.Commission: "")" required />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-success">COMMISSION TYPE</label>
+                                <select name="commissionType" class="form-select border-success-subtle">
+                                    @foreach (var c in commTypes)
+                                    {
+                                        <option value="@c.Value" selected="@(isEdit && Model.CommissionType?.ToString() == c.Value)">@c.Text</option>
+                                    }
+                                </select>
+                            </div>
+
+                            @if (isEdit)
+                            {
+                                <div class="col-md-12 mt-3">
+                                    <div class="form-check form-switch p-3 bg-light rounded border">
+                                        <input class="form-check-input ms-0 me-2" type="checkbox" name="isActive" value="1" @(Model.IsActive == 1 ? "checked" : "")>
+                                        <label class="form-check-label fw-bold">Status: Configuration is Active</label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
+                            <a asp-action="Rates" class="text-secondary text-decoration-none small fw-bold">
+                                <i class="bi bi-chevron-left"></i> Back to List
+                            </a>
+                            <button type="submit" class="btn btn-primary px-5 shadow">
+                                <i class="bi bi-check-circle me-2"></i>@(isEdit ? "Update Rates" : "Save Rates")
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

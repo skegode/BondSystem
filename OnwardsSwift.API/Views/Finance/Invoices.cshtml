@@ -1,0 +1,129 @@
+﻿@model IEnumerable<dynamic>
+@{
+    ViewData["Title"] = "Manage Invoices";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 animate__animated animate__fadeIn">
+    <h3 class="fw-bold text-dark"><i class="bi bi-wallet2 me-2 text-primary"></i>Receivables</h3>
+    <div class="bg-white p-3 rounded shadow-sm border-start border-primary border-4">
+        <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.7rem;">Total Outstanding</small>
+        <h4 class="mb-0 fw-bold">KES @Model.Sum(x => (decimal)x.RemainingBalance).ToString("N2")</h4>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light">
+                <tr>
+                    <th class="ps-4">Invoice #</th>
+                    <th>Client</th>
+                    <th>Total Amount</th>
+                    <th>Balance</th>
+                    <th>Due Date</th>
+                    <th class="text-center">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    bool isOverdue = item.Status == 0 && item.DueDate < DateTime.Now;
+                    <tr>
+                        <td class="ps-4">
+                            <span class="fw-bold">@item.InvoiceNumber</span>
+                            @if (item.Status == 1)
+                            {
+                                <i class="bi bi-patch-check-fill text-success ms-1"></i>
+                            }
+                        </td>
+                        <td>@item.ClientName</td>
+                        <td>@(((decimal)item.Amount).ToString("N2"))</td>
+                        <td class="fw-bold text-@(item.RemainingBalance > 0 ? "primary" : "success")">
+                            @(((decimal)item.RemainingBalance).ToString("N2"))
+                        </td>
+                        <td>
+                            <span class="@(isOverdue ? "text-danger fw-bold animate__animated animate__flash animate__infinite" : "")">
+                                @item.DueDate?.ToString("dd-MMM-yyyy")
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            @if (item.Status == 0)
+                            {
+                                <button class="btn btn-sm btn-primary rounded-pill px-3"
+                                        onclick="openPayModal(@item.Id, '@item.InvoiceNumber', '@item.RemainingBalance')">
+                                    <i class="bi bi-plus-lg me-1"></i> Pay
+                                </button>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success-subtle text-success border border-success px-3">Settled</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade animate__animated animate__zoomIn" id="payModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form asp-action="MarkAsPaid" method="post" class="modal-content border-0 shadow-lg">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="invoiceId" id="modalInvId" />
+
+            <div class="modal-header border-0">
+                <h5 class="fw-bold">Receive Payment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info border-0 d-flex align-items-center">
+                    <i class="bi bi-info-circle-fill me-2 fs-4"></i>
+                    <div>
+                        Current Balance for <strong id="modalInvText"></strong>:
+                        <span class="d-block fw-bold h5 mb-0">KES <span id="modalBalText"></span></span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Amount Received</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white">KES</span>
+                        <input type="number" step="0.01" name="amountPaid" id="inputAmount" class="form-control form-control-lg fw-bold text-primary" required />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Deposit To</label>
+                    <select name="internalBankId" class="form-select select2-modal" asp-items="ViewBag.InternalBanks" required>
+                        <option value="">-- Choose Internal Bank Account --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-primary px-4">Post Transaction</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openPayModal(id, num, balance) {
+            $('#modalInvId').val(id);
+            $('#modalInvText').text(num);
+            $('#modalBalText').text(parseFloat(balance).toLocaleString());
+            $('#inputAmount').val(balance).attr('max', balance);
+
+            new bootstrap.Modal('#payModal').show();
+        }
+
+        $(document).ready(function() {
+            $('.select2-modal').select2({
+                dropdownParent: $('#payModal'),
+                theme: 'bootstrap-5'
+            });
+        });
+    </script>
+}

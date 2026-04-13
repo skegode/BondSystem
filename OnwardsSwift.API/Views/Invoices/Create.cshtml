@@ -1,0 +1,66 @@
+@model OnwardsSwift.Core.DTOs.CreateInvoiceDiscountRequest
+@{ ViewData["Title"] = "New Invoice Discounting"; }
+<div class="page-header"><h1>New Invoice Discounting</h1></div>
+<div class="content-body">
+<form asp-action="Create" method="post">
+    @Html.AntiForgeryToken()
+    <div class="row"><div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-header">Invoice Details</div>
+            <div class="card-body row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Client *</label>
+                    <select asp-for="ClientId" class="form-select" asp-items="ViewBag.Clients"><option value="">-- Select --</option></select>
+                    <span asp-validation-for="ClientId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Invoice Number *</label>
+                    <input asp-for="InvoiceNumber" class="form-control" />
+                    <span asp-validation-for="InvoiceNumber" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Debtor Name *</label>
+                    <input asp-for="DebtorName" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Debtor KRA PIN</label>
+                    <input asp-for="DebtorKraPin" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Invoice Date *</label>
+                    <input asp-for="InvoiceDate" class="form-control" type="date" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Due Date *</label>
+                    <input asp-for="InvoiceDueDate" class="form-control" type="date" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Face Value (KSh) *</label>
+                    <input asp-for="InvoiceFaceValue" class="form-control" data-amount="true" />
+                    <span asp-validation-for="InvoiceFaceValue" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Advance % (60-80) *</label>
+                    <input asp-for="AdvancePercentage" class="form-control" type="number" min="60" max="80" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Disbursement Bank *</label>
+                    <input asp-for="DisbursementBank" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Account Number *</label>
+                    <input asp-for="DisbursementAccount" class="form-control" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Notes</label>
+                    <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-navy px-4"><i class="bi bi-send me-1"></i>Submit Application</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </div></div>
+</form>
+</div>

@@ -1,0 +1,147 @@
+<div class="page-header mb-4">
+    <h1 class="h3 fw-bold text-navy">New Cheque Discounting Application</h1>
+</div>
+
+<form asp-action="Create" method="post" enctype="multipart_form-data">
+    @Html.AntiForgeryToken()
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-card-heading me-2"></i>Cheque Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">CLIENT / COMPANY</label>
+                        <select name="clientId" class="form-select select2" required>
+                            <option value="">-- Select Client --</option>
+                            @foreach (var client in ViewBag.Clients)
+                            {
+                                <option value="@client.Id">@client.CompanyName</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">CHEQUE NUMBER</label>
+                            <input type="text" name="chequeNumber" class="form-control" required placeholder="000123" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">DRAWER BANK (SOURCE)</label>
+                            <select name="drawerBank" class="form-select select2" required>
+                                <option value="">-- Select Bank --</option>
+                                @foreach (var bank in ViewBag.Banks)
+                                {
+                                    <option value="@bank">@bank</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">DRAWER ACCOUNT NUMBER</label>
+                            <input type="text" name="drawerAccountNo" class="form-control" required placeholder="Account on the cheque" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted">ATTACH CHEQUE PHOTO</label>
+                            <input type="file" name="chequePhoto" class="form-control" accept="image/*" required />
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-muted">CHEQUE AMOUNT</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light small">KES</span>
+                                <input type="number" id="txtAmount" name="chequeAmount" step="0.01" class="form-control fw-bold" required />
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-muted">DISCOUNT RATE (%)</label>
+                            <input type="number" id="txtRate" name="discountRate" step="0.1" class="form-control" value="3.5" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-muted">MATURITY DATE</label>
+                            <input type="date" name="expiryDate" class="form-control" required />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm sticky-top" style="top: 20px;">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold text-success"><i class="bi bi-cash-coin me-2"></i>Disbursement Details</h6>
+                </div>
+                <div class="card-body">
+                    <div class="p-3 bg-success-subtle rounded-3 mb-4 text-center border border-success-subtle">
+                        <div class="text-uppercase extra-small fw-bold text-success">Estimated Payout</div>
+                        <h3 class="fw-bold text-success mb-0" id="lblNet">KES 0.00</h3>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-muted">PAYMENT METHOD</label>
+                        <select name="paymentMethod" id="payMethod" class="form-select border-primary-subtle" onchange="togglePaymentFields()" required>
+                            <option value="">-- Select Method --</option>
+                            <option value="MPESA">M-Pesa B2C</option>
+                            <option value="BANK">Bank (EFT/RTGS)</option>
+                        </select>
+                    </div>
+
+                    <div id="mpesaSection" style="display:none;" class="p-3 bg-light rounded-3 mb-4 animate__animated animate__fadeIn">
+                        <label class="form-label small fw-bold text-success">RECIPIENT PHONE</label>
+                        <input type="text" name="phone" class="form-control" placeholder="2547XXXXXXXX" />
+                    </div>
+
+                    <div id="bankSection" style="display:none;" class="p-3 bg-light rounded-3 mb-4 animate__animated animate__fadeIn">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-primary">DESTINATION BANK</label>
+                            <input type="text" name="bankName" class="form-control" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-primary">ACCOUNT NUMBER</label>
+                            <input type="text" name="accountNo" class="form-control" />
+                        </div>
+                        <div>
+                            <label class="form-label small fw-bold text-primary">BRANCH NAME</label>
+                            <input type="text" name="branchName" class="form-control" />
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-navy w-100 py-3 shadow-sm fw-bold">
+                        <i class="bi bi-shield-lock-fill me-2"></i>SUBMIT APPLICATION
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+    function togglePaymentFields() {
+        const method = document.getElementById('payMethod').value;
+        const mpesa = document.getElementById('mpesaSection');
+        const bank = document.getElementById('bankSection');
+
+        mpesa.style.display = (method === 'MPESA') ? 'block' : 'none';
+        bank.style.display = (method === 'BANK') ? 'block' : 'none';
+    }
+
+    // Live Calculation Logic
+    const amountInput = document.getElementById('txtAmount');
+    const rateInput = document.getElementById('txtRate');
+    const displayNet = document.getElementById('lblNet');
+
+    function calculateNet() {
+        const amount = parseFloat(amountInput.value) || 0;
+        const rate = parseFloat(rateInput.value) || 0;
+        const net = amount - (amount * (rate / 100));
+        displayNet.innerText = 'KES ' + net.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    amountInput.addEventListener('input', calculateNet);
+    rateInput.addEventListener('input', calculateNet);
+</script>

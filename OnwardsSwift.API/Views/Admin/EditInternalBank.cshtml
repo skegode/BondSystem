@@ -1,0 +1,40 @@
+﻿@model dynamic
+@{
+    ViewData["Title"] = "Edit Internal Bank";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card border-0 shadow-lg border-top border-primary border-4">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-4">Update Bank: @Model.BankName</h5>
+
+                    <form asp-action="EditInternalBank" method="post">
+                        <input type="hidden" name="Id" value="@Model.Id" />
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">BANK NAME</label>
+                            <input type="text" name="BankName" class="form-control" value="@Model.BankName" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">SETTLEMENT ACCOUNT NUMBER</label>
+                            <input type="text" name="AccountNumber" class="form-control" value="@Model.AccountNumber" required />
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold">PAYBILL NUMBER</label>
+                            <input type="text" name="PaybillNo" class="form-control" value="@Model.PaybillNo" />
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">Update Records</button>
+                            <a asp-action="Banks" class="btn btn-link text-muted">Cancel Changes</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

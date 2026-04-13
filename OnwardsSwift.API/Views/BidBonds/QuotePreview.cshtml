@@ -1,0 +1,31 @@
+﻿@model OnwardsSwift.Core.DTOs.CreateBidBondRequest
+@{
+    Layout = "_Layout"; // Or null if you want a clean print page
+}
+
+<div class="container mt-5">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">Bid Bond Quote Preview</h2>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-6">
+                    <p><strong>Bank:</strong> @Model.IssuingBank</p>
+                    <p><strong>Amount:</strong> KSh @Model.Amount.ToString("N2")</p>
+                    <p><strong>Tenor:</strong> @Model.TenorDays Days</p>
+                </div>
+                <div class="col-6 text-end">
+                    <p><strong>Date:</strong> @DateTime.Now.ToString("dd MMM yyyy")</p>
+                </div>
+            </div>
+            <hr />
+            <div class="alert alert-info">
+                This is a preliminary quote based on the provided details.
+            </div>
+        </div>
+        <div class="card-footer text-center">
+            <button class="btn btn-secondary" onclick="window.print()">Print Quote</button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,58 @@
+﻿@model OnwardsSwift.Core.DTOs.NavMenu
+
+<form asp-action="EditMenu" method="post">
+    <input type="hidden" asp-for="Id" />
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Title</label>
+                    <input asp-for="Title" class="form-control" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Status</label>
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" asp-for="IsActive">
+                        <label class="form-check-label">Menu is Visible</label>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Parent Menu</label>
+                    <select asp-for="ParentId" class="form-select select2">
+                        <option value="">Top Level</option>
+                        @foreach (var p in ViewBag.ParentMenus)
+                        {
+                            <option value="@p.Id">@p.Title</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Icon Class</label>
+                    <input asp-for="Icon" class="form-control" />
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Controller</label>
+                    <input asp-for="Controller" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Action</label>
+                    <input asp-for="Action" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Sort Order</label>
+                    <input asp-for="SortOrder" class="form-control" />
+                </div>
+
+                <div class="col-12 mt-4">
+                    <button type="submit" class="btn btn-success px-5">Update Menu</button>
+                    <a asp-action="ManageMenus" class="btn btn-link">Cancel</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>

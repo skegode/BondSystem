@@ -1,0 +1,812 @@
+using Dapper;
+using OnwardsSwift.Core.DTOs;
+using OnwardsSwift.Core.Enums;
+using OnwardsSwift.Core.Interfaces;
+using OnwardsSwift.Infrastructure.Data;
+
+namespace OnwardsSwift.Infrastructure.Services
+{
+    // ══════════════════════════════════════════════════════════════
+    //  SHARED MAPPING HELPERS
+    // ══════════════════════════════════════════════════════════════
+    internal static class Map
+    {
+        internal static string Fac(int? s) => s switch
+        {
+            0 => "Draft", 1 => "Pending", 2 => "UnderReview", 3 => "Approved",
+            4 => "Disbursed", 5 => "Rejected", 6 => "Expired", 7 => "Settled", _ => "Pending"
+        };
+        internal static string FType(int? t) => t switch
+        {
+            1 => "BidBond", 2 => "InvoiceDiscounting", 3 => "ChequeDiscounting",
+            4 => "PerformanceBond", 5 => "AdvancePayment", 6 => "CustomsBond", _ => "Unknown"
+        };
+        internal static string CType(int? t) => t switch
+        {
+            1 => "Individual", 2 => "SME", 3 => "Corporate", 4 => "Government", _ => "SME"
+        };
+        internal static int StatusInt(string s) => s.ToLower() switch
+        {
+            "approved"    => 3, "disbursed"   => 4, "rejected"    => 5,
+            "underreview" => 2, "settled"     => 7, "expired"     => 6,
+            "draft"       => 0, _ => 1
+        };
+
+        // ── Null-safe row mapper ────────────────────────────────
+        internal static FacilityListItem FacRow(dynamic r) => new()
+        {
+            Id          = r.Id          == null ? Guid.Empty       : (Guid)r.Id,
+            ReferenceNo = r.ReferenceNo ?? "",
+            Type        = FType(r.Type  == null ? (int?)null       : (int)r.Type),
+            ClientName  = r.ClientName  ?? "",
+            ClientId    = r.ClientId    == null ? Guid.Empty       : (Guid)r.ClientId,
+            Amount      = r.Amount      == null ? 0m               : (decimal)r.Amount,
+            Rate        = r.Rate        == null ? 0m               : (decimal)r.Rate,
+            TenorDays   = r.TenorDays   == null ? 0                : (int)r.TenorDays,
+            FinanceFee  = r.FinanceFee  == null ? 0m               : (decimal)r.FinanceFee,
+            NetAmount   = r.NetAmount   == null ? 0m               : (decimal)r.NetAmount,
+            Status      = Fac(r.Status  == null ? (int?)null       : (int)r.Status),
+            CreatedAt   = r.CreatedAt   == null ? DateTime.MinValue : (DateTime)r.CreatedAt,
+            DisbursedAt = r.DisbursedAt == null ? (DateTime?)null   : (DateTime)r.DisbursedAt
+        };
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  CALCULATOR SERVICE
+    // ══════════════════════════════════════════════════════════════
+    public class CalculatorService : ICalculatorService
+    {
+        private static readonly Dictionary<FacilityType, decimal> Rates = new()
+        {
+            { FacilityType.BidBond,            0.025m },
+            { FacilityType.PerformanceBond,    0.025m },
+            { FacilityType.CustomsBond,        0.025m },
+            { FacilityType.AdvancePayment,     0.025m },
+            { FacilityType.InvoiceDiscounting, 0.040m },
+            { FacilityType.ChequeDiscounting,  0.035m }
+        };
+
+        public CalculateResponse Calculate(CalculateRequest req)
+        {
+            var rate    = Rates.GetValueOrDefault(req.ProductType, 0.025m);
+            var fee     = req.Amount * rate * (req.TenorDays / 365m);
+            var advance = req.Amount * ((req.AdvancePercentage ?? 100m) / 100m);
+            return new CalculateResponse
+            {
+                PrincipalAmount = req.Amount,
+                Rate            = rate * 100,
+                TenorDays       = req.TenorDays,
+                FinanceFee      = Math.Round(fee, 2),
+                AdvanceAmount   = Math.Round(advance, 2),
+                NetToClient     = Math.Round(advance - fee, 2),
+                ProductType     = req.ProductType.ToString(),
+                RateDescription = $"{rate * 100:F1}% p.a. · {req.TenorDays} days"
+            };
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  FACILITY SERVICE
+    // ══════════════════════════════════════════════════════════════
+    public class FacilityService : IFacilityService
+    {
+        private readonly DapperContext _ctx;
+        public FacilityService(DapperContext ctx) => _ctx = ctx;
+
+        private const string FacSelect = @"
+            SELECT f.Id, f.ReferenceNo, f.Type, f.ClientId, f.Amount, f.Rate, f.TenorDays,
+                   f.FinanceFee, f.NetAmount, f.Status, f.CreatedAt, f.DisbursedAt,
+                   ISNULL(c.CompanyName,'') AS ClientName
+            FROM   Facilities f
+            LEFT JOIN Clients c ON c.Id = f.ClientId";
+
+        public async Task<dynamic> GetRateAsync(int bankId, int productType)
+        {
+            using var conn = _ctx.Create();
+
+            // Querying based on the Bank ID and Product Type
+            var rate = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
+        SELECT Rate, CommissionRate AS Comm, CommissionType AS CommType 
+        FROM ProductRates 
+        WHERE BankId = @BankId 
+          AND ProductType = @ProdType 
+          AND IsActive = 1",
+                new { BankId = bankId, ProdType = productType });
+
+            // Fallback values if no specific rate is configured in the DB
+            if (rate == null)
+            {
+                return new { rate = 0.025m, comm = 0.01m, commType = 1 };
+            }
+
+            return rate;
+        }
+
+        public async Task<PagedResult<FacilityListItem>> GetFacilitiesAsync(FacilityFilter f)
+        {
+            var where = BuildWhere(f);
+            var p = new { S = $"%{f.Search}%", Skip = (f.Page - 1) * f.PageSize, Take = f.PageSize };
+            using var conn = _ctx.Create();
+            var total = await conn.ExecuteScalarAsync<int>(
+                $"SELECT COUNT(*) FROM Facilities f LEFT JOIN Clients c ON c.Id=f.ClientId WHERE {where}", p);
+            var rows = await conn.QueryAsync<dynamic>(
+                $"{FacSelect} WHERE {where} ORDER BY f.CreatedAt DESC OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY", p);
+            return new PagedResult<FacilityListItem>
+            { Items = rows.Select<dynamic,FacilityListItem>(Map.FacRow).ToList(), TotalCount = total, Page = f.Page, PageSize = f.PageSize };
+        }
+
+        public async Task<FacilityListItem?> GetFacilityAsync(Guid id)
+        {
+            using var conn = _ctx.Create();
+            var r = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                $"{FacSelect} WHERE f.Id=@Id AND f.IsDeleted=0", new { Id = id });
+            return r == null ? null : Map.FacRow(r);
+        }
+
+        public async Task<bool> ApproveFacilityAsync(Guid id, ApproveRequest req, string by)
+        {
+            using var conn = _ctx.Create();
+            await LogStatus(conn, id, 1, 3, by);
+            return await conn.ExecuteAsync(@"
+                UPDATE Facilities SET Status=3, ApprovedBy=@By, ApprovedAt=GETUTCDATE(),
+                    Notes=@Notes, DisbursementAccount=@Acct, DisbursementBank=@Bank,
+                    UpdatedAt=GETUTCDATE(), UpdatedBy=@By
+                WHERE Id=@Id AND IsDeleted=0",
+                new { Id = id, By = by, Notes = req.Notes, Acct = req.DisbursementAccount, Bank = req.DisbursementBank }) > 0;
+        }
+
+        public async Task<bool> DisburseAsync(Guid id, string by)
+        {
+            using var conn = _ctx.Create();
+            await LogStatus(conn, id, 3, 4, by);
+            return await conn.ExecuteAsync(@"
+                UPDATE Facilities SET Status=4, DisbursedAt=GETUTCDATE(), UpdatedAt=GETUTCDATE(), UpdatedBy=@By
+                WHERE Id=@Id AND IsDeleted=0;
+                UPDATE Clients SET UtilisedLimit = UtilisedLimit + (SELECT Amount FROM Facilities WHERE Id=@Id),
+                    UpdatedAt=GETUTCDATE()
+                WHERE Id=(SELECT ClientId FROM Facilities WHERE Id=@Id)",
+                new { Id = id, By = by }) > 0;
+        }
+
+        public async Task<bool> RejectFacilityAsync(Guid id, RejectRequest req, string by)
+        {
+            using var conn = _ctx.Create();
+            await LogStatus(conn, id, 1, 5, by, req.Reason);
+            return await conn.ExecuteAsync(
+                "UPDATE Facilities SET Status=5, RejectionReason=@R, UpdatedAt=GETUTCDATE(), UpdatedBy=@By WHERE Id=@Id AND IsDeleted=0",
+                new { Id = id, By = by, R = req.Reason }) > 0;
+        }
+
+        public async Task<DashboardSummary> GetDashboardAsync()
+        {
+            using var conn = _ctx.Create();
+            using var m = await conn.QueryMultipleAsync(@"
+                SELECT f.Id, f.ReferenceNo, f.Type, f.ClientId, f.Amount, f.Rate, f.TenorDays,
+                       f.FinanceFee, f.NetAmount, f.Status, f.CreatedAt, f.DisbursedAt,
+                       ISNULL(c.CompanyName,'') AS ClientName,
+                       YEAR(f.CreatedAt)  AS Yr,
+                       MONTH(f.CreatedAt) AS Mo
+                FROM Facilities f
+                LEFT JOIN Clients c ON c.Id = f.ClientId
+                WHERE f.IsDeleted = 0;
+
+                SELECT
+                    COUNT(*)                                                      AS TC,
+                    SUM(CASE WHEN Status = 3 THEN 1 ELSE 0 END)                 AS AC
+                FROM Clients WHERE IsDeleted = 0");
+
+            var facs = (await m.ReadAsync<dynamic>()).ToList();
+            var cl   = await m.ReadFirstOrDefaultAsync<dynamic>();
+
+            return new DashboardSummary
+            {
+                TotalFacilities          = facs.Count,
+                PendingApplications      = facs.Count(f => f.Status != null && (int)f.Status is 1 or 2),
+                ApprovedFacilities       = facs.Count(f => f.Status != null && (int)f.Status == 3),
+                DisbursedFacilities      = facs.Count(f => f.Status != null && (int)f.Status == 4),
+                RejectedFacilities       = facs.Count(f => f.Status != null && (int)f.Status == 5),
+                TotalPortfolioValue      = facs.Sum(f => f.Amount   == null ? 0m : (decimal)f.Amount),
+                TotalDisbursed           = facs.Where(f => f.Status != null && (int)f.Status == 4)
+                                               .Sum(f => f.Amount   == null ? 0m : (decimal)f.Amount),
+                TotalFeesEarned          = facs.Sum(f => f.FinanceFee == null ? 0m : (decimal)f.FinanceFee),
+                TotalClients             = cl == null ? 0 : (int)cl.TC,
+                ActiveClients            = cl == null ? 0 : (int)cl.AC,
+                BidBondCount             = facs.Count(f => f.Type != null && (int)f.Type == 1),
+                InvoiceDiscountCount     = facs.Count(f => f.Type != null && (int)f.Type == 2),
+                ChequeDiscountCount      = facs.Count(f => f.Type != null && (int)f.Type == 3),
+                BidBondPortfolio         = facs.Where(f => f.Type != null && (int)f.Type == 1)
+                                               .Sum(f => f.Amount == null ? 0m : (decimal)f.Amount),
+                InvoiceDiscountPortfolio = facs.Where(f => f.Type != null && (int)f.Type == 2)
+                                               .Sum(f => f.Amount == null ? 0m : (decimal)f.Amount),
+                ChequeDiscountPortfolio  = facs.Where(f => f.Type != null && (int)f.Type == 3)
+                                               .Sum(f => f.Amount == null ? 0m : (decimal)f.Amount),
+                RecentApplications       = facs.OrderByDescending(f => f.CreatedAt == null ? DateTime.MinValue : (DateTime)f.CreatedAt)
+                                               .Take(10).Select<dynamic,FacilityListItem>(f => Map.FacRow(f)).ToList(),
+                MonthlyStats             = facs.Where(f => f.Yr != null && f.Mo != null)
+                    .GroupBy(f => new { Y = (int)f.Yr, M = (int)f.Mo })
+                    .OrderBy(g => g.Key.Y).ThenBy(g => g.Key.M)
+                    .Select(g => new MonthlyStats
+                    {
+                        Month           = $"{g.Key.Y}-{g.Key.M:D2}",
+                        FacilitiesCount = g.Count(),
+                        TotalAmount     = g.Sum(x => x.Amount    == null ? 0m : (decimal)x.Amount),
+                        FeesEarned      = g.Sum(x => x.FinanceFee == null ? 0m : (decimal)x.FinanceFee)
+                    }).ToList()
+            };
+        }
+
+        public string GenerateReferenceNo(FacilityType t)
+        {
+            var prefix = t switch
+            {
+                FacilityType.BidBond            => "BB",
+                FacilityType.PerformanceBond    => "PB",
+                FacilityType.CustomsBond        => "CB",
+                FacilityType.InvoiceDiscounting => "ID",
+                FacilityType.ChequeDiscounting  => "CD",
+                FacilityType.AdvancePayment     => "AP",
+                _                               => "OS"
+            };
+            return $"{prefix}-{DateTime.UtcNow:yyyy}-{Random.Shared.Next(1000, 9999)}";
+        }
+
+        public decimal CalculateFee(decimal amount, decimal rate, int tenorDays) =>
+            Math.Round(amount * rate * (tenorDays / 365m), 2);
+
+        private static string BuildWhere(FacilityFilter f)
+        {
+            var parts = new List<string> { "f.IsDeleted=0" };
+            if (f.Type.HasValue)     parts.Add($"f.Type={(int)f.Type.Value}");
+            if (f.Status.HasValue)   parts.Add($"f.Status={(int)f.Status.Value}");
+            if (f.ClientId.HasValue) parts.Add($"f.ClientId='{f.ClientId.Value}'");
+            if (f.FromDate.HasValue) parts.Add($"f.CreatedAt>='{f.FromDate.Value:yyyy-MM-dd}'");
+            if (f.ToDate.HasValue)   parts.Add($"f.CreatedAt<='{f.ToDate.Value:yyyy-MM-dd} 23:59:59'");
+            if (!string.IsNullOrWhiteSpace(f.Search))
+                parts.Add("(f.ReferenceNo LIKE @S OR c.CompanyName LIKE @S)");
+            return string.Join(" AND ", parts);
+        }
+
+        internal static async Task LogStatus(Microsoft.Data.SqlClient.SqlConnection conn,
+            Guid facilityId, int from, int to, string by, string? comment = null)
+        {
+            try
+            {
+                await conn.ExecuteAsync(@"
+                    INSERT INTO FacilityStatusHistory
+                        (Id, FacilityId, FromStatus, ToStatus, ChangedBy, Comment, CreatedAt, IsDeleted)
+                    VALUES (NEWID(), @F, @From, @To, @By, @C, GETUTCDATE(), 0)",
+                    new { F = facilityId, From = from, To = to, By = by, C = comment });
+            }
+            catch { /* table may not exist in older installs — non-fatal */ }
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  BID BOND SERVICE
+    // ══════════════════════════════════════════════════════════════
+    public class BidBondService : IBidBondService
+    {
+        private readonly DapperContext _ctx;
+        private readonly IFacilityService _fac;
+        private const decimal Rate = 0.025m;
+
+        public BidBondService(DapperContext ctx, IFacilityService fac) { _ctx = ctx; _fac = fac; }
+
+        public async Task<BidBondResponse> CreateAsync(CreateBidBondRequest req, string by)
+        {
+
+            // 1. Fetch the dynamic rate from the database
+            var dbRate = await _fac.GetRateAsync((int)req.IssuingBank, (int)req.FacilityTypeOverride);
+            decimal activeRate = (decimal)dbRate.rate;
+
+            // 2. Use the fetched rate for calculations
+            var fee = _fac.CalculateFee(req.Amount, activeRate, req.TenorDays);
+            var refNo = _fac.GenerateReferenceNo(req.FacilityTypeOverride);
+            var fee   = _fac.CalculateFee(req.Amount, Rate, req.TenorDays);
+            var refNo = _fac.GenerateReferenceNo(req.FacilityTypeOverride);
+            var fid   = Guid.NewGuid();
+            var bid   = Guid.NewGuid();
+
+            using var conn = _ctx.Create();
+            await conn.ExecuteAsync(@"
+                INSERT INTO Facilities
+                    (Id, ReferenceNo, Type, ClientId, Amount, Rate, TenorDays, FinanceFee, NetAmount,
+                     Status, DisbursementAccount, DisbursementBank, Notes, CreatedAt, CreatedBy, IsDeleted)
+                VALUES
+                    (@Id, @Ref, @T, @Cid, @Amt, @Rate, @Tenor, @Fee, @Net,
+                     1, @Acct, @Bank, @Notes, GETUTCDATE(), @By, 0)",
+                new { Id=fid, Ref=refNo, T=(int)req.FacilityTypeOverride, Cid=req.ClientId,
+                      Amt=req.Amount, Rate, Tenor=req.TenorDays, Fee=fee, Net=req.Amount-fee,
+                      Acct=req.DisbursementAccount, Bank=req.DisbursementBank, Notes=req.Notes, By=by });
+
+            await conn.ExecuteAsync(@"
+                INSERT INTO BidBonds
+                    (Id, FacilityId, TenderNumber, ProcuringEntity, IssuingBank, TenderClosingDate,
+                     BondCommissionRate, IsResold, ConvertedToPerformanceBond, CreatedAt, CreatedBy, IsDeleted)
+                VALUES
+                    (@Id, @Fid, @Ten, @Ent, @Bank, @Close, @Rate, 0, 0, GETUTCDATE(), @By, 0)",
+                new { Id=bid, Fid=fid, Ten=req.TenderNumber, Ent=req.ProcuringEntity,
+                      Bank=(int)req.IssuingBank, Close=req.TenderClosingDate, Rate, By=by });
+
+            return await GetByIdAsync(fid) ?? throw new Exception("Bond not found after insert.");
+        }
+
+        public async Task<BidBondResponse?> GetByIdAsync(Guid id)
+        {
+            using var conn = _ctx.Create();
+            var r = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
+                SELECT f.Id AS FacilityId, f.ReferenceNo, f.Amount, f.Rate, f.TenorDays,
+                       f.FinanceFee, f.NetAmount, f.Status, f.CreatedAt, f.DisbursedAt,
+                       ISNULL(c.CompanyName,'') AS ClientName,
+                       b.Id, b.TenderNumber, b.ProcuringEntity, b.IssuingBank,
+                       b.TenderClosingDate, b.BondNumber, b.IsResold, b.ResalePartner, b.BondCommissionRate
+                FROM   Facilities f
+                LEFT JOIN Clients  c ON c.Id = f.ClientId
+                LEFT JOIN BidBonds b ON b.FacilityId = f.Id
+                WHERE  f.Id = @Id AND f.IsDeleted = 0", new { Id = id });
+            return r == null ? null : MapBond(r);
+        }
+
+        public async Task<PagedResult<BidBondResponse>> GetAllAsync(FacilityFilter filter)
+        {
+            var w = "f.IsDeleted=0 AND f.Type IN(1,4,6)" +
+                (filter.Status.HasValue ? $" AND f.Status={(int)filter.Status.Value}" : "") +
+                (!string.IsNullOrWhiteSpace(filter.Search) ? " AND (f.ReferenceNo LIKE @S OR c.CompanyName LIKE @S)" : "");
+            var p = new { S=$"%{filter.Search}%", Skip=(filter.Page-1)*filter.PageSize, Take=filter.PageSize };
+            using var conn = _ctx.Create();
+            var total = await conn.ExecuteScalarAsync<int>(
+                $"SELECT COUNT(*) FROM Facilities f LEFT JOIN Clients c ON c.Id=f.ClientId LEFT JOIN BidBonds b ON b.FacilityId=f.Id WHERE {w}", p);
+            var rows = await conn.QueryAsync<dynamic>($@"
+                SELECT f.Id AS FacilityId, f.ReferenceNo, f.Amount, f.Rate, f.TenorDays,
+                       f.FinanceFee, f.NetAmount, f.Status, f.CreatedAt, f.DisbursedAt,
+                       ISNULL(c.CompanyName,'') AS ClientName,
+                       b.Id, b.TenderNumber, b.ProcuringEntity, b.IssuingBank,
+                       b.TenderClosingDate, b.BondNumber, b.IsResold, b.ResalePartner, b.BondCommissionRate
+                FROM   Facilities f
+                LEFT JOIN Clients  c ON c.Id = f.ClientId
+                LEFT JOIN BidBonds b ON b.FacilityId = f.Id
+                WHERE  {w} ORDER BY f.CreatedAt DESC OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY", p);
+            return new PagedResult<BidBondResponse>
+            { Items=rows.Select<dynamic,BidBondResponse>(MapBond).ToList(), TotalCount=total, Page=filter.Page, PageSize=filter.PageSize };
+        }
+
+        public async Task<bool> ResellAsync(ResaleBidBondRequest req, string by)
+        {
+            using var conn = _ctx.Create();
+            return await conn.ExecuteAsync(@"
+                UPDATE BidBonds SET IsResold=1, ResalePartner=@P, ResaleAmount=@A,
+                    ResaleDate=GETUTCDATE(), UpdatedAt=GETUTCDATE(), UpdatedBy=@By
+                WHERE FacilityId=@Id AND IsDeleted=0",
+                new { Id=req.FacilityId, P=req.ResalePartner, A=req.ResaleAmount, By=by }) > 0;
+        }
+
+        public async Task<bool> ConvertToPerformanceBondAsync(Guid id, string by)
+        {
+            using var conn = _ctx.Create();
+            return await conn.ExecuteAsync(
+                "UPDATE BidBonds SET ConvertedToPerformanceBond=1, UpdatedAt=GETUTCDATE(), UpdatedBy=@By WHERE FacilityId=@Id AND IsDeleted=0",
+                new { Id=id, By=by }) > 0;
+        }
+
+        public CalculateResponse CalculateCost(CalculateRequest req)
+        {
+            req.ProductType = FacilityType.BidBond;
+            return new CalculatorService().Calculate(req);
+        }
+
+        private static BidBondResponse MapBond(dynamic r) => new()
+        {
+            Id                = r.Id          == null ? Guid.Empty       : (Guid)r.Id,
+            FacilityId        = r.FacilityId  == null ? Guid.Empty       : (Guid)r.FacilityId,
+            ReferenceNo       = r.ReferenceNo ?? "",
+            ClientName        = r.ClientName  ?? "",
+            TenderNumber      = r.TenderNumber ?? "",
+            ProcuringEntity   = r.ProcuringEntity ?? "",
+            Amount            = r.Amount      == null ? 0m : (decimal)r.Amount,
+            Rate              = r.Rate        == null ? 0m : (decimal)r.Rate * 100,
+            CommissionFee     = r.FinanceFee  == null ? 0m : (decimal)r.FinanceFee,
+            TenorDays         = r.TenorDays   == null ? 0  : (int)r.TenorDays,
+            IssuingBank       = r.IssuingBank == null ? "" : ((BankName)(int)r.IssuingBank).ToString(),
+            TenderClosingDate = r.TenderClosingDate == null ? DateTime.MinValue : (DateTime)r.TenderClosingDate,
+            Status            = Map.Fac(r.Status    == null ? (int?)null : (int)r.Status),
+            BondNumber        = r.BondNumber,
+            IsResold          = r.IsResold    != null && (bool)r.IsResold,
+            ResalePartner     = r.ResalePartner,
+            CreatedAt         = r.CreatedAt   == null ? DateTime.MinValue : (DateTime)r.CreatedAt,
+            DisbursedAt       = r.DisbursedAt == null ? (DateTime?)null   : (DateTime)r.DisbursedAt
+        };
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  INVOICE DISCOUNT SERVICE
+    // ══════════════════════════════════════════════════════════════
+    public class InvoiceDiscountService : IInvoiceDiscountService
+    {
+        private readonly DapperContext _ctx;
+        private readonly IFacilityService _fac;
+        private const decimal Rate = 0.040m;
+
+        public InvoiceDiscountService(DapperContext ctx, IFacilityService fac) { _ctx = ctx; _fac = fac; }
+
+        public async Task<InvoiceDiscountResponse> CreateAsync(CreateInvoiceDiscountRequest req, string by)
+        {
+            var td  = Math.Max(1, (int)(req.InvoiceDueDate - DateTime.UtcNow).TotalDays);
+            var adv = req.InvoiceFaceValue * (req.AdvancePercentage / 100m);
+            var fee = _fac.CalculateFee(adv, Rate, td);
+            var net = adv - fee;
+            var refNo = _fac.GenerateReferenceNo(FacilityType.InvoiceDiscounting);
+            var fid = Guid.NewGuid();
+            var iid = Guid.NewGuid();
+
+            using var conn = _ctx.Create();
+            await conn.ExecuteAsync(@"
+                INSERT INTO Facilities
+                    (Id, ReferenceNo, Type, ClientId, Amount, Rate, TenorDays, FinanceFee, NetAmount,
+                     Status, DisbursementAccount, DisbursementBank, Notes, CreatedAt, CreatedBy, IsDeleted)
+                VALUES (@Id, @Ref, 2, @Cid, @Amt, @Rate, @Td, @Fee, @Net, 1, @Acct, @Bank, @Notes, GETUTCDATE(), @By, 0)",
+                new { Id=fid, Ref=refNo, Cid=req.ClientId, Amt=req.InvoiceFaceValue, Rate, Td=td, Fee=fee, Net=net,
+                      Acct=req.DisbursementAccount, Bank=req.DisbursementBank, Notes=req.Notes, By=by });
+
+            await conn.ExecuteAsync(@"
+                INSERT INTO InvoiceDiscounts
+                    (Id, FacilityId, InvoiceNumber, DebtorName, DebtorKraPin, DebtorContact,
+                     InvoiceDate, InvoiceDueDate, InvoiceFaceValue, AdvancePercentage,
+                     AdvanceAmount, DiscountFee, NetAdvance, DebtorPaid, CreatedAt, CreatedBy, IsDeleted)
+                VALUES (@Id, @Fid, @Inv, @Deb, @Kra, @Con, @IDate, @Due, @Fv, @Ap, @Adv, @Fee, @Net, 0, GETUTCDATE(), @By, 0)",
+                new { Id=iid, Fid=fid, Inv=req.InvoiceNumber, Deb=req.DebtorName, Kra=req.DebtorKraPin,
+                      Con=req.DebtorContact, IDate=req.InvoiceDate, Due=req.InvoiceDueDate,
+                      Fv=req.InvoiceFaceValue, Ap=req.AdvancePercentage, Adv=adv, Fee=fee, Net=net, By=by });
+
+            return await GetByIdAsync(fid) ?? throw new Exception("Invoice not found after insert.");
+        }
+
+        public async Task<InvoiceDiscountResponse?> GetByIdAsync(Guid id)
+        {
+            using var conn = _ctx.Create();
+            var r = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
+                SELECT f.Id AS FacilityId, f.ReferenceNo, f.TenorDays, f.Status, f.CreatedAt,
+                       ISNULL(c.CompanyName,'') AS ClientName,
+                       i.Id, i.InvoiceNumber, i.DebtorName, i.InvoiceDate, i.InvoiceDueDate,
+                       i.InvoiceFaceValue, i.AdvancePercentage, i.AdvanceAmount,
+                       i.DiscountFee, i.NetAdvance, i.DebtorPaid, i.DebtorPaymentDate
+                FROM   Facilities f
+                LEFT JOIN Clients c ON c.Id = f.ClientId
+                LEFT JOIN InvoiceDiscounts i ON i.FacilityId = f.Id
+                WHERE  f.Id = @Id AND f.IsDeleted = 0", new { Id = id });
+            return r == null ? null : MapInv(r);
+        }
+
+        public async Task<PagedResult<InvoiceDiscountResponse>> GetAllAsync(FacilityFilter filter)
+        {
+            var w = "f.IsDeleted=0 AND f.Type=2" +
+                (filter.Status.HasValue ? $" AND f.Status={(int)filter.Status.Value}" : "");
+            var p = new { Skip=(filter.Page-1)*filter.PageSize, Take=filter.PageSize };
+            using var conn = _ctx.Create();
+            var total = await conn.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM Facilities f WHERE {w}", p);
+            var rows  = await conn.QueryAsync<dynamic>($@"
+                SELECT f.Id AS FacilityId, f.ReferenceNo, f.TenorDays, f.Status, f.CreatedAt,
+                       ISNULL(c.CompanyName,'') AS ClientName,
+                       i.Id, i.InvoiceNumber, i.DebtorName, i.InvoiceDate, i.InvoiceDueDate,
+                       i.InvoiceFaceValue, i.AdvancePercentage, i.AdvanceAmount,
+                       i.DiscountFee, i.NetAdvance, i.DebtorPaid, i.DebtorPaymentDate
+                FROM   Facilities f
+                LEFT JOIN Clients c ON c.Id = f.ClientId
+                LEFT JOIN InvoiceDiscounts i ON i.FacilityId = f.Id
+                WHERE  {w} ORDER BY f.CreatedAt DESC OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY", p);
+            return new PagedResult<InvoiceDiscountResponse>
+            { Items=rows.Select<dynamic,InvoiceDiscountResponse>(MapInv).ToList(), TotalCount=total, Page=filter.Page, PageSize=filter.PageSize };
+        }
+
+        public async Task<bool> RecordDebtorPaymentAsync(RecordDebtorPaymentRequest req, string by)
+        {
+            using var conn = _ctx.Create();
+            return await conn.ExecuteAsync(@"
+                UPDATE InvoiceDiscounts SET DebtorPaid=1, DebtorPaymentDate=@D, DebtorPaymentAmount=@A,
+                    UpdatedAt=GETUTCDATE(), UpdatedBy=@By WHERE FacilityId=@Id AND IsDeleted=0;
+                UPDATE Facilities SET Status=7, SettledAt=GETUTCDATE(), UpdatedAt=GETUTCDATE(), UpdatedBy=@By WHERE Id=@Id",
+                new { Id=req.FacilityId, D=req.PaymentDate, A=req.PaymentAmount, By=by }) > 0;
+        }
+
+        public CalculateResponse CalculateCost(CalculateRequest req)
+        {
+            req.ProductType = FacilityType.InvoiceDiscounting;
+            return new CalculatorService().Calculate(req);
+        }
+
+        private static InvoiceDiscountResponse MapInv(dynamic r) => new()
+        {
+            Id                = r.Id               == null ? Guid.Empty       : (Guid)r.Id,
+            FacilityId        = r.FacilityId       == null ? Guid.Empty       : (Guid)r.FacilityId,
+            ReferenceNo       = r.ReferenceNo      ?? "",    ClientName      = r.ClientName ?? "",
+            InvoiceNumber     = r.InvoiceNumber    ?? "",    DebtorName      = r.DebtorName ?? "",
+            InvoiceDate       = r.InvoiceDate      == null ? DateTime.MinValue : (DateTime)r.InvoiceDate,
+            InvoiceDueDate    = r.InvoiceDueDate   == null ? DateTime.MinValue : (DateTime)r.InvoiceDueDate,
+            InvoiceFaceValue  = r.InvoiceFaceValue == null ? 0m : (decimal)r.InvoiceFaceValue,
+            AdvancePercentage = r.AdvancePercentage== null ? 0m : (decimal)r.AdvancePercentage,
+            AdvanceAmount     = r.AdvanceAmount    == null ? 0m : (decimal)r.AdvanceAmount,
+            DiscountFee       = r.DiscountFee      == null ? 0m : (decimal)r.DiscountFee,
+            NetAdvance        = r.NetAdvance       == null ? 0m : (decimal)r.NetAdvance,
+            TenorDays         = r.TenorDays        == null ? 0  : (int)r.TenorDays,
+            Status            = Map.Fac(r.Status   == null ? (int?)null : (int)r.Status),
+            DebtorPaid        = r.DebtorPaid       != null && (bool)r.DebtorPaid,
+            DebtorPaymentDate = r.DebtorPaymentDate== null ? (DateTime?)null : (DateTime)r.DebtorPaymentDate,
+            CreatedAt         = r.CreatedAt        == null ? DateTime.MinValue : (DateTime)r.CreatedAt
+        };
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  CHEQUE DISCOUNT SERVICE
+    // ══════════════════════════════════════════════════════════════
+    public class ChequeDiscountService : IChequeDiscountService
+    {
+        private readonly DapperContext _ctx;
+        private readonly IFacilityService _fac;
+        private const decimal Rate = 0.035m;
+
+        public ChequeDiscountService(DapperContext ctx, IFacilityService fac) { _ctx = ctx; _fac = fac; }
+
+        public async Task<ChequeDiscountResponse> CreateAsync(CreateChequeDiscountRequest req, string by)
+        {
+            var td  = Math.Max(1, (int)(req.MaturityDate - DateTime.UtcNow).TotalDays);
+            var adv = req.ChequeFaceValue * 0.85m;
+            var fee = _fac.CalculateFee(req.ChequeFaceValue, Rate, td);
+            var net = adv - fee;
+            var refNo = _fac.GenerateReferenceNo(FacilityType.ChequeDiscounting);
+            var fid = Guid.NewGuid();
+            var cid = Guid.NewGuid();
+
+            using var conn = _ctx.Create();
+            await conn.ExecuteAsync(@"
+                INSERT INTO Facilities
+                    (Id, ReferenceNo, Type, ClientId, Amount, Rate, TenorDays, FinanceFee, NetAmount,
+                     Status, DisbursementAccount, DisbursementBank, Notes, CreatedAt, CreatedBy, IsDeleted)
+                VALUES (@Id, @Ref, 3, @Cid, @Amt, @Rate, @Td, @Fee, @Net, 1, @Acct, @Bank, @Notes, GETUTCDATE(), @By, 0)",
+                new { Id=fid, Ref=refNo, Cid=req.ClientId, Amt=req.ChequeFaceValue, Rate, Td=td, Fee=fee, Net=net,
+                      Acct=req.DisbursementAccount, Bank=req.DisbursementBank, Notes=req.Notes, By=by });
+
+            await conn.ExecuteAsync(@"
+                INSERT INTO ChequeDiscounts
+                    (Id, FacilityId, ChequeNumber, DrawerName, DrawerKraPin, DraweeBank, DraweeBranch,
+                     ChequeDate, MaturityDate, ChequeFaceValue, AdvanceAmount, DiscountFee, NetAdvance,
+                     PresentedToBank, Honoured, Bounced, CreatedAt, CreatedBy, IsDeleted)
+                VALUES (@Id, @Fid, @Cn, @Dr, @Dk, @Db, @Br, @Cd, @Mat, @Fv, @Adv, @Fee, @Net, 0, 0, 0, GETUTCDATE(), @By, 0)",
+                new { Id=cid, Fid=fid, Cn=req.ChequeNumber, Dr=req.DrawerName, Dk=req.DrawerKraPin,
+                      Db=(int)req.DraweeBank, Br=req.DraweeBranch, Cd=req.ChequeDate, Mat=req.MaturityDate,
+                      Fv=req.ChequeFaceValue, Adv=adv, Fee=fee, Net=net, By=by });
+
+            return await GetByIdAsync(fid) ?? throw new Exception("Cheque not found after insert.");
+        }
+
+        public async Task<ChequeDiscountResponse?> GetByIdAsync(Guid id)
+        {
+            using var conn = _ctx.Create();
+            var r = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
+                SELECT f.Id AS FacilityId, f.ReferenceNo, f.TenorDays, f.Status, f.CreatedAt,
+                       ISNULL(c.CompanyName,'') AS ClientName,
+                       ch.Id, ch.ChequeNumber, ch.DrawerName, ch.DraweeBank, ch.DraweeBranch,
+                       ch.ChequeDate, ch.MaturityDate, ch.ChequeFaceValue, ch.AdvanceAmount,
+                       ch.DiscountFee, ch.NetAdvance, ch.PresentedToBank, ch.Honoured,
+                       ch.Bounced, ch.BounceReason
+                FROM   Facilities f
+                LEFT JOIN Clients c ON c.Id = f.ClientId
+                LEFT JOIN ChequeDiscounts ch ON ch.FacilityId = f.Id
+                WHERE  f.Id = @Id AND f.IsDeleted = 0", new { Id = id });
+            return r == null ? null : MapCheq(r);
+        }
+
+        public async Task<PagedResult<ChequeDiscountResponse>> GetAllAsync(FacilityFilter filter)
+        {
+            var w = "f.IsDeleted=0 AND f.Type=3" +
+                (filter.Status.HasValue ? $" AND f.Status={(int)filter.Status.Value}" : "");
+            var p = new { Skip=(filter.Page-1)*filter.PageSize, Take=filter.PageSize };
+            using var conn = _ctx.Create();
+            var total = await conn.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM Facilities f WHERE {w}", p);
+            var rows  = await conn.QueryAsync<dynamic>($@"
+                SELECT f.Id AS FacilityId, f.ReferenceNo, f.TenorDays, f.Status, f.CreatedAt,
+                       ISNULL(c.CompanyName,'') AS ClientName,
+                       ch.Id, ch.ChequeNumber, ch.DrawerName, ch.DraweeBank, ch.DraweeBranch,
+                       ch.ChequeDate, ch.MaturityDate, ch.ChequeFaceValue, ch.AdvanceAmount,
+                       ch.DiscountFee, ch.NetAdvance, ch.PresentedToBank, ch.Honoured,
+                       ch.Bounced, ch.BounceReason
+                FROM   Facilities f
+                LEFT JOIN Clients c ON c.Id = f.ClientId
+                LEFT JOIN ChequeDiscounts ch ON ch.FacilityId = f.Id
+                WHERE  {w} ORDER BY f.CreatedAt DESC OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY", p);
+            return new PagedResult<ChequeDiscountResponse>
+            { Items=rows.Select<dynamic,ChequeDiscountResponse>(MapCheq).ToList(), TotalCount=total, Page=filter.Page, PageSize=filter.PageSize };
+        }
+
+        public async Task<bool> PresentToBankAsync(Guid id, string by)
+        {
+            using var conn = _ctx.Create();
+            return await conn.ExecuteAsync(
+                "UPDATE ChequeDiscounts SET PresentedToBank=1, PresentedAt=GETUTCDATE(), UpdatedAt=GETUTCDATE() WHERE FacilityId=@Id AND IsDeleted=0",
+                new { Id = id }) > 0;
+        }
+
+        public async Task<bool> RecordOutcomeAsync(RecordChequeOutcomeRequest req, string by)
+        {
+            using var conn = _ctx.Create();
+            return await conn.ExecuteAsync(@"
+                UPDATE ChequeDiscounts
+                SET Honoured=@H, Bounced=@B, BounceReason=@R,
+                    HonouredAt=CASE WHEN @H=1 THEN GETUTCDATE() ELSE NULL END,
+                    UpdatedAt=GETUTCDATE(), UpdatedBy=@By
+                WHERE FacilityId=@Id AND IsDeleted=0;
+                UPDATE Facilities SET Status=CASE WHEN @H=1 THEN 7 ELSE 2 END,
+                    UpdatedAt=GETUTCDATE(), UpdatedBy=@By WHERE Id=@Id",
+                new { Id=req.FacilityId, H=req.Honoured?1:0, B=req.Honoured?0:1, R=req.BounceReason, By=by }) > 0;
+        }
+
+        public CalculateResponse CalculateCost(CalculateRequest req)
+        {
+            req.ProductType = FacilityType.ChequeDiscounting;
+            return new CalculatorService().Calculate(req);
+        }
+
+        private static ChequeDiscountResponse MapCheq(dynamic r) => new()
+        {
+            Id              = r.Id            == null ? Guid.Empty       : (Guid)r.Id,
+            FacilityId      = r.FacilityId    == null ? Guid.Empty       : (Guid)r.FacilityId,
+            ReferenceNo     = r.ReferenceNo   ?? "",     ClientName    = r.ClientName ?? "",
+            ChequeNumber    = r.ChequeNumber  ?? "",     DrawerName    = r.DrawerName ?? "",
+            DraweeBank      = r.DraweeBank    == null ? "" : ((BankName)(int)r.DraweeBank).ToString(),
+            ChequeDate      = r.ChequeDate    == null ? DateTime.MinValue : (DateTime)r.ChequeDate,
+            MaturityDate    = r.MaturityDate  == null ? DateTime.MinValue : (DateTime)r.MaturityDate,
+            ChequeFaceValue = r.ChequeFaceValue== null ? 0m : (decimal)r.ChequeFaceValue,
+            AdvanceAmount   = r.AdvanceAmount  == null ? 0m : (decimal)r.AdvanceAmount,
+            DiscountFee     = r.DiscountFee    == null ? 0m : (decimal)r.DiscountFee,
+            NetAdvance      = r.NetAdvance     == null ? 0m : (decimal)r.NetAdvance,
+            TenorDays       = r.TenorDays      == null ? 0  : (int)r.TenorDays,
+            Status          = Map.Fac(r.Status == null ? (int?)null : (int)r.Status),
+            PresentedToBank = r.PresentedToBank != null && (bool)r.PresentedToBank,
+            Honoured        = r.Honoured        != null && (bool)r.Honoured,
+            Bounced         = r.Bounced         != null && (bool)r.Bounced,
+            BounceReason    = r.BounceReason,
+            CreatedAt       = r.CreatedAt       == null ? DateTime.MinValue : (DateTime)r.CreatedAt
+        };
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  CLIENT SERVICE
+    // ══════════════════════════════════════════════════════════════
+    public class ClientService : IClientService
+    {
+        private readonly DapperContext _ctx;
+        public ClientService(DapperContext ctx) => _ctx = ctx;
+
+        private const string ClientSelect = @"
+            SELECT c.Id, c.CompanyName,
+                   ISNULL(c.KraPin,'')          AS KraPin,
+                   ISNULL(c.ContactPerson,'')   AS ContactPerson,
+                   ISNULL(c.Email,'')           AS Email,
+                   ISNULL(c.Phone,'')           AS Phone,
+                   c.ClientType,
+                   ISNULL(c.PhysicalAddress,'') AS PhysicalAddress,
+                   ISNULL(c.CreditLimit,0)      AS CreditLimit,
+                   ISNULL(c.UtilisedLimit,0)    AS UtilisedLimit,
+                   ISNULL(c.CreditLimit,0) - ISNULL(c.UtilisedLimit,0) AS AvailableLimit,
+                   ISNULL(c.Status,1)           AS Status,
+                   ISNULL(c.IsCrbCleared,0)     AS IsCrbCleared,
+                   c.CreatedAt,
+                   c.RejectionReason,
+                   c.Notes,
+                   (SELECT COUNT(*) FROM Facilities f WHERE f.ClientId=c.Id AND f.IsDeleted=0) AS TotalFacilities
+            FROM   Clients c";
+
+        public async Task<ClientResponse> CreateAsync(CreateClientRequest req, string by)
+        {
+            var id = Guid.NewGuid();
+            using var conn = _ctx.Create();
+            await conn.ExecuteAsync(@"
+                INSERT INTO Clients
+                    (Id, CompanyName, KraPin, ContactPerson, Email, Phone, PhoneAlt, ClientType,
+                     PhysicalAddress, PostalAddress, BusinessRegNumber,
+                     CreditLimit, UtilisedLimit, Status, IsCrbCleared, CreatedAt, CreatedBy, IsDeleted)
+                VALUES
+                    (@Id, @Co, @Kra, @Con, @Em, @Ph, @PhA, @CT, @Addr, @Post, @Reg, @Lim, 0, 1, 0, GETUTCDATE(), @By, 0)",
+                new { Id=id, Co=req.CompanyName, Kra=req.KraPin, Con=req.ContactPerson, Em=req.Email,
+                      Ph=req.Phone, PhA=req.PhoneAlt, CT=(int)req.ClientType, Addr=req.PhysicalAddress,
+                      Post=req.PostalAddress, Reg=req.BusinessRegNumber, Lim=req.CreditLimit, By=by });
+            return await GetByIdAsync(id) ?? throw new Exception("Client not found after insert.");
+        }
+
+        public async Task<ClientResponse?> GetByIdAsync(Guid id)
+        {
+            using var conn = _ctx.Create();
+            var r = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                $"{ClientSelect} WHERE c.Id=@Id AND c.IsDeleted=0", new { Id = id });
+            return r == null ? null : MapCli(r);
+        }
+
+        public async Task<PagedResult<ClientResponse>> GetAllAsync(int page, int pageSize, string? search)
+        {
+            var where = string.IsNullOrWhiteSpace(search)
+                ? "c.IsDeleted=0"
+                : "c.IsDeleted=0 AND (c.CompanyName LIKE @S OR c.KraPin LIKE @S OR c.Email LIKE @S)";
+            var param = new { S=$"%{search}%", Skip=(page-1)*pageSize, Take=pageSize };
+            using var conn = _ctx.Create();
+            var total = await conn.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM Clients c WHERE {where}", param);
+            var rows  = await conn.QueryAsync<dynamic>(
+                $"{ClientSelect} WHERE {where} ORDER BY c.CompanyName OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY", param);
+            return new PagedResult<ClientResponse>
+            { Items=rows.Select<dynamic,ClientResponse>(MapCli).ToList(), TotalCount=total, Page=page, PageSize=pageSize };
+        }
+
+        public async Task<bool> UpdateAsync(Guid id, CreateClientRequest req, string by)
+        {
+            using var conn = _ctx.Create();
+            return await conn.ExecuteAsync(@"
+                UPDATE Clients SET
+                    CompanyName=@Co, ContactPerson=@Con, Email=@Em, Phone=@Ph, PhoneAlt=@PhA,
+                    PhysicalAddress=@Addr, PostalAddress=@Post, BusinessRegNumber=@Reg,
+                    UpdatedAt=GETUTCDATE(), UpdatedBy=@By
+                WHERE Id=@Id AND IsDeleted=0",
+                new { Id=id, Co=req.CompanyName, Con=req.ContactPerson, Em=req.Email, Ph=req.Phone,
+                      PhA=req.PhoneAlt, Addr=req.PhysicalAddress, Post=req.PostalAddress,
+                      Reg=req.BusinessRegNumber, By=by }) > 0;
+        }
+
+        public async Task<bool> UpdateCreditLimitAsync(Guid id, decimal limit, string by)
+        {
+            using var conn = _ctx.Create();
+            return await conn.ExecuteAsync(
+                "UPDATE Clients SET CreditLimit=@L, UpdatedAt=GETUTCDATE(), UpdatedBy=@By WHERE Id=@Id AND IsDeleted=0",
+                new { Id=id, L=limit, By=by }) > 0;
+        }
+
+        public async Task<bool> VerifyCrbAsync(Guid id, string by)
+        {
+            using var conn = _ctx.Create();
+            return await conn.ExecuteAsync(
+                "UPDATE Clients SET IsCrbCleared=1, CrbCheckedAt=GETUTCDATE(), Status=3, UpdatedAt=GETUTCDATE(), UpdatedBy=@By WHERE Id=@Id AND IsDeleted=0",
+                new { Id=id, By=by }) > 0;
+        }
+
+        public async Task<bool> UpdateStatusAsync(Guid id, string status, string? reason, string by)
+        {
+            var s = int.TryParse(status, out var si) ? si : Map.StatusInt(status);
+            using var conn = _ctx.Create();
+            return await conn.ExecuteAsync(@"
+                UPDATE Clients SET Status=@S,
+                    RejectionReason=CASE WHEN @HasR=1 THEN @R ELSE RejectionReason END,
+                    UpdatedAt=GETUTCDATE(), UpdatedBy=@By
+                WHERE Id=@Id AND IsDeleted=0",
+                new { Id=id, S=s, HasR=string.IsNullOrEmpty(reason)?0:1, R=reason, By=by }) > 0;
+        }
+
+        public async Task<List<FacilityListItem>> GetClientFacilitiesAsync(Guid clientId)
+        {
+            using var conn = _ctx.Create();
+            var rows = await conn.QueryAsync<dynamic>(@"
+                SELECT f.Id, f.ReferenceNo, f.Type, f.ClientId, f.Amount, f.Rate, f.TenorDays,
+                       f.FinanceFee, f.NetAmount, f.Status, f.CreatedAt, f.DisbursedAt,
+                       ISNULL(c.CompanyName,'') AS ClientName
+                FROM   Facilities f LEFT JOIN Clients c ON c.Id=f.ClientId
+                WHERE  f.ClientId=@Cid AND f.IsDeleted=0 ORDER BY f.CreatedAt DESC",
+                new { Cid = clientId });
+            return rows.Select<dynamic,FacilityListItem>(Map.FacRow).ToList();
+        }
+
+        private static ClientResponse MapCli(dynamic r) => new()
+        {
+            Id              = r.Id              == null ? Guid.Empty       : (Guid)r.Id,
+            CompanyName     = r.CompanyName     ?? "",
+            KraPin          = r.KraPin          ?? "",
+            ContactPerson   = r.ContactPerson   ?? "",
+            Email           = r.Email           ?? "",
+            Phone           = r.Phone           ?? "",
+            ClientType      = Map.CType(r.ClientType == null ? (int?)null : (int)r.ClientType),
+            PhysicalAddress = r.PhysicalAddress ?? "",
+            CreditLimit     = r.CreditLimit     == null ? 0m : (decimal)r.CreditLimit,
+            UtilisedLimit   = r.UtilisedLimit   == null ? 0m : (decimal)r.UtilisedLimit,
+            AvailableLimit  = r.AvailableLimit  == null ? 0m : (decimal)r.AvailableLimit,
+            Status          = Map.Fac(r.Status  == null ? (int?)null : (int)r.Status),
+            IsCrbCleared    = r.IsCrbCleared    != null && (bool)r.IsCrbCleared,
+            RejectionReason = r.RejectionReason,
+            Notes           = r.Notes,
+            CreatedAt       = r.CreatedAt       == null ? DateTime.MinValue : (DateTime)r.CreatedAt,
+            TotalFacilities = r.TotalFacilities == null ? 0 : (int)r.TotalFacilities
+        };
+    }
+}

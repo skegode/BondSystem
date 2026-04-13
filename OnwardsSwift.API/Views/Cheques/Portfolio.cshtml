@@ -1,0 +1,117 @@
+﻿@model IEnumerable<dynamic>
+@{
+    ViewData["Title"] = "Maturity Portfolio";
+}
+
+<div class="container-fluid animate__animated animate__fadeIn">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-navy mb-0">Maturity Tracking Portfolio</h2>
+            <p class="text-muted">Monitor cheque maturity dates and confirm receipt of funds.</p>
+        </div>
+        <div class="text-end">
+            <div class="badge bg-white text-navy border px-3 py-2 shadow-sm">
+                <i class="bi bi-clock-history me-2"></i> Real-time Liquidity Tracking
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm border-start border-primary border-4">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase small fw-bold">Total Portfolio Value</h6>
+                    <h3 class="fw-bold">KES @Model.Sum(x => (decimal)x.ChequeAmount).ToString("N2")</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm border-start border-warning border-4">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase small fw-bold">Pending Clearance</h6>
+                    <h3 class="fw-bold">@Model.Count() Cheques</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header d-flex align-items-center">
+            <i class="bi bi-list-check me-2"></i> Active Cheque Inventory
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Client / Company</th>
+                        <th>Cheque Details</th>
+                        <th>Amount</th>
+                        <th>Maturity Date</th>
+                        <th>Countdown</th>
+                        <th class="text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white">
+                    @foreach (var item in Model)
+                    {
+                        int days = (item.DaysRemaining as int?) ?? 0;                        // Color coding based on urgency
+                        string badgeClass = days < 0 ? "bg-danger" : (days <= 7 ? "bg-warning text-dark" : "bg-success");
+                        string rowClass = days < 0 ? "table-danger" : "";
+
+                        <tr class="@rowClass">
+                            <td>
+                                <div class="fw-bold text-navy">@item.CompanyName</div>
+                                <small class="text-muted">ID: #@item.Id</small>
+                            </td>
+                            <td>
+                                <div class="small fw-bold">No: @item.ChequeNumber</div>
+                                <div class="extra-small text-muted">@item.DrawerBank</div>
+                            </td>
+                            <td>
+                                <span class="fw-bold">@item.ChequeAmount.ToString("N2")</span>
+                            </td>
+                            <td>
+                                <div class="fw-bold">@item.ExpiryDate.ToString("dd MMM yyyy")</div>
+                            </td>
+                            <td>
+                                <span class="badge @badgeClass px-3 py-2">
+                                    @if (days < 0) {
+                                        <span>OVERDUE (@Math.Abs(days) Days)</span>
+                                    } else if (days == 0) {
+                                        <span>MATURING TODAY</span>
+                                    } else {
+                                        <span>@days Days Left</span>
+                                    }
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <form asp-action="CloseCheque" asp-route-id="@item.Id" method="post" 
+                                      onsubmit="return confirm('Confirm receipt of funds for this cheque? This will update the General Ledger.');">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary fw-bold">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Close & Settle
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                No active cheques found in the portfolio.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Optional: Auto-refresh the view every 5 minutes during demo
+        // setTimeout(function() { location.reload(); }, 300000);
+    </script>
+}

@@ -1,0 +1,67 @@
+@model Dictionary<string, string>
+@{ ViewData["Title"] = "System Settings"; }
+
+<div class="page-header">
+    <h1>System Settings</h1>
+    <div class="subtitle">Organisation and notification configuration</div>
+</div>
+
+<div class="content-body">
+<form asp-action="Settings" method="post">
+    @Html.AntiForgeryToken()
+    <div class="row"><div class="col-lg-8">
+
+        <div class="card mb-3">
+            <div class="card-header">Organisation</div>
+            <div class="card-body row g-3">
+                @foreach (var key in new[] { "OrgName","OrgEmail","OrgPhone","OrgAddress","OrgLicenceNo" })
+                {
+                    <div class="col-md-6">
+                        <label class="form-label">@key.Replace("Org","")</label>
+                        <input name="@key" value="@(Model.ContainsKey(key) ? Model[key] : "")"
+                            class="form-control" placeholder="@key" />
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">Email / SMS (SendGrid &amp; Africa's Talking)</div>
+            <div class="card-body row g-3">
+                @foreach (var key in new[] { "SendGridApiKey","SendGridFromEmail","ATApiKey","ATUsername","ATSenderId" })
+                {
+                    <div class="col-md-6">
+                        <label class="form-label">@key</label>
+                        <input name="@key"
+                            value="@(Model.ContainsKey(key) ? Model[key] : "")"
+                            class="form-control"
+                            type="@(key.Contains("ApiKey") ? "password" : "text")"
+                            placeholder="@key" />
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">Default Rates (%)</div>
+            <div class="card-body row g-3">
+                @foreach (var key in new[] { "DefaultBidBondRate","DefaultInvoiceRate","DefaultChequeRate","VatRate","CommissionRate" })
+                {
+                    <div class="col-md-4">
+                        <label class="form-label">@key.Replace("Default","").Replace("Rate","")</label>
+                        <div class="input-group">
+                            <input name="@key" value="@(Model.ContainsKey(key) ? Model[key] : "")"
+                                class="form-control" type="number" step="0.01" placeholder="0.00" />
+                            <span class="input-group-text">%</span>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-navy px-4">
+            <i class="bi bi-floppy me-1"></i>Save Settings
+        </button>
+    </div></div>
+</form>
+</div>

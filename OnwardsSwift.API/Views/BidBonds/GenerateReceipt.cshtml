@@ -1,0 +1,206 @@
+﻿@model dynamic
+@{
+    Layout = null; // Clean page for printing
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background: #f4f7f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .receipt-container {
+            max-width: 800px;
+            margin: 40px auto;
+            background: #fff;
+            padding: 50px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .receipt-header {
+            border-bottom: 2px solid #002d5a;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-name {
+            color: #002d5a;
+            font-weight: 800;
+            font-size: 24px;
+            letter-spacing: -1px;
+        }
+
+        .receipt-label {
+            background: #002d5a;
+            color: #fff;
+            padding: 5px 15px;
+            text-transform: uppercase;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+
+        .info-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #6c757d;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .info-value {
+            font-size: 15px;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .payment-summary {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .total-row {
+            border-top: 2px solid #dee2e6;
+            padding-top: 15px;
+            margin-top: 15px;
+        }
+
+        .paid-stamp {
+            position: absolute;
+            top: 150px;
+            right: 50px;
+            border: 4px solid #28a745;
+            color: #28a745;
+            padding: 10px 20px;
+            font-weight: 900;
+            font-size: 32px;
+            text-transform: uppercase;
+            transform: rotate(-15deg);
+            opacity: 0.2;
+            border-radius: 10px;
+            pointer-events: none;
+        }
+
+        @@media print {
+            .no-print {
+                display: none;
+            }
+
+            body {
+                background: #fff;
+                padding: 0;
+            }
+
+            .receipt-container {
+                box-shadow: none;
+                margin: 0;
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print text-center py-3 bg-dark text-white">
+        <button onclick="window.print()" class="btn btn-primary btn-sm me-2">Print Receipt</button>
+        <a href="/Bonds/Index" class="btn btn-outline-light btn-sm">Back to Dashboard</a>
+    </div>
+
+    <div class="receipt-container">
+        <div class="paid-stamp">OFFICIALLY PAID</div>
+
+        <div class="receipt-header">
+            <div>
+                <div class="brand-name">ONWARDS SWIFT</div>
+                <small class="text-muted">Fintech Solutions & Bond Issuance</small>
+            </div>
+            <div class="text-end">
+                <span class="receipt-label">Official Payment Receipt</span>
+                <div class="mt-2 small fw-bold">No: #RCP-@Model.BondId-@DateTime.Now.Year</div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-6">
+                <div class="info-label">Client Name</div>
+                <div class="info-value">@Model.ClientName</div>
+
+                <div class="info-label">Tender Description</div>
+                <div class="info-value">@Model.TenderName (@Model.TenderNumber)</div>
+            </div>
+            <div class="col-6 text-end">
+                <div class="info-label">Date of Issue</div>
+                <div class="info-value">@DateTime.Now.ToString("dd MMMM yyyy")</div>
+
+                <div class="info-label">Payment Mode</div>
+                <div class="info-value">Direct Bank Deposit / Transfer</div>
+            </div>
+        </div>
+
+        <h6 class="fw-bold text-primary mb-3">Service Fee Breakdown</h6>
+        <div class="table-responsive">
+            <table class="table border-bottom">
+                <thead>
+                    <tr class="small text-uppercase text-muted">
+                        <th>Description</th>
+                        <th class="text-end">Amount (KES)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Bank Commission Charge</td>
+                        <td class="text-end">@Model.CommissionAmount.ToString("N2")</td>
+                    </tr>
+                    <tr>
+                        <td>Internal Processing & Application Fee</td>
+                        <td class="text-end">@Model.ApplicationFee.ToString("N2")</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="payment-summary">
+            <div class="row align-items-center mb-2">
+                <div class="col-8 text-muted">Sub-Total Fees</div>
+                <div class="col-4 text-end fw-bold">KES @((Model.CommissionAmount + Model.ApplicationFee).ToString("N2"))</div>
+            </div>
+            @if (Model.CashCoverAmount > 0)
+            {
+                <div class="row align-items-center mb-2">
+                    <div class="col-8 text-muted">Refundable Cash Cover (Security)</div>
+                    <div class="col-4 text-end fw-bold">KES @Model.CashCoverAmount.ToString("N2")</div>
+                </div>
+            }
+            <div class="row total-row align-items-center">
+                <div class="col-8 h5 fw-bold mb-0">TOTAL COLLECTED</div>
+                <div class="col-4 text-end h4 fw-bold mb-0 text-primary">
+                    KES @((Model.CommissionAmount + Model.ApplicationFee + (Model.CashCoverAmount ?? 0)).ToString("N2"))
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 p-3 border rounded">
+            <div class="info-label">Payment Captured To:</div>
+            <div class="info-value mb-1">@Model.CollectedBy Bank</div>
+            <div class="info-label">Transaction Reference:</div>
+            <div class="info-value mb-0 text-uppercase">@Model.PaymentReference</div>
+        </div>
+
+        <div class="mt-5 pt-4 text-center border-top">
+            <p class="small text-muted mb-0">This is a system generated receipt and does not require a physical signature.</p>
+            <small class="text-muted opacity-50">Generated at @DateTime.Now.ToString("T")</small>
+        </div>
+    </div>
+</body>
+</html>

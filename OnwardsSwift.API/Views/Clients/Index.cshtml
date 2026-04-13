@@ -1,0 +1,62 @@
+@model OnwardsSwift.Core.DTOs.PagedResult<OnwardsSwift.Core.DTOs.ClientResponse>
+@{ ViewData["Title"] = "Clients"; }
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div><h1>Clients</h1><div class="subtitle">@Model.TotalCount client records</div></div>
+    <a asp-action="Create" class="btn btn-navy"><i class="bi bi-plus-circle me-1"></i>New Client</a>
+</div>
+
+<div class="content-body">
+    <div class="card">
+        <div class="card-header">
+            <form method="get" class="d-flex gap-2" style="max-width:420px">
+                <input name="search" value="@ViewBag.Search" class="form-control form-control-sm" placeholder="Search by name or KRA PIN…" />
+                <button class="btn btn-sm btn-outline-secondary">Search</button>
+                @if (!string.IsNullOrEmpty(ViewBag.Search)) { <a asp-action="Index" class="btn btn-sm btn-outline-secondary">Clear</a> }
+            </form>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr><th>Company</th><th>KRA PIN</th><th>Contact</th><th>Type</th>
+                        <th>Credit Limit</th><th>Status</th><th>Facilities</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in Model.Items)
+                    {
+                        <tr>
+                            <td><a asp-action="Details" asp-route-id="@c.Id">@c.CompanyName</a></td>
+                            <td><code class="small">@c.KraPin</code></td>
+                            <td><div>@c.ContactPerson</div><div class="small text-muted">@c.Email</div></td>
+                            <td>@c.ClientType</td>
+                            <td class="amt">@c.CreditLimit.ToString("N0")</td>
+                            <td><span class="badge-status status-@c.Status.ToLower()">@c.Status</span></td>
+                            <td class="text-center">@c.TotalFacilities</td>
+                            <td>
+                                <a asp-action="Details" asp-route-id="@c.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                <a asp-action="Edit" asp-route-id="@c.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Items.Any())
+                    {
+                        <tr><td colspan="8" class="text-center text-muted py-4">No clients found</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (Model.TotalPages > 1)
+        {
+            <div class="card-footer">
+                <nav><ul class="pagination pagination-sm mb-0">
+                    @for (int i = 1; i <= Model.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == Model.Page ? "active" : "")">
+                            <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-search="@ViewBag.Search">@i</a>
+                        </li>
+                    }
+                </ul></nav>
+            </div>
+        }
+    </div>
+</div>

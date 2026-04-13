@@ -1,0 +1,72 @@
+@{
+    ViewData["Title"] = "Add Bank Partner";
+}
+
+<div class="page-header mb-4">
+    <h1 class="h3 fw-bold">Add Bank Partner</h1>
+    <p class="text-muted">Register a new issuing institution for bond facilities.</p>
+</div>
+
+<div class="content-body">
+    <form asp-action="CreateBank" method="post">
+        @Html.AntiForgeryToken()
+        <div class="row">
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-header bg-transparent border-bottom py-3">
+                        <h6 class="mb-0 fw-bold"><i class="bi bi-info-circle me-2 text-primary"></i>Partner Details</h6>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label small fw-bold">INSTITUTION NAME <span class="text-danger">*</span></label>
+                                <input name="name" class="form-control" required placeholder="e.g. KCB Bank Kenya Ltd" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">INSTITUTION CODE <span class="text-danger">*</span></label>
+                                <input name="shortCode" class="form-control fw-bold" required placeholder="KCB"
+                                       style="text-transform:uppercase" maxlength="10" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">INSTITUTION TYPE</label>
+                                <select name="institutionType" class="form-select" asp-items="ViewBag.InstTypes">
+                                    <option value="1">Commercial Bank</option>
+                                    <option value="2">Insurance Company</option>
+                                </select>
+                            </div>
+                        
+
+                            <div class="col-12 mt-4">
+                                <h6 class="small text-muted text-uppercase fw-bold" style="letter-spacing: 1px;">Contact Information</h6>
+                                <hr class="mt-1">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">CONTACT EMAIL</label>
+                                <input name="contactEmail" class="form-control" type="email" placeholder="guarantees@bank.com" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">CONTACT PHONE</label>
+                                <input name="contactPhone" class="form-control" placeholder="+254 700 000 000" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary px-4 shadow-sm">
+                        <i class="bi bi-check2-circle me-1"></i> Save Partner
+                    </button>
+                    <a asp-action="Banks" class="btn btn-outline-secondary px-4">Cancel</a>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="alert alert-info border-0 shadow-sm rounded-4">
+                    <h6 class="fw-bold"><i class="bi bi-lightbulb me-2"></i>Quick Tip</h6>
+                    <p class="small mb-0">The <strong>Short Code</strong> is used as a unique identifier across the system for integrations and reporting. Ensure it matches the standard industry abbreviation.</p>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>

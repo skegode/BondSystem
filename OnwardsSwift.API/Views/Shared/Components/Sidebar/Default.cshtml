@@ -1,0 +1,42 @@
+﻿@model List<OnwardsSwift.Core.DTOs.NavMenu>
+
+@foreach (var menu in Model)
+{
+    var isCurrentController = ViewContext.RouteData.Values["controller"]?.ToString() == menu.Controller;
+
+    @if (menu.SubMenus.Any())
+    {
+        @* Section Header for collapsible menus *@
+        <div class="sidebar-section">@menu.Title</div>
+
+        <a class="nav-link @(isCurrentController ? "" : "collapsed")"
+           data-bs-toggle="collapse" href="#menu_@menu.Id" role="button">
+            <i class="bi @menu.Icon"></i>
+            <span>@menu.Title</span>
+            <i class="bi bi-chevron-down ms-auto small"></i>
+        </a>
+
+        <div class="collapse @(isCurrentController ? "show" : "")" id="menu_@menu.Id">
+            <div class="submenu-container">
+                @foreach (var sub in menu.SubMenus)
+                {
+                    var isCurrentAction = ViewContext.RouteData.Values["action"]?.ToString() == sub.Action;
+
+                    <a class="nav-link submenu-item @(isCurrentController && isCurrentAction ? "submenu-active" : "")"
+                       asp-controller="@sub.Controller" asp-action="@sub.Action">
+                        <i class="bi bi-dot"></i> @sub.Title
+                    </a>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        @* Single Link Menu Item *@
+        <a class="nav-link @(isCurrentController ? "active" : "")"
+           asp-controller="@menu.Controller" asp-action="@menu.Action">
+            <i class="bi @menu.Icon"></i>
+            <span>@menu.Title</span>
+        </a>
+    }
+}

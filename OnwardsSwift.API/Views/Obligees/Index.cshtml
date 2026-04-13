@@ -1,0 +1,45 @@
+@{ ViewData["Title"] = "Obligees"; }
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div><h1>Obligees</h1><div class="subtitle">Procuring entities that receive bonds</div></div>
+    <a asp-action="Create" class="btn btn-navy"><i class="bi bi-plus-circle me-1"></i>Add Obligee</a>
+</div>
+
+<div class="content-body">
+<div class="card">
+    <div class="card-header">
+        <form method="get" class="d-flex gap-2" style="max-width:360px">
+            <input name="search" value="@ViewBag.Search" class="form-control form-control-sm" placeholder="Search name…" />
+            <button class="btn btn-sm btn-outline-secondary">Search</button>
+            @if (!string.IsNullOrEmpty(ViewBag.Search)) { <a asp-action="Index" class="btn btn-sm btn-outline-secondary">Clear</a> }
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead><tr><th>Name</th><th>Short Name</th><th>Category</th><th>Contact</th><th>Email</th><th>Phone</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var r in (List<dynamic>)Model)
+                {
+                    <tr>
+                        <td>@r.Name</td>
+                        <td class="small text-muted">@r.ShortName</td>
+                        <td><span class="badge bg-light text-dark small">@r.Category</span></td>
+                        <td class="small">@r.ContactPerson</td>
+                        <td class="small">@r.Email</td>
+                        <td class="small">@r.Phone</td>
+                        <td>
+                            <a asp-action="Edit" asp-route-id="@r.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                            <form asp-action="Delete" asp-route-id="@r.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button class="btn btn-sm btn-outline-danger" data-confirm="Delete '@r.Name'?">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                @if (!((List<dynamic>)Model).Any())
+                { <tr><td colspan="7" class="text-center text-muted py-4">No obligees found</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>

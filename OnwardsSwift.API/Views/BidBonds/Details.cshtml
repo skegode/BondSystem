@@ -1,0 +1,131 @@
+@model OnwardsSwift.Core.DTOs.BidBondResponse
+@{ ViewData["Title"] = Model.ReferenceNo; }
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div>
+        <h1>@Model.ReferenceNo</h1>
+        <div class="subtitle">@Model.ClientName · @Model.ProcuringEntity</div>
+    </div>
+    <span class="badge-status status-@Model.Status.ToLower() fs-6">@Model.Status</span>
+</div>
+
+<div class="content-body">
+<div class="row g-3">
+<div class="col-md-4">
+    <div class="card mb-3">
+        <div class="card-header">Bond Summary</div>
+        <div class="card-body">
+            <dl class="row mb-0 small">
+                <dt class="col-5 text-muted">Client</dt>
+                <dd class="col-7">@Model.ClientName</dd>
+                <dt class="col-5 text-muted">Tender No.</dt>
+                <dd class="col-7">@Model.TenderNumber</dd>
+                <dt class="col-5 text-muted">Bond Amount</dt>
+                <dd class="col-7 fw-bold">KSh @Model.Amount.ToString("N2")</dd>
+                <dt class="col-5 text-muted">Commission Fee</dt>
+                <dd class="col-7 text-primary">KSh @Model.CommissionFee.ToString("N2")</dd>
+                <dt class="col-5 text-muted">Rate</dt>
+                <dd class="col-7">@Model.Rate.ToString("F2")% p.a.</dd>
+                <dt class="col-5 text-muted">Tenor</dt>
+                <dd class="col-7">@Model.TenorDays days</dd>
+                <dt class="col-5 text-muted">Issuing Bank</dt>
+                <dd class="col-7">@Model.IssuingBank</dd>
+                <dt class="col-5 text-muted">Closing Date</dt>
+                <dd class="col-7">@Model.TenderClosingDate.ToString("dd MMM yyyy")</dd>
+                <dt class="col-5 text-muted">Submitted</dt>
+                <dd class="col-7">@Model.CreatedAt.ToString("dd MMM yyyy")</dd>
+                @if (Model.IsResold) {
+                    <dt class="col-5 text-muted">Resold To</dt>
+                    <dd class="col-7">@Model.ResalePartner</dd>
+                }
+            </dl>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    @if (Model.Status == "Pending" || Model.Status == "UnderReview")
+    {
+    <div class="card mb-3">
+        <div class="card-header">Approval Actions</div>
+        <div class="card-body d-grid gap-2">
+            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">
+                <i class="bi bi-check-circle me-1"></i>Approve
+            </button>
+            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                <i class="bi bi-x-circle me-1"></i>Reject
+            </button>
+        </div>
+    </div>
+    }
+    @if (Model.Status == "Approved")
+    {
+
+    }
+</div>
+
+<div class="col-md-8">
+    <div class="card">
+        <div class="card-header">Application Timeline</div>
+        <div class="card-body">
+            <div class="timeline">
+                <div class="d-flex align-items-start gap-3 mb-3">
+                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width:32px;height:32px;flex-shrink:0">
+                        <i class="bi bi-send text-white small"></i>
+                    </div>
+                    <div>
+                        <div class="fw-600 small">Application Submitted</div>
+                        <div class="text-muted small">@Model.CreatedAt.ToString("dd MMM yyyy HH:mm")</div>
+                    </div>
+                </div>
+                @if (Model.DisbursedAt.HasValue)
+                {
+                <div class="d-flex align-items-start gap-3">
+                    <div class="bg-success rounded-circle d-flex align-items-center justify-content-center" style="width:32px;height:32px;flex-shrink:0">
+                        <i class="bi bi-check text-white small"></i>
+                    </div>
+                    <div>
+                        <div class="fw-600 small">Disbursed</div>
+                        <div class="text-muted small">@Model.DisbursedAt.Value.ToString("dd MMM yyyy HH:mm")</div>
+                    </div>
+                </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+</div>
+
+<!-- Approve Modal -->
+<div class="modal fade" id="approveModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Approve Facility</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <form asp-action="Approve" asp-route-id="@Model.Id" method="post">
+            @Html.AntiForgeryToken()
+            <div class="modal-body">
+                <div class="mb-3"><label class="form-label">Notes (optional)</label><textarea name="notes" class="form-control" rows="2"></textarea></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-success">Approve</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Reject Facility</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <form asp-action="Reject" asp-route-id="@Model.Id" method="post">
+            @Html.AntiForgeryToken()
+            <div class="modal-body">
+                <div class="mb-3"><label class="form-label">Rejection Reason <span class="text-danger">*</span></label><textarea name="reason" class="form-control" rows="3" required></textarea></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-danger">Reject</button>
+            </div>
+        </form>
+    </div></div>
+</div>

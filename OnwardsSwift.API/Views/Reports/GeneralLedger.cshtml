@@ -1,0 +1,194 @@
+﻿@model IEnumerable<dynamic>
+@{
+    ViewData["Title"] = "General Ledger Audit";
+}
+
+<style>
+    :root {
+        --os-navy: #002D72;
+        --os-navy-light: #e6eaf1;
+    }
+
+    .text-navy {
+        color: var(--os-navy) !important;
+    }
+
+    .bg-navy {
+        background-color: var(--os-navy) !important;
+    }
+
+    .btn-outline-navy {
+        color: var(--os-navy);
+        border-color: var(--os-navy);
+        transition: all 0.2s;
+    }
+
+        .btn-outline-navy:hover {
+            background-color: var(--os-navy);
+            color: white;
+        }
+
+    /* Custom Subtle Badge for Transaction Types */
+    .badge-audit {
+        background-color: var(--os-navy-light);
+        color: var(--os-navy);
+        border: 1px solid rgba(0, 45, 114, 0.2);
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+
+    .extra-small {
+        font-size: 0.7rem;
+    }
+
+    .font-monospace {
+        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace !important;
+    }
+
+    .table-audit thead th {
+        background-color: #1a1a1a;
+        color: #ffffff;
+        font-size: 0.75rem;
+        letter-spacing: 1px;
+        padding: 12px;
+    }
+
+    .border-start-4 {
+        border-left-width: 4px !important;
+    }
+</style>
+
+<div class="page-header d-flex align-items-center justify-content-between mb-4 animate__animated animate__fadeIn">
+    <div>
+        <h1 class="h3 fw-bold mb-1 text-navy">General Ledger</h1>
+        <div class="d-flex align-items-center">
+            <span class="badge bg-secondary me-2">Full Audit Trail</span>
+            <p class="text-muted small mb-0 font-monospace">System Integrity Level: <span class="text-success">Verified</span></p>
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <button onclick="exportGLExcel()" class="btn btn-outline-navy btn-sm px-3 fw-bold shadow-sm">
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export Ledger
+        </button>
+
+        <div class="bg-white p-2 rounded-3 shadow-sm border d-none d-md-block">
+            <small class="text-muted px-2 fw-bold text-uppercase" style="font-size: 0.65rem;">System Master Log</small>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4 animate__animated animate__fadeInUp">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm border-start border-danger border-start-4 h-100">
+            <div class="card-body">
+                <div class="text-muted text-uppercase small fw-bold mb-1">Total Debits</div>
+                <h4 class="fw-bold text-danger mb-0">
+                    KES @Model.Where(x => x.EntryType == "DEBIT").Sum(x => (decimal)x.Amount).ToString("N2")
+                </h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm border-start border-success border-start-4 h-100">
+            <div class="card-body">
+                <div class="text-muted text-uppercase small fw-bold mb-1">Total Credits</div>
+                <h4 class="fw-bold text-success mb-0">
+                    KES @Model.Where(x => x.EntryType == "CREDIT").Sum(x => (decimal)x.Amount).ToString("N2")
+                </h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm bg-navy text-white h-100">
+            <div class="card-body">
+                <div class="opacity-75 text-uppercase small fw-bold mb-1">Journal Net Balance</div>
+                <h4 class="fw-bold mb-0">
+                    @{
+                        var net = Model.Where(x => x.EntryType == "CREDIT").Sum(x => (decimal)x.Amount) -
+                        Model.Where(x => x.EntryType == "DEBIT").Sum(x => (decimal)x.Amount);
+                    }
+                    KES @net.ToString("N2")
+                </h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm animate__animated animate__fadeInUp">
+    <div class="card-header bg-white py-3 border-0 d-flex align-items-center">
+        <i class="bi bi-shield-lock-fill text-primary me-2"></i>
+        <h6 class="mb-0 fw-bold text-navy">Double-Entry Transaction Log</h6>
+    </div>
+    <div class="table-responsive">
+        <table id="glAuditTable" class="table table-hover align-middle mb-0 table-audit">
+            <thead class="text-uppercase">
+                <tr>
+                    <th class="ps-4">Timestamp</th>
+                    <th>Type</th>
+                    <th>Narrative / Description</th>
+                    <th class="text-end">Debit (DR)</th>
+                    <th class="text-end pe-4">Credit (CR)</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white">
+                @foreach (var gl in Model)
+                {
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-bold text-dark">@gl.CreatedAt.ToString("dd MMM yyyy")</div>
+                            <div class="extra-small text-muted font-monospace">@gl.CreatedAt.ToString("HH:mm:ss")</div>
+                        </td>
+                        <td>
+                            <span class="badge badge-audit rounded-pill px-3 py-2 small">
+                                <i class="bi bi-tag-fill me-1 opacity-50"></i>@gl.TransactionType
+                            </span>
+                        </td>
+                        <td>
+                            <div class="small text-dark text-wrap" style="max-width: 350px;">
+                                @gl.Description
+                            </div>
+                        </td>
+                        <td class="text-end text-danger fw-bold font-monospace">
+                            @(gl.EntryType == "DEBIT" ? gl.Amount.ToString("N2") : "-")
+                        </td>
+                        <td class="text-end pe-4 text-success fw-bold font-monospace">
+                            @(gl.EntryType == "CREDIT" ? gl.Amount.ToString("N2") : "-")
+                        </td>
+                    </tr>
+                }
+
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="bi bi-search display-4 d-block mb-2 opacity-25"></i>
+                            <p class="mb-0">No ledger entries found for the selected period.</p>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer bg-light border-0 py-3">
+        <small class="text-muted">
+            <i class="bi bi-info-circle me-1"></i> Data displayed reflects real-time entries from the core database.
+        </small>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script>
+        function exportGLExcel() {
+            var table = document.getElementById("glAuditTable");
+            var wb = XLSX.utils.table_to_book(table, {
+                sheet: "General Ledger",
+                raw: false
+            });
+
+            var filename = "Onwards_GL_Export_" + new Date().toISOString().slice(0, 10) + ".xlsx";
+            XLSX.writeFile(wb, filename);
+        }
+    </script>
+}

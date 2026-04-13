@@ -1,0 +1,153 @@
+@model OnwardsSwift.Core.DTOs.ChequeDiscountResponse
+@{ ViewData["Title"] = Model.ReferenceNo; }
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div><h1>@Model.ReferenceNo</h1><div class="subtitle">@Model.ClientName · Cheque @Model.ChequeNumber</div></div>
+    <span class="badge-status status-@Model.Status.ToLower() fs-6">@Model.Status</span>
+</div>
+
+<div class="content-body"><div class="row g-3">
+<div class="col-md-4">
+    <div class="card mb-3">
+        <div class="card-header">Cheque Summary</div>
+        <div class="card-body"><dl class="row mb-0 small">
+            <dt class="col-5 text-muted">Client</dt><dd class="col-7">@Model.ClientName</dd>
+            <dt class="col-5 text-muted">Drawer</dt><dd class="col-7">@Model.DrawerName</dd>
+            <dt class="col-5 text-muted">Drawee Bank</dt><dd class="col-7">@Model.DraweeBank</dd>
+            <dt class="col-5 text-muted">Face Value</dt><dd class="col-7 fw-bold">KSh @Model.ChequeFaceValue.ToString("N2")</dd>
+            <dt class="col-5 text-muted">Advance (85%)</dt><dd class="col-7 text-primary fw-bold">KSh @Model.AdvanceAmount.ToString("N2")</dd>
+            <dt class="col-5 text-muted">Discount Fee</dt><dd class="col-7">KSh @Model.DiscountFee.ToString("N2")</dd>
+            <dt class="col-5 text-muted">Net to Client</dt><dd class="col-7 text-success fw-bold">KSh @Model.NetAdvance.ToString("N2")</dd>
+            <dt class="col-5 text-muted">Cheque Date</dt><dd class="col-7">@Model.ChequeDate.ToString("dd MMM yyyy")</dd>
+            <dt class="col-5 text-muted">Maturity Date</dt><dd class="col-7">@Model.MaturityDate.ToString("dd MMM yyyy")</dd>
+            <dt class="col-5 text-muted">Tenor</dt><dd class="col-7">@Model.TenorDays days</dd>
+            <dt class="col-5 text-muted">Presented</dt>
+            <dd class="col-7">@(Model.PresentedToBank ? "<span class='text-success'>Yes</span>" : "<span class='text-muted'>No</span>")</dd>
+            <dt class="col-5 text-muted">Outcome</dt>
+            <dd class="col-7">
+                @if (Model.Honoured) { <span class="text-success"><i class="bi bi-check-circle"></i> Honoured</span> }
+                else if (Model.Bounced) { <span class="text-danger"><i class="bi bi-x-circle"></i> Bounced</span> }
+                else { <span class="text-muted">Pending</span> }
+            </dd>
+            @if (!string.IsNullOrEmpty(Model.BounceReason))
+            {
+                <dt class="col-5 text-muted">Bounce Reason</dt>
+                <dd class="col-7 text-danger">@Model.BounceReason</dd>
+            }
+        </dl></div>
+    </div>
+
+    <!-- Workflow Actions -->
+    @if (Model.Status is "Pending" or "UnderReview")
+    {
+    <div class="card mb-3">
+        <div class="card-header">Approval Actions</div>
+        <div class="card-body d-grid gap-2">
+            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">
+                <i class="bi bi-check-circle me-1"></i>Approve
+            </button>
+            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                <i class="bi bi-x-circle me-1"></i>Reject
+            </button>
+        </div>
+    </div>
+    }
+
+    @if (Model.Status == "Approved")
+    {
+    <div class="card mb-3">
+        <div class="card-header">Disburse</div>
+        <div class="card-body">
+            <form asp-action="Disburse" asp-route-id="@Model.FacilityId" method="post">
+                @Html.AntiForgeryToken()
+                <button class="btn btn-sm btn-navy w-100"
+                    data-confirm="Disburse KSh @Model.NetAdvance.ToString("N0") to client?">
+                    <i class="bi bi-send me-1"></i>Disburse Bond
+                </button>
+            </form>
+        </div>
+    </div>
+    }
+
+    @if (Model.Status == "Disbursed" && !Model.PresentedToBank)
+    {
+    <div class="card mb-3">
+        <div class="card-header">Bank Presentation</div>
+        <div class="card-body">
+            <form asp-action="PresentToBank" asp-route-id="@Model.FacilityId" method="post">
+                @Html.AntiForgeryToken()
+                <button class="btn btn-sm btn-outline-primary w-100">
+                    <i class="bi bi-bank me-1"></i>Mark Presented to Bank
+                </button>
+            </form>
+        </div>
+    </div>
+    }
+
+    @if (Model.PresentedToBank && !Model.Honoured && !Model.Bounced)
+    {
+    <div class="card">
+        <div class="card-header">Record Outcome</div>
+        <div class="card-body d-grid gap-2">
+            <form asp-action="RecordOutcome" asp-route-id="@Model.FacilityId" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="honoured" value="true" />
+                <button class="btn btn-sm btn-success w-100"><i class="bi bi-check-circle me-1"></i>Cheque Honoured</button>
+            </form>
+            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#bounceModal">
+                <i class="bi bi-x-circle me-1"></i>Cheque Bounced
+            </button>
+        </div>
+    </div>
+    }
+</div>
+</div></div>
+
+<!-- Approve Modal -->
+<div class="modal fade" id="approveModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Approve Facility</h5>
+            <button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <form asp-action="Approve" asp-route-id="@Model.FacilityId" method="post">
+            @Html.AntiForgeryToken()
+            <div class="modal-body"><textarea name="notes" class="form-control" rows="2" placeholder="Notes (optional)"></textarea></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-success">Approve</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Reject Facility</h5>
+            <button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <form asp-action="Reject" asp-route-id="@Model.FacilityId" method="post">
+            @Html.AntiForgeryToken()
+            <div class="modal-body"><textarea name="reason" class="form-control" rows="3" placeholder="Rejection reason" required></textarea></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-danger">Reject</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+
+<!-- Bounce Modal -->
+<div class="modal fade" id="bounceModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Record Bounce</h5>
+            <button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <form asp-action="RecordOutcome" asp-route-id="@Model.FacilityId" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="honoured" value="false" />
+            <div class="modal-body"><textarea name="bounceReason" class="form-control" rows="3" placeholder="Bounce reason" required></textarea></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-danger">Record Bounce</button>
+            </div>
+        </form>
+    </div></div>
+</div>

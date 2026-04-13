@@ -1,0 +1,825 @@
+﻿@model OnwardsSwift.Core.DTOs.CreateBidBondRequest
+@{
+    ViewData["Title"] = "New Bond Application";
+    Layout = "_Layout";
+}
+
+<style>
+    .step-badge {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #1e6fd9;
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .75rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .section-title {
+        font-size: .95rem;
+        font-weight: 700;
+        color: #0f1c2e;
+    }
+
+    .quote-card {
+        position: sticky;
+        top: 1.5rem;
+        background: linear-gradient(145deg, #0f1c2e 0%, #1a2e46 100%);
+        border-radius: .875rem;
+        color: #fff;
+        overflow: hidden;
+    }
+
+        .quote-card .q-header {
+            padding: 1.5rem 1.5rem .75rem;
+            border-bottom: 1px solid rgba(255,255,255,.1);
+        }
+
+        .quote-card .q-body {
+            padding: 1.25rem 1.5rem;
+        }
+
+        .quote-card .q-footer {
+            padding: .75rem 1.5rem 1.25rem;
+            background: rgba(0,0,0,.2);
+        }
+
+    .q-total {
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -.02em;
+        line-height: 1;
+    }
+
+    .q-label {
+        font-size: .68rem;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: rgba(255,255,255,.5);
+    }
+
+    .q-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: .82rem;
+        padding: .3rem 0;
+        border-bottom: 1px solid rgba(255,255,255,.07);
+    }
+
+        .q-row:last-child {
+            border-bottom: none;
+        }
+
+        .q-row .val {
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .q-row .lbl {
+            color: rgba(255,255,255,.6);
+        }
+
+    .rate-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        background: rgba(30,111,217,.15);
+        border: 1px solid rgba(30,111,217,.3);
+        border-radius: 20px;
+        padding: .2rem .75rem;
+        font-size: .78rem;
+    }
+
+    .rate-breakdown {
+        font-size: .76rem;
+        color: rgba(255,255,255,.5);
+        margin-top: .4rem;
+    }
+
+    .input-highlight {
+        border-color: #1e6fd9 !important;
+        box-shadow: 0 0 0 3px rgba(30,111,217,.12) !important;
+    }
+
+    .warning-rate {
+        border-color: #dc3545 !important;
+        background: #fff5f5 !important;
+    }
+
+    .bar-track {
+        height: 6px;
+        background: rgba(255,255,255,.12);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .bar-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width .3s ease;
+    }
+
+    .bar-bank {
+        background: #60a5fa;
+    }
+
+    .bar-ours {
+        background: #34d399;
+    }
+</style>
+
+<div class="page-header">
+    <h1>New Bond Application</h1>
+    <div class="subtitle">Bid Bond &middot; Performance Bond &middot; Customs Bond</div>
+</div>
+
+<div class="content-body">
+    <form asp-action="Create" method="post" enctype="multipart/form-data" id="bondForm">
+        @Html.AntiForgeryToken()
+
+        <!--
+            Hidden calculation fields written by JS before submit.
+            Names match DTO exactly:
+              CommissionAmount  = bank's KSh charge   (saved to Bonds.CommissionAmount)
+              ApplicationFee    = Onwards Swift income (saved to Bonds.ApplicationFee and BankCharge)
+            AppliedRate is the visible combined-rate input — no separate hidden needed.
+        -->
+        <input type="hidden" id="hCommissionAmount" name="CommissionAmount" value="0" />
+        <input type="hidden" id="hApplicationFee" name="ApplicationFee" value="0" />
+
+        <!-- JS-only rate meta — no name, never submitted to server -->
+        <input type="hidden" id="metaBankRate" value="0" />
+        <input type="hidden" id="metaAppFeeRate" value="0" />
+        <input type="hidden" id="metaMinRate" value="0" />
+
+        <div class="row g-4">
+
+            <!-- ═══════════════════ LEFT COLUMN ═══════════════════ -->
+            <div class="col-lg-8">
+
+                <!-- STEP 1 -->
+                <div class="card mb-3">
+                    <div class="card-header d-flex align-items-center gap-2">
+                        <span class="step-badge">1</span>
+                        <span class="section-title">Parties &amp; Product</span>
+                    </div>
+                    <div class="card-body row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Client <span class="text-danger">*</span></label>
+                            <select asp-for="ClientId" class="form-select" asp-items="ViewBag.Clients">
+                                <option value="">-- Select Client --</option>
+                            </select>
+                            <span asp-validation-for="ClientId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Agent / RM <span class="text-danger">*</span></label>
+                            <select asp-for="AgentId" class="form-select" asp-items="ViewBag.Agents">
+                                <option value="">-- Select Agent --</option>
+                            </select>
+                            <span asp-validation-for="AgentId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Bond Type <span class="text-danger">*</span></label>
+                            <select asp-for="BondTypeId" id="ProductType" class="form-select" asp-items="ViewBag.ProductTypes">
+                                <option value="">-- Select Bond Type --</option>
+                            </select>
+                            <span asp-validation-for="BondTypeId" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 2 -->
+                <div class="card mb-3">
+                    <div class="card-header d-flex align-items-center gap-2">
+                        <span class="step-badge">2</span>
+                        <span class="section-title">Tender Details</span>
+                    </div>
+                    <div class="card-body row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Tender Name <span class="text-danger">*</span></label>
+                            <input asp-for="TenderName" id="TenderName" class="form-control"
+                                   placeholder="e.g. Supply and Delivery of Office Furniture" />
+                            <span asp-validation-for="TenderName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tender Number <span class="text-danger">*</span></label>
+                            <input asp-for="TenderNumber" class="form-control" placeholder="e.g. KeRRA/T/001/2026" />
+                            <span asp-validation-for="TenderNumber" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Procuring Entity <span class="text-danger">*</span></label>
+                            <select asp-for="ProcuringEntity" class="form-select" asp-items="ViewBag.ProcuringEntities">
+                                <option value="">-- Select Entity --</option>
+                            </select>
+                            <span asp-validation-for="ProcuringEntity" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Bond Amount (KSh) <span class="text-danger">*</span></label>
+                            <input asp-for="Amount" id="Amount" class="form-control input-highlight fw-bold"
+                                   type="number" step="0.01" min="1000" placeholder="0.00" />
+                            <span asp-validation-for="Amount" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tenor (Days) <span class="text-danger">*</span></label>
+                            <input asp-for="TenorDays" id="Tenor" class="form-control"
+                                   type="number" min="1" placeholder="90" />
+                            <span asp-validation-for="TenorDays" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tender Closing Date <span class="text-danger">*</span></label>
+                            <input asp-for="TenderClosingDate" type="date" class="form-control" />
+                            <span asp-validation-for="TenderClosingDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Issuing Bank <span class="text-danger">*</span></label>
+                            <select asp-for="IssuingBank" id="BankId" class="form-select" asp-items="ViewBag.Banks">
+                                <option value="">-- Select Bank --</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 3: Pricing -->
+                <div class="card mb-3 border border-primary border-opacity-50">
+                    <div class="card-header d-flex align-items-center gap-2 bg-white">
+                        <span class="step-badge">3</span>
+                        <span class="section-title text-primary">Pricing</span>
+                        <span id="rateLoadStatus" class="ms-auto text-muted small">
+                            Select bank &amp; bond type to load rates
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-5">
+                                <label class="form-label">
+                                    Total Applied Rate (%)
+                                    <i class="bi bi-info-circle text-muted ms-1"
+                                       title="Bank rate + Onwards Swift fee — combined into one %"></i>
+                                </label>
+                                <div class="input-group">
+                                    <!--
+                                        asp-for="AppliedRate" binds to DTO.AppliedRate
+                                        Service uses this as: BRate = req.AppliedRate (stored in Bonds.BankRate)
+                                    -->
+                                    <input type="number" step="0.001" id="uiCombinedRate"
+                                           asp-for="AppliedRate"
+                                           class="form-control form-control-lg fw-bold input-highlight"
+                                           placeholder="0.000" required />
+                                    <span class="input-group-text bg-white fw-bold text-primary">%</span>
+                                </div>
+                                <div id="rateWarning" class="text-danger small mt-1 d-none">
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                    Minimum: <strong id="minRateLabel">0</strong>%
+                                    (Bank <span id="wBankRate">0</span>% + Fee <span id="wFeeRate">0</span>%)
+                                </div>
+                            </div>
+                            <div class="col-md-7">
+                                <div class="p-3 rounded-3 bg-light">
+                                    <div class="q-label text-dark mb-2">How the rate is split</div>
+                                    <div class="d-flex gap-2 flex-wrap mb-2">
+                                        <div class="rate-pill">
+                                            <span class="text-primary">&#127970;</span>
+                                            Bank: <strong id="pillBankRate">0.000</strong>%
+                                        </div>
+                                        <div class="rate-pill">
+                                            <span class="text-success">&#10022;</span>
+                                            Onwards Swift: <strong id="pillFeeRate">0.000</strong>%
+                                        </div>
+                                    </div>
+                                    <div class="bar-track">
+                                        <div class="d-flex h-100">
+                                            <div id="barBank" class="bar-fill bar-bank" style="width:50%"></div>
+                                            <div id="barOurs" class="bar-fill bar-ours" style="width:50%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-1" style="font-size:.7rem;color:#64748b">
+                                        <span>Bank portion</span><span>Onwards Swift income</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 4: Payment + Cash Cover -->
+                <div class="card mb-3">
+                    <div class="card-header d-flex align-items-center gap-2">
+                        <span class="step-badge">4</span>
+                        <span class="section-title">Payment</span>
+                    </div>
+                    <div class="card-body row g-3">
+
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="deferredToggle"
+                                       asp-for="IsDeferredPayment" value="true" />
+                                <label class="form-check-label" for="deferredToggle">
+                                    Defer payment (invoice client later)
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Payment fields — hidden when deferred -->
+                        <div id="paymentFields" class="col-12">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Collection Bank <span class="text-danger">*</span></label>
+                                    <!--
+                                        asp-for="PaymentBankId" -> DTO.PaymentBankId (int?)
+                                        InternalBanks: Id (int) = value, BankName (AccountNumber) = text
+                                        Service saves as: PayBank = req.PaymentBankId
+                                    -->
+                                    <select asp-for="PaymentBankId" class="form-select"
+                                            asp-items="ViewBag.InternalBanks">
+                                        <option value="">-- Select Collection Bank --</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Payment Reference</label>
+                                    <!--
+                                        asp-for="PaymentReference" -> DTO.PaymentReference (string?)
+                                        Service saves as: PayRef = req.PaymentReference
+                                    -->
+                                    <input asp-for="PaymentReference" class="form-control"
+                                           placeholder="Cheque no. / EFT ref / M-PESA code" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Payment Receipt <span class="text-danger">*</span></label>
+                                    <!--
+                                        IFormFile PaymentReceipt
+                                        Controller: model.PaymentReceiptPath = await SaveFileAsync(...)
+                                        Service saves as: PayPath = req.PaymentReceiptPath
+                                    -->
+                                    <input type="file" name="PaymentReceipt" class="form-control"
+                                           accept=".pdf,.jpg,.jpeg,.png" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cash Cover (optional) -->
+                        <div class="col-12 mt-2">
+                            <hr class="my-1" />
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="hasCashCoverToggle"
+                                       asp-for="HasCashCover" value="true" />
+                                <label class="form-check-label fw-600" for="hasCashCoverToggle">
+                                    Client has provided Cash Cover
+                                </label>
+                                <div class="form-text">A deposit held as security against the bond. Toggle on if applicable.</div>
+                            </div>
+                        </div>
+
+                        <div id="cashCoverFields" style="display:none" class="col-12">
+                            <div class="p-3 rounded-3 border border-info border-opacity-50 bg-light">
+                                <div class="fw-600 small text-info mb-3">
+                                    <i class="bi bi-safe2 me-1"></i>Cash Cover Details
+                                </div>
+                                <div class="row g-3">
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Cash Cover Amount (KSh) <span class="text-danger">*</span></label>
+                                        <!--
+                                            asp-for="CashCoverAmount" -> DTO.CashCoverAmount (decimal?)
+                                            Service saves as: CAmt = req.CashCoverAmount
+                                        -->
+                                        <input type="number" asp-for="CashCoverAmount" id="CashCoverAmount"
+                                               step="0.01" min="0" class="form-control" placeholder="0.00" />
+                                        <div class="form-text" id="ccPctHint"></div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Cover % of Bond</label>
+                                        <!-- JS-only helper — no name attr, not submitted -->
+                                        <div class="input-group">
+                                            <input type="number" id="ccPctHelper" step="0.1" min="0" max="100"
+                                                   class="form-control" placeholder="e.g. 10" />
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                        <div class="form-text">Fills automatically from amount</div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Maturity / Due Date <span class="text-danger">*</span></label>
+                                        <!--
+                                            asp-for="CashCoverDueDate" -> DTO.CashCoverDueDate (DateTime?)
+                                            Service: MatDate = req.CashCoverDueDate ?? DateTime.Now.AddDays(req.TenorDays)
+                                        -->
+                                        <input type="date" asp-for="CashCoverDueDate" class="form-control" />
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Holding Bank</label>
+                                        <!--
+                                            asp-for="CashCoverBankId" -> DTO.CashCoverBankId (int?)
+                                            Same InternalBanks ViewBag — Id (int), BankName (AccountNumber)
+                                            Service saves as: CCBank = req.CashCoverBankId
+                                        -->
+                                        <select asp-for="CashCoverBankId" class="form-select"
+                                                asp-items="ViewBag.InternalBanks">
+                                            <option value="">-- Select Holding Bank --</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Cash Cover Reference / Receipt No.</label>
+                                        <!--
+                                            asp-for="CashCoverReference" -> DTO.CashCoverReference (string?)
+                                            Service saves as: CCRef = req.CashCoverReference
+                                        -->
+                                        <input asp-for="CashCoverReference" class="form-control"
+                                               placeholder="Bank receipt or deposit reference number" />
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Cash Cover Receipt (file)</label>
+                                        <!--
+                                            IFormFile CashCoverReceipt
+                                            Controller: model.CashCoverReceiptPath = await SaveFileAsync(...)
+                                            Service saves as: CCPath = req.CashCoverReceiptPath
+                                        -->
+                                        <input type="file" name="CashCoverReceipt" class="form-control"
+                                               accept=".pdf,.jpg,.jpeg,.png" />
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- STEP 5: Documents -->
+                <div class="card mb-3">
+                    <div class="card-header d-flex align-items-center gap-2">
+                        <span class="step-badge">5</span>
+                        <span class="section-title">Supporting Documents</span>
+                    </div>
+                    <div class="card-body row g-3">
+
+                        <div class="col-md-6">
+                            <label class="form-label">Tender Document <span class="text-danger">*</span></label>
+                            <!--
+                                IFormFile TenderDoc -> controller: model.TenderDocPath = await SaveFileAsync(...)
+                                Service saves as: TDoc = req.TenderDocPath
+                            -->
+                            <input type="file" name="TenderDoc" class="form-control"
+                                   accept=".pdf,.doc,.docx" required />
+                            <div class="form-text">PDF or Word, max 10MB</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">CR12 / Certificate of Incorporation <span class="text-danger">*</span></label>
+                            <!--
+                                IFormFile CR12 -> controller: model.CR12Path = await SaveFileAsync(...)
+                                Service saves as: CR12 = req.CR12Path
+                            -->
+                            <input type="file" name="CR12" class="form-control"
+                                   accept=".pdf,.doc,.docx" required />
+                            <div class="form-text">PDF or Word, max 10MB</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Company Profile</label>
+                            <!--
+                                IFormFile CompanyProfile
+                                Add to controller POST: if (CompanyProfile != null) model.CompanyProfilePath = await SaveFileAsync(...)
+                                Service saves as: Profile = req.CompanyProfilePath
+                            -->
+                            <input type="file" name="CompanyProfile" class="form-control"
+                                   accept=".pdf,.doc,.docx" />
+                            <div class="form-text">Optional</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Indemnity / Board Resolution</label>
+                            <!--
+                                IFormFile IndemnityDoc
+                                Add to controller POST: if (IndemnityDoc != null) model.IndemnityDocPath = await SaveFileAsync(...)
+                                Service saves as: Indemnity = req.IndemnityDocPath
+                            -->
+                            <input type="file" name="IndemnityDoc" class="form-control"
+                                   accept=".pdf,.doc,.docx" />
+                            <div class="form-text">Optional</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Disbursement Bank</label>
+                            <input asp-for="DisbursementBank" class="form-control" placeholder="e.g. KCB Bank" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Disbursement Account No.</label>
+                            <input asp-for="DisbursementAccount" class="form-control" placeholder="Account number" />
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Remarks / Notes</label>
+                            <textarea asp-for="Notes" class="form-control" rows="3"
+                                      placeholder="Any special instructions or notes..."></textarea>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mb-5">
+                    <button type="submit" id="submitBtn" class="btn btn-navy btn-lg px-5">
+                        <i class="bi bi-send me-2"></i>Submit Application
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-secondary btn-lg">Cancel</a>
+                </div>
+            </div>
+
+            <!-- ═══════════════════ RIGHT SIDEBAR ═══════════════════ -->
+            <div class="col-lg-4">
+                <div class="quote-card shadow-lg">
+                    <div class="q-header">
+                        <div class="q-label mb-1">Total Premium Payable</div>
+                        <div class="q-total" id="sideTotalDisplay">0.00</div>
+                        <div class="text-white-50 small mt-1" id="sideTenderName">Fill in the form to see a quote</div>
+                    </div>
+                    <div class="q-body">
+                        <div class="q-label mb-2">Premium Breakdown</div>
+                        <div class="q-row">
+                            <span class="lbl">Bond Amount</span>
+                            <span class="val" id="sideAmount">&#8212;</span>
+                        </div>
+                        <div class="q-row">
+                            <span class="lbl">Tenor</span>
+                            <span class="val" id="sideTenor">&#8212;</span>
+                        </div>
+                        <div class="q-row">
+                            <span class="lbl">Applied Rate</span>
+                            <span class="val" id="sideRate">&#8212;</span>
+                        </div>
+                        <div class="q-row" style="background:rgba(96,165,250,.07);border-radius:.35rem;padding:.35rem .5rem;margin:.35rem 0">
+                            <span class="lbl">&#127970; Bank Charge</span>
+                            <span class="val text-info" id="sideBankCharge">0.00</span>
+                        </div>
+                        <div class="q-row" style="background:rgba(52,211,153,.07);border-radius:.35rem;padding:.35rem .5rem;margin:.35rem 0">
+                            <span class="lbl">&#10022; Onwards Swift</span>
+                            <span class="val text-success" id="sideOurFee">0.00</span>
+                        </div>
+                    </div>
+                    <div class="q-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="q-label">Grand Total</span>
+                            <span class="fw-bold fs-5" id="sideTotal2">0.00</span>
+                        </div>
+                        <div class="rate-breakdown">
+                            Bank <span id="brBank">0.000</span>% + Fee <span id="brFee">0.000</span>%
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3 border-0" style="background:#f8f9fb">
+                    <div class="card-body small">
+                        <div class="fw-600 mb-2 text-muted">
+                            <i class="bi bi-info-circle me-1"></i>How rates work
+                        </div>
+                        <p class="text-muted mb-1">
+                            The <strong>bank rate</strong> is what the issuing bank charges.
+                            The <strong>application fee</strong> is Onwards Swift's income.
+                        </p>
+                        <p class="text-muted mb-0">
+                            You set one combined % — the system splits it automatically.
+                            You can never go below the minimum set in product rates.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /row -->
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            "use strict";
+
+            /* helpers */
+            const fmt  = n => Number(n||0).toLocaleString("en-KE",{minimumFractionDigits:2,maximumFractionDigits:2});
+            const fmtR = n => Number(n||0).toFixed(3);
+            const el   = id  => document.getElementById(id);
+            const qs   = sel => document.querySelector(sel);
+
+            /* module-level rate state (populated by loadRates) */
+            let bankRate = 0;
+            let feeRate  = 0;
+            let minRate  = 0;
+
+            /* ===================================================
+               runCalc
+               Reads Amount, Tenor, AppliedRate from the form.
+               Splits the combined rate into bank portion and
+               Onwards Swift portion.
+               Writes the KSh values into the hidden fields that
+               map to DTO.CommissionAmount and DTO.ApplicationFee.
+               =================================================== */
+            function runCalc() {
+                const amt      = parseFloat(el("Amount").value)         || 0;
+                const days     = parseInt(el("Tenor").value)            || 0;
+                const combined = parseFloat(el("uiCombinedRate").value) || 0;
+
+                /*
+                 Split:
+                   effectiveBankRate = bank always gets its fixed rate (capped at bankRate)
+                   effectiveFeeRate  = whatever remains goes to Onwards Swift
+                */
+                const effectiveBankRate = combined >= bankRate ? bankRate : combined;
+                const effectiveFeeRate  = Math.max(0, combined - bankRate);
+
+                /* Rate is already a % value — do NOT divide by 100 */
+                const bankCharge = amt * effectiveBankRate * (days / 365);
+                const ourFee     = amt * effectiveFeeRate  * (days / 365);
+                const total      = bankCharge + ourFee;
+
+                /*
+                 Write to hidden fields:
+                   CommissionAmount = bank's KSh charge  → Bonds.CommissionAmount
+                   ApplicationFee   = Onwards Swift income → Bonds.ApplicationFee + BankCharge
+                */
+                el("hCommissionAmount").value = bankCharge.toFixed(2);
+                el("hApplicationFee").value   = ourFee.toFixed(2);
+
+                /* sidebar */
+                el("sideTenderName").textContent   = el("TenderName").value || "Fill in tender name";
+                el("sideAmount").textContent       = amt  ? "KSh " + fmt(amt)  : "\u2014";
+                el("sideTenor").textContent        = days ? days + " days"      : "\u2014";
+                el("sideRate").textContent         = combined ? combined.toFixed(3) + "%" : "\u2014";
+                el("sideBankCharge").textContent   = "KSh " + fmt(bankCharge);
+                el("sideOurFee").textContent       = "KSh " + fmt(ourFee);
+                el("sideTotalDisplay").textContent = fmt(total);
+                el("sideTotal2").textContent       = fmt(total);
+
+                /* pills and bar */
+                el("pillBankRate").textContent = fmtR(effectiveBankRate);
+                el("pillFeeRate").textContent  = fmtR(effectiveFeeRate);
+                el("brBank").textContent       = fmtR(effectiveBankRate);
+                el("brFee").textContent        = fmtR(effectiveFeeRate);
+                const pct = combined > 0 ? Math.round((effectiveBankRate / combined) * 100) : 50;
+                el("barBank").style.width = pct + "%";
+                el("barOurs").style.width = (100 - pct) + "%";
+
+                /* floor validation */
+                const belowMin = combined > 0 && combined < minRate;
+                el("rateWarning").classList.toggle("d-none", !belowMin);
+                el("uiCombinedRate").classList.toggle("warning-rate", belowMin);
+                el("submitBtn").disabled = belowMin;
+            }
+
+            /* ===================================================
+               loadRates
+               Fetches ProductRates from GetLiveRate endpoint.
+               Sets bankRate, feeRate, minRate and defaults the
+               combined rate input to the minimum allowed value.
+               =================================================== */
+            async function loadRates() {
+                const bankId   = qs("#BankId")    ? qs("#BankId").value    : "";
+                const prodType = qs("#ProductType")? qs("#ProductType").value: "";
+                if (!bankId || !prodType) {
+                    el("rateLoadStatus").textContent = "Select bank & bond type to load rates";
+                    return;
+                }
+                el("rateLoadStatus").innerHTML = "<i class=\"bi bi-arrow-repeat spin me-1\"></i>Loading rates...";
+                try {
+                    const url  = "/BidBonds/GetLiveRate?bankId=" + encodeURIComponent(bankId) +
+                                 "&productType=" + encodeURIComponent(prodType);
+                    const data = await fetch(url).then(r => r.json());
+
+                    bankRate = parseFloat(data.rate)   || 0;
+                    feeRate  = parseFloat(data.appFee) || 0;
+                    minRate  = bankRate + feeRate;
+
+                    el("metaBankRate").value   = bankRate;
+                    el("metaAppFeeRate").value = feeRate;
+                    el("metaMinRate").value    = minRate;
+
+                    el("minRateLabel").textContent = minRate.toFixed(3);
+                    el("wBankRate").textContent    = bankRate.toFixed(3);
+                    el("wFeeRate").textContent     = feeRate.toFixed(3);
+
+                    el("uiCombinedRate").value = minRate.toFixed(3);
+
+                    el("rateLoadStatus").innerHTML =
+                        "<span class=\"text-success\"><i class=\"bi bi-check-circle me-1\"></i>" +
+                        "Rate loaded — minimum: " + minRate.toFixed(3) + "%</span>";
+                    runCalc();
+                } catch(e) {
+                    el("rateLoadStatus").innerHTML =
+                        "<span class=\"text-danger\"><i class=\"bi bi-x-circle me-1\"></i>Could not load rates</span>";
+                }
+            }
+
+            /* ===================================================
+               Cash Cover toggle and pct/amount sync
+               =================================================== */
+            function toggleCashCover() {
+                const tog    = qs("#hasCashCoverToggle");
+                const fields = el("cashCoverFields");
+                if (!fields) return;
+                const on = tog && tog.checked;
+                fields.style.display = on ? "" : "none";
+                ["CashCoverAmount","CashCoverDueDate"].forEach(function(name) {
+                    var inp = qs("[name=\"" + name + "\"]");
+                    if (inp) inp.required = on;
+                });
+            }
+
+            function syncCcPct() {
+                const bondAmt = parseFloat(el("Amount").value) || 0;
+                const ccAmtEl = qs("[name=\"CashCoverAmount\"]");
+                const pctEl   = el("ccPctHelper");
+                const hintEl  = el("ccPctHint");
+                if (!ccAmtEl || !pctEl || bondAmt === 0) return;
+                const ccAmt = parseFloat(ccAmtEl.value) || 0;
+                if (ccAmt > 0) {
+                    const pct = (ccAmt / bondAmt * 100).toFixed(2);
+                    if (!pctEl.matches(":focus")) pctEl.value = pct;
+                    if (hintEl) hintEl.textContent = pct + "% of bond amount";
+                }
+            }
+
+            /* ===================================================
+               Wire all events after DOM is ready
+               =================================================== */
+            document.addEventListener("DOMContentLoaded", function() {
+
+                /* recalc on typing */
+                ["Amount","Tenor","TenderName","uiCombinedRate"].forEach(function(id) {
+                    var inp = el(id);
+                    if (inp) {
+                        inp.addEventListener("input",  runCalc);
+                        inp.addEventListener("change", runCalc);
+                    }
+                });
+
+                /* load rates when bank or bond type selected */
+                ["BankId","ProductType"].forEach(function(id) {
+                    var sel = el(id);
+                    if (sel) sel.addEventListener("change", loadRates);
+                });
+
+                /* deferred payment toggle */
+                var dt = el("deferredToggle");
+                if (dt) {
+                    dt.addEventListener("change", function() {
+                        var pf = el("paymentFields");
+                        if (pf) pf.style.display = this.checked ? "none" : "";
+                    });
+                }
+
+                /* cash cover toggle */
+                var cct = qs("#hasCashCoverToggle");
+                if (cct) {
+                    cct.addEventListener("change", toggleCashCover);
+                    toggleCashCover();
+                }
+
+                /* cash cover pct <-> amount sync */
+                var ccAmtInp = qs("[name=\"CashCoverAmount\"]");
+                var ccPctInp = el("ccPctHelper");
+                if (ccAmtInp) ccAmtInp.addEventListener("input", syncCcPct);
+                if (ccPctInp) {
+                    ccPctInp.addEventListener("input", function() {
+                        var bondAmt = parseFloat(el("Amount").value) || 0;
+                        var pct     = parseFloat(this.value) || 0;
+                        var amtEl   = qs("[name=\"CashCoverAmount\"]");
+                        if (amtEl && bondAmt > 0) amtEl.value = (bondAmt * pct / 100).toFixed(2);
+                        syncCcPct();
+                    });
+                }
+                var amtInp = el("Amount");
+                if (amtInp) amtInp.addEventListener("input", syncCcPct);
+
+                /* pre-submit: final recalc + floor check */
+                var form = el("bondForm");
+                if (form) {
+                    form.addEventListener("submit", function(e) {
+                        runCalc();
+                        var combined = parseFloat(el("uiCombinedRate").value) || 0;
+                        if (combined < minRate && minRate > 0) {
+                            e.preventDefault();
+                            el("rateWarning").classList.remove("d-none");
+                            el("uiCombinedRate").focus();
+                        }
+                    });
+                }
+
+                runCalc(); /* initial sidebar update */
+
+            }); /* end DOMContentLoaded */
+
+            /* spin CSS for loading spinner */
+            var s = document.createElement("style");
+            s.textContent = ".spin{display:inline-block;animation:spin .7s linear infinite}" +
+                            "@@keyframes spin{to{transform:rotate(360deg)}}";
+            document.head.appendChild(s);
+
+        }());
+    </script>
+}

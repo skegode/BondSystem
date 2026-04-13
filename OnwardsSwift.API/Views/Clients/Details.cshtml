@@ -1,0 +1,275 @@
+@model OnwardsSwift.Core.DTOs.ClientResponse
+@{
+    ViewData["Title"] = Model.CompanyName;
+    var isAdmin = User.IsInRole("Admin");
+}
+
+<style>
+    .text-navy {
+        color: #002147;
+    }
+
+    .bg-navy {
+        background-color: #002147;
+        color: white;
+    }
+
+    .extra-small {
+        font-size: 0.72rem;
+    }
+
+    .card-exposure {
+        border-left: 4px solid #0d6efd;
+    }
+
+    .badge-pill-md {
+        padding: 0.4em 0.8em;
+        font-weight: 600;
+        font-size: 0.75rem;
+        border: 1px solid;
+        border-radius: 50px;
+    }
+
+    /* Soft Status Colors */
+    .status-approved {
+        background-color: #d1e7dd;
+        color: #0f5132;
+        border-color: #badbcc;
+    }
+
+    .status-pending {
+        background-color: #fff3cd;
+        color: #664d03;
+        border-color: #ffecb5;
+    }
+
+    .status-rejected {
+        background-color: #f8d7da;
+        color: #842029;
+        border-color: #f5c2c7;
+    }
+</style>
+
+<div class="page-header d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 fw-bold mb-1 text-navy">@Model.CompanyName</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 extra-small text-uppercase fw-bold">
+                <li class="breadcrumb-item text-muted">@Model.KraPin</li>
+                <li class="breadcrumb-item text-primary">@Model.ClientType</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm px-3">
+            <i class="bi bi-pencil me-1"></i>Edit
+        </a>
+        <a asp-action="Create" asp-controller="BidBonds" class="btn btn-navy btn-sm px-3">
+            <i class="bi bi-plus-circle me-1"></i>New Application
+        </a>
+    </div>
+</div>
+
+<div class="content-body">
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold">Client Profile</h6>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0 small">
+                        <dt class="col-5 text-muted mb-2">Workflow</dt>
+                        <dd class="col-7 mb-2">
+                            <span class="badge rounded-pill bg-@(Model.Status.ToLower() == "approved" ? "success" : "warning")-subtle text-@(Model.Status.ToLower() == "approved" ? "success" : "warning") border px-2">
+                                @Model.Status
+                            </span>
+                        </dd>
+                        <dt class="col-5 text-muted mb-2">Contact</dt>
+                        <dd class="col-7 mb-2 fw-bold text-dark">@Model.ContactPerson</dd>
+                        <dt class="col-5 text-muted mb-2">Email</dt>
+                        <dd class="col-7 mb-2 text-truncate">@Model.Email</dd>
+                        <dt class="col-5 text-muted mb-2">Phone</dt>
+                        <dd class="col-7 mb-2">@Model.Phone</dd>
+                        <dt class="col-5 text-muted mb-2">Location</dt>
+                        <dd class="col-7 mb-2 text-muted">@Model.PhysicalAddress</dd>
+                        <dt class="col-5 text-muted mb-2">CRB Status</dt>
+                        <dd class="col-7 mb-2">
+                            @if (Model.IsCrbCleared)
+                            {
+                                <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-1"></i>Cleared</span>
+                            }
+                            else
+                            {
+                                <span class="text-warning small fw-bold"><i class="bi bi-clock-history me-1"></i>Pending Review</span>
+                            }
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4 card-exposure">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold">Credit Exposure</h6>
+                    @if (!isAdmin)
+                    {
+                        <i class="bi bi-lock-fill text-muted small" title="Admin only"></i>
+                    }
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-1 small">
+                        <span class="text-muted">Current Limit</span>
+                        <span class="fw-bold">KES @Model.CreditLimit.ToString("N0")</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1 small">
+                        <span class="text-muted">Utilised</span>
+                        <span class="fw-bold text-danger">KES @Model.UtilisedLimit.ToString("N0")</span>
+                    </div>
+                    <div class="d-flex justify-content-between border-top pt-2 mt-2">
+                        <span class="fw-bold small">Available</span>
+                        <span class="fw-bold text-success">KES @Model.AvailableLimit.ToString("N0")</span>
+                    </div>
+
+                    @if (Model.CreditLimit > 0)
+                    {
+                        var pct = (int)((Model.UtilisedLimit / Model.CreditLimit) * 100);
+                        <div class="progress mt-3" style="height:6px">
+                            <div class="progress-bar @(pct > 85 ? "bg-danger" : "bg-primary")" role="progressbar" style="width: @pct%"></div>
+                        </div>
+                    }
+                </div>
+                @if (isAdmin)
+                {
+                    <div class="card-footer bg-light py-3">
+                        <form asp-action="UpdateCreditLimit" asp-route-id="@Model.Id" method="post" class="input-group input-group-sm">
+                            @Html.AntiForgeryToken()
+                            <input name="limit" type="number" class="form-control" placeholder="New Limit" required />
+                            <button class="btn btn-primary">Update</button>
+                        </form>
+                    </div>
+                }
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold">Financial Actions</h6>
+                </div>
+                <div class="card-body d-grid gap-2">
+                    <a asp-controller="Finance" asp-action="GenerateStatement"
+                       asp-route-clientId="@Model.Id"
+                       asp-route-from="@(new DateTime(DateTime.Now.Year, 1, 1).ToString("yyyy-MM-dd"))"
+                       asp-route-to="@DateTime.Now.ToString("yyyy-MM-dd")"
+                       class="btn btn-sm btn-outline-dark text-start">
+                        <i class="bi bi-file-earmark-spreadsheet me-2"></i>Full Account Statement
+                    </a>
+
+                    @if (isAdmin)
+                    {
+                        <hr class="my-1" />
+                        <button class="btn btn-sm btn-outline-primary text-start" data-bs-toggle="modal" data-bs-target="#statusModal">
+                            <i class="bi bi-arrow-left-right me-2"></i>Change Approval Status
+                        </button>
+
+                        @if (!Model.IsCrbCleared)
+                        {
+                            <form asp-action="VerifyCrb" asp-route-id="@Model.Id" method="post">
+                                @Html.AntiForgeryToken()
+                                <button class="btn btn-sm btn-outline-success w-100 text-start">
+                                    <i class="bi bi-shield-check me-2"></i>Verify CRB Clearance
+                                </button>
+                            </form>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold">Transaction History (@Model.TotalFacilities)</h6>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light text-muted small text-uppercase">
+                            <tr>
+                                <th class="ps-4">Reference & Date</th>
+                                <th>Procuring Entity / Tender</th>
+                                <th class="text-end">Value (KES)</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (ViewBag.Facilities != null)
+                            {
+                                foreach (var f in ViewBag.Facilities)
+                                {
+                                    <tr>
+                                        <td class="ps-4">
+                                            <div class="fw-bold text-navy">@f.ReferenceNo</div>
+                                            <div class="extra-small text-muted">@(((DateTime)f.CreatedAt).ToString("dd MMM yyyy"))</div>
+                                        </td>
+                                        <td>
+                                            <div class="small fw-bold text-dark text-truncate" style="max-width: 280px;" title="@f.TenderName">@f.TenderName</div>
+                                            <div class="extra-small text-muted italic">
+                                                <i class="bi bi-bank me-1"></i>@f.ProcuringEntity
+                                            </div>
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="fw-bold">@(((decimal)f.Amount).ToString("N0"))</div>
+                                            <div class="extra-small text-muted italic">Fee: @(((decimal)f.FinanceFee).ToString("N2"))</div>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge badge-pill-md status-@(((string)f.Status).ToLower())">
+                                                @f.Status
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center py-5 text-muted">No facility records found.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (isAdmin)
+{
+    <div class="modal fade" id="statusModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <form asp-action="UpdateStatus" asp-route-id="@Model.Id" method="post" class="modal-content">
+                @Html.AntiForgeryToken()
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="fw-bold">Update Account Status</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Set Status</label>
+                        <select name="status" class="form-select">
+                            <option value="Pending" selected="@(Model.Status == "Pending")">Pending (0)</option>
+                            <option value="Approved" selected="@(Model.Status == "Approved")">Approved (1)</option>
+                            <option value="Rejected" selected="@(Model.Status == "Rejected")">Rejected (2)</option>
+                        </select>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label small fw-bold">Internal Notes</label>
+                        <textarea name="reason" class="form-control" rows="3" placeholder="Reason for change..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-navy px-4">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
