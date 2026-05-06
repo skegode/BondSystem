@@ -183,11 +183,10 @@ namespace OnwardsSwift.Infrastructure.Services
         END AS Status, 
         b.CreatedAt, 
         b.TenderName,
-        o.Name as ProcuringEntity,
+        b.ProcuringEntity,
         ISNULL(c.CompanyName, '') AS ClientName
     FROM Bonds b 
     INNER JOIN Clients c ON c.Id = b.ClientId
-    INNER JOIN Obligees o ON o.Id = b.ProcuringEntity
     WHERE b.ClientId = @Cid 
     ORDER BY b.CreatedAt DESC";
 

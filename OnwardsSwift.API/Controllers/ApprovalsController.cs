@@ -55,7 +55,7 @@ namespace OnwardsSwift.API.Controllers
                 SELECT b.*,
                     ISNULL(b.ApplicationFee, 0) + ISNULL(b.BankCharge, 0) AS PayableCharge,
                     U.Fullname AS Agent,
-                    O.Name     AS ProcuringEntityName,
+                    b.ProcuringEntity AS ProcuringEntityName,
                     c.CompanyName AS ClientName,
                     bt.ProductName AS BondTypeName,
                     cc.CashCoverAmount AS CCAmount,
@@ -66,7 +66,6 @@ namespace OnwardsSwift.API.Controllers
                 FROM Bonds b
                 INNER JOIN Clients c      ON b.ClientId = c.Id
                 INNER JOIN ProductTypes bt ON b.BondTypeId = bt.Id
-                INNER JOIN Obligees O     ON O.Id = B.ProcuringEntity
                 LEFT JOIN SystemUsers U   ON U.Id = B.AgentId
                 LEFT JOIN CashCovers cc   ON cc.BondId = b.Id
                 WHERE b.Id = @Id";
@@ -252,10 +251,9 @@ namespace OnwardsSwift.API.Controllers
                 var bond = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
                     SELECT B.ClientId, B.ApplicationFee, B.BankCharge, B.IsDeferredPayment,
                            B.PaymentReference, B.Amount,
-                           O.Name   AS ProcuringEntity,
+                           B.ProcuringEntity,
                            C.CompanyName AS ClientName
                     FROM Bonds B
-                    INNER JOIN Obligees O ON O.Id = B.ProcuringEntity
                     INNER JOIN Clients  C ON C.Id = B.ClientId
                     WHERE B.Id = @Id", new { Id = bondId }, trans);
 

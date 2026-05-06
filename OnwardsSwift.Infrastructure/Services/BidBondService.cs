@@ -215,7 +215,7 @@ ORDER BY b.CreatedAt DESC";
                     ISNULL(b.BankCharge, 0)         AS BankCharge,
                     c.CompanyName                   AS ClientName,
                     bt.ProductName                  AS BondTypeName,
-                    o.Name                          AS ProcuringEntityName,
+                    b.ProcuringEntity               AS ProcuringEntityName,
                     bk.BankName                     AS IssuingBankName,
                     ISNULL(su.FullName, b.ApprovedBy) AS ApprovedByName,
                     b.ApprovedAt,
@@ -228,7 +228,6 @@ ORDER BY b.CreatedAt DESC";
                 INNER JOIN Clients      c  ON c.Id  = b.ClientId
                 INNER JOIN ProductTypes bt ON bt.Id = b.BondTypeId
                 INNER JOIN Banks        bk ON bk.Id = b.IssuingBank
-                LEFT  JOIN Obligees     o  ON o.Id  = b.ProcuringEntity
                 LEFT  JOIN SystemUsers  su ON CAST(su.Id AS NVARCHAR) = b.ApprovedBy
                 LEFT  JOIN CashCovers   cc ON cc.BondId = b.Id
                 WHERE b.Id = @Id";

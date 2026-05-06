@@ -102,7 +102,7 @@ public class CreateClientRequest
         [Required, MaxLength(150)]
         public string ContactPerson { get; set; } = string.Empty;
 
-        [Required, EmailAddress]
+        [EmailAddress]
         public string Email { get; set; } = string.Empty;
 
         [Required, Phone]
@@ -113,7 +113,6 @@ public class CreateClientRequest
         public ClientType ClientType { get; set; }
 
         // --- Location ---
-        [Required]
         public string PhysicalAddress { get; set; } = string.Empty;
 
         public string PostalAddress { get; set; } = string.Empty;

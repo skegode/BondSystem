@@ -52,10 +52,20 @@
                                 <span class="badge bg-warning text-dark rounded-pill">Pending</span>
                             }
                         </td>
-                        <td class="text-center">
-                            <a asp-action="Details" asp-route-id="@item.BondId" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-eye"></i> View
+                        <td class="text-center text-nowrap">
+                            <a asp-action="Details" asp-route-id="@item.BondId" class="btn btn-sm btn-outline-primary px-2 py-1" title="View">
+                                <i class="bi bi-eye small"></i>
                             </a>
+                            <a asp-action="Edit" asp-route-id="@item.BondId" class="btn btn-sm btn-outline-secondary px-2 py-1" title="Edit">
+                                <i class="bi bi-pencil small"></i>
+                            </a>
+                            <form asp-action="Delete" asp-route-id="@item.BondId" method="post" class="d-inline"
+                                  onsubmit="return confirm('Delete this bond application? This cannot be undone.');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger px-2 py-1" title="Delete">
+                                    <i class="bi bi-trash small"></i>
+                                </button>
+                            </form>
                         </td>
                     </tr>
                 }
