@@ -16,17 +16,19 @@ namespace OnwardsSwift.API.Controllers
     public class BidBondsController : AppController
     {
         private readonly IBidBondService _bonds;
-        private readonly IClientService _clients;
-        private readonly DapperContext _ctx;
-        private readonly IConfiguration Configuration;
+        private readonly IClientService  _clients;
+        private readonly DapperContext   _ctx;
+        private readonly IConfiguration  Configuration;
+        private readonly WorkflowService _workflow;
 
-        public BidBondsController(IBidBondService bonds , IClientService clients, DapperContext ctx, IConfiguration _configuration)
+        public BidBondsController(IBidBondService bonds, IClientService clients, DapperContext ctx,
+                                   IConfiguration _configuration, WorkflowService workflow)
         {
-            _bonds = bonds; 
-            _clients = clients;
-            _ctx = ctx;
-            Configuration = _configuration;
-
+            _bonds         = bonds;
+            _clients       = clients;
+            _ctx           = ctx;
+            Configuration  = _configuration;
+            _workflow      = workflow;
         }
 
         private SqlConnection GetConnection() => new SqlConnection(Configuration.GetConnectionString("DefaultConnection"));
@@ -126,6 +128,9 @@ namespace OnwardsSwift.API.Controllers
                 // 4. Save to Database
                 var bondId = await _bonds.CreateAsync(model, sessionUserId.Value);
 
+                // 5. Start approval workflow
+                await _workflow.StartWorkflowAsync(bondId, "BOND", sessionUserId.Value);
+
                 Success($"Application for {model.TenderNumber} submitted successfully.");
                 return RedirectToAction("Index");
             }
@@ -212,7 +217,7 @@ namespace OnwardsSwift.API.Controllers
 
             return Json(new
             {
-                rate = rateData.Rate,
+                rate = rateData.Rate*100,
                 comm = rateData.comm,
                 commType = rateData.CommissionType,
                 appFee = rateData.ApplicationFee,

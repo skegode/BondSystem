@@ -75,22 +75,60 @@ namespace OnwardsSwift.Core.DTOs
         public int TotalPages   => (int)Math.Ceiling((double)TotalCount / PageSize);
     }
 
-    // ─────────────────────────────────────────────
-    // CLIENT
-    // ─────────────────────────────────────────────
-    public class CreateClientRequest
+
+
+public class CreateClientRequest
     {
-        [Required, MaxLength(200)] public string CompanyName     { get; set; } = string.Empty;
-        [Required, MaxLength(15)]  public string KraPin          { get; set; } = string.Empty;
-        [Required, MaxLength(150)] public string ContactPerson   { get; set; } = string.Empty;
-        [Required, EmailAddress]   public string Email           { get; set; } = string.Empty;
-        [Required, Phone]          public string Phone           { get; set; } = string.Empty;
-        public string     PhoneAlt          { get; set; } = string.Empty;
-        public ClientType ClientType        { get; set; }
-        [Required] public string PhysicalAddress { get; set; } = string.Empty;
-        public string PostalAddress         { get; set; } = string.Empty;
-        public string BusinessRegNumber     { get; set; } = string.Empty;
-        [Range(0, double.MaxValue)] public decimal CreditLimit { get; set; }
+        // Registration Type (1: Individual, 2: Corporate)
+        [Required]
+        public int Category { get; set; } = 1;
+
+        [Required, MaxLength(200)]
+        public string CompanyName { get; set; } = string.Empty;
+
+        [Required, MaxLength(15)]
+        public string KraPin { get; set; } = string.Empty;
+
+        // --- Individual Specific Fields ---
+        [MaxLength(50)]
+        public string? IdNumber { get; set; }
+
+        public int? Gender { get; set; } // 1: Male, 2: Female, 3: Other
+
+        [DataType(DataType.Date)]
+        public DateTime? DateOfBirth { get; set; }
+
+        // --- Contact Information ---
+        [Required, MaxLength(150)]
+        public string ContactPerson { get; set; } = string.Empty;
+
+        [Required, EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required, Phone]
+        public string Phone { get; set; } = string.Empty;
+
+        public string PhoneAlt { get; set; } = string.Empty;
+
+        public ClientType ClientType { get; set; }
+
+        // --- Location ---
+        [Required]
+        public string PhysicalAddress { get; set; } = string.Empty;
+
+        public string PostalAddress { get; set; } = string.Empty;
+
+        // --- Corporate Specific Fields ---
+        public string BusinessRegNumber { get; set; } = string.Empty;
+
+        [Range(0, double.MaxValue)]
+        public decimal CreditLimit { get; set; }
+
+        // --- KYC File Uploads (Not mapped to DB directly) ---
+        public IFormFile? IdFrontFile { get; set; }
+        public IFormFile? IdBackFile { get; set; }
+        public IFormFile? PassportPhotoFile { get; set; }
+        public IFormFile? RegCertFile { get; set; }
     }
 
     public class ClientResponse

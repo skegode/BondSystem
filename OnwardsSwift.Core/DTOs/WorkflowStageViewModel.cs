@@ -5,17 +5,23 @@ namespace OnwardsSwift.Core.DTOs
 {
     public class WorkflowStageViewModel
     {
-        public int Id { get; set; }
-        public string ModuleType { get; set; }
-        public string StageName { get; set; }
-        public int SequenceOrder { get; set; }
-        public bool IsFinalStage { get; set; }
+        public int    Id            { get; set; }
+        public string ModuleType    { get; set; } = string.Empty;
+        public string StageName     { get; set; } = string.Empty;
+        public int    SequenceOrder { get; set; }
+        public bool   IsFinalStage  { get; set; }
 
-        // To hold the selected User IDs from the multiselect dropdown for POSTing
+        // Whether approvers at this stage can return the application
+        public bool CanReturn         { get; set; }
+        // SequenceOrder to return to; null = back to applicant (re-opens as draft)
+        public int? ReturnToStepOrder { get; set; }
+
+        // Selected user IDs posted from the multi-select / drag-drop
         public List<string> UserIds { get; set; } = new();
 
-        // Updated to use the more detailed DTO for the table display
-        public List<UserSelectDto> Approvers { get; set; } = new();
+        // Populated on GET for display
+        public List<UserSelectDto>            Approvers         { get; set; } = new();
+        public List<WorkflowStageDocumentDto> RequiredDocuments { get; set; } = new();
     }
 
     public class UserSelectDto

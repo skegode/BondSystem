@@ -9,7 +9,6 @@ namespace OnwardsSwift.Core.Interfaces
 {
     public interface IClientService
     {
-        Task<ClientResponse> CreateAsync(CreateClientRequest request, string createdBy);
         Task<ClientResponse?> GetByIdAsync(int id);
         Task<PagedResult<ClientResponse>> GetAllAsync(int page, int pageSize, string? search);
         Task<bool> UpdateAsync(int id, CreateClientRequest request, string updatedBy);

@@ -110,25 +110,35 @@ namespace OnwardsSwift.API.Controllers
             return RedirectToAction(nameof(Invoices));
         }
 
-        public IActionResult Statements() => View();
-        // GET: Finance/GenerateStatement
-        public async Task<IActionResult> GenerateStatement(int clientId, DateTime from, DateTime to)
+        public async Task<IActionResult> Statements()
         {
             using var conn = _ctx.Create();
+            var clients = await conn.QueryAsync<dynamic>(
+                "SELECT Id, CompanyName FROM Clients ORDER BY CompanyName ASC");
+            ViewBag.Clients = clients;
+            return View();
+        }
 
-            // 1. Fetch Client Details (Keep dynamic here or use a Client DTO)
+        // GET: Finance/GenerateStatement
+        public async Task<IActionResult> GenerateStatement(int clientId, DateTime? from, DateTime? to)
+        {
+            var dateFrom = from?.Date ?? DateTime.Today.AddMonths(-1);
+            var dateTo = to?.Date ?? DateTime.Today;
+
+            using var conn = _ctx.Create();
+
+            // 1. Fetch Client Details
             var client = await conn.QueryFirstOrDefaultAsync<dynamic>(
                 "SELECT CompanyName as Name, Email, Phone as PhoneNumber FROM Clients WHERE Id = @Id",
                 new { Id = clientId });
 
-            // 2. Fetch History using the DTO
+            // 2. Fetch full history for the client ordered by date
             const string sql = @"
-        SELECT CreatedAt as TransactionDate, Description, Debit, Credit 
-        FROM ClientStatements 
-        WHERE ClientId = @Id 
+        SELECT CreatedAt as TransactionDate, Description, Debit, Credit
+        FROM ClientStatements
+        WHERE ClientId = @Id
         ORDER BY CreatedAt ASC";
 
-            // Query as the specific DTO type
             var allHistory = await conn.QueryAsync<StatementLine>(sql, new { Id = clientId });
 
             // 3. Calculation Engine
@@ -136,27 +146,27 @@ namespace OnwardsSwift.API.Controllers
             decimal broughtForward = 0;
             var filteredLines = new List<StatementLine>();
 
-            // Adjust 'to' date to include the entire end day
-            var endOfDayTo = to.Date.AddDays(1).AddTicks(-1);
+            var endOfDayTo = dateTo.AddDays(1).AddTicks(-1);
 
             foreach (var tx in allHistory)
             {
                 runningBalance += (tx.Debit - tx.Credit);
 
-                if (tx.TransactionDate < from)
+                if (tx.TransactionDate < dateFrom)
                 {
                     broughtForward = runningBalance;
                 }
-                else if (tx.TransactionDate >= from && tx.TransactionDate <= endOfDayTo)
+                else if (tx.TransactionDate >= dateFrom && tx.TransactionDate <= endOfDayTo)
                 {
-                    tx.RunningBalance = runningBalance; // This will now work!
+                    tx.RunningBalance = runningBalance;
                     filteredLines.Add(tx);
                 }
             }
 
+            ViewBag.ClientId = clientId;
             ViewBag.Client = client;
-            ViewBag.From = from;
-            ViewBag.To = to;
+            ViewBag.From = dateFrom;
+            ViewBag.To = dateTo;
             ViewBag.Bof = broughtForward;
             ViewBag.TotalDue = runningBalance;
 

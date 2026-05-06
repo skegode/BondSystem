@@ -1,71 +1,121 @@
-﻿@model IEnumerable<OnwardsSwift.Core.DTOs.PendingBondVM>
+@model List<OnwardsSwift.Core.DTOs.ApprovalQueueItem>
+@{
+    ViewData["Title"] = "Pending Approvals";
+    var bonds   = Model.Where(x => x.ModuleType == "BOND").ToList();
+    var cheques = Model.Where(x => x.ModuleType == "CHEQUE").ToList();
+}
+
+<style>
+    :root { --navy: #002D72; }
+    .bg-navy  { background-color: var(--navy) !important; }
+    .badge-bond   { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .badge-cheque { background: #fdf4ff; color: #7e22ce; border: 1px solid #e9d5ff; }
+</style>
 
 <div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold text-dark"><i class="bi bi-clock-history me-2"></i>Pending Approvals</h3>
-        <span class="badge bg-primary rounded-pill">@Model.Count() Applications Waiting</span>
-    </div>
 
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" id="pendingTable">
-                    <thead class="bg-light">
-                        <tr>
-                            <th class="ps-4">Date Applied</th>
-                            <th>Client & Tender</th>
-                            <th>Bond Type</th>
-                            <th>Amount (KES)</th>
-                            <th>Payment</th>
-                            <th class="text-center">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var item in Model)
-                        {
-                            <tr>
-                                <td class="ps-4">
-                                    <div class="small fw-bold">@item.CreatedAt.ToString("dd MMM yyyy")</div>
-                                    <div class="text-muted small">@item.CreatedAt.ToString("hh:mm tt")</div>
-                                </td>
-                                <td>
-                                    <div class="fw-bold">@item.ClientName</div>
-                                    <div class="text-muted small">@item.TenderNumber - @item.TenderName</div>
-                                </td>
-                                <td><span class="badge bg-light text-dark border">@item.BondTypeName</span></td>
-                                <td class="fw-bold">@item.Amount.ToString("N2")</td>
-                                <td>
-                                    @if (item.IsDeferredPayment)
-                                    {
-                                        <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>Pay Later</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle">Paid</span>
-                                    }
-                                </td>
-                                <td class="text-center">
-                                    <a asp-action="Review" asp-route-id="@item.Id" class="btn btn-sm btn-primary px-3 shadow-sm">
-                                        Review & Approve
-                                    </a>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-0"><i class="bi bi-clock-history me-2"></i>Pending Approvals</h3>
+            <p class="text-muted small mb-0">Applications awaiting your action</p>
+        </div>
+        <div class="d-flex gap-2">
+            <span class="badge rounded-pill fs-6" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;">
+                <i class="bi bi-shield-check me-1"></i>@bonds.Count bonds
+            </span>
+            <span class="badge rounded-pill fs-6" style="background:#fdf4ff; color:#7e22ce; border:1px solid #e9d5ff;">
+                <i class="bi bi-credit-card me-1"></i>@cheques.Count cheques
+            </span>
         </div>
     </div>
-</div>
 
-@section Scripts {
-    <script>
-        $(document).ready(function() {
-            // Optional: Initialize DataTables for searching and sorting
-            $('#pendingTable').DataTable({
-                "order": [[0, "desc"]],
-                "pageLength": 10
-            });
-        });
-    </script>
-}
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @* Module tabs *@
+    <ul class="nav nav-tabs mb-3" id="moduleTab">
+        <li class="nav-item">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabAll">
+                All <span class="badge bg-secondary ms-1">@Model.Count</span>
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabBonds">
+                Bonds <span class="badge bg-secondary ms-1">@bonds.Count</span>
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabCheques">
+                Cheques <span class="badge bg-secondary ms-1">@cheques.Count</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+
+        @* ── ALL tab ── *@
+        <div class="tab-pane fade show active" id="tabAll">
+            @if (!Model.Any())
+            {
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center py-5 text-muted">
+                        <i class="bi bi-inbox fs-1 d-block mb-3 opacity-25"></i>
+                        <h5>Nothing pending</h5>
+                        <p class="small">No applications at your stage right now.</p>
+                    </div>
+                </div>
+            }
+            else
+            {
+                @await Html.PartialAsync("_ApprovalTable", Model)
+            }
+        </div>
+
+        @* ── BONDS tab ── *@
+        <div class="tab-pane fade" id="tabBonds">
+            @if (!bonds.Any())
+            {
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center py-4 text-muted">
+                        <i class="bi bi-shield-check fs-2 d-block mb-2 opacity-25"></i>
+                        <p class="small mb-0">No bond applications pending.</p>
+                    </div>
+                </div>
+            }
+            else
+            {
+                @await Html.PartialAsync("_ApprovalTable", bonds)
+            }
+        </div>
+
+        @* ── CHEQUES tab ── *@
+        <div class="tab-pane fade" id="tabCheques">
+            @if (!cheques.Any())
+            {
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center py-4 text-muted">
+                        <i class="bi bi-credit-card fs-2 d-block mb-2 opacity-25"></i>
+                        <p class="small mb-0">No cheque applications pending.</p>
+                    </div>
+                </div>
+            }
+            else
+            {
+                @await Html.PartialAsync("_ApprovalTable", cheques)
+            }
+        </div>
+
+    </div>
+</div>

@@ -96,7 +96,7 @@ namespace OnwardsSwift.Infrastructure.Services
                     BCharge = req.CommissionAmount, 
                     CreatedBy = currentUserId.ToString(),
                     Cid = req.ClientId,
-                    AgentId = req.AgentId,
+                    AgentId = req.AgentId == 0 ? (int?)null : req.AgentId,
                     Tenor = req.TenorDays,
                     IsDef = req.IsDeferredPayment,
                     PayBank = req.PaymentBankId,
@@ -190,51 +190,94 @@ ORDER BY b.CreatedAt DESC";
         {
             using var conn = _ctx.Create();
 
-            var sql = @"
-       SELECT 
-     b.*, 
-     c.companyname AS ClientName, 
-     bt.ProductName AS BondTypeName,
-     cc.cashcoveramount AS CCAmount,
-	 cc.MaturityDate AS CCMaturitityDate,
-     cc.Reference AS CCReference,
-	 cc.ReceiptPath AS CCReceiptPath,
-     cc.CreatedAt AS CCDate
- FROM Bonds b
- INNER JOIN Clients c ON b.ClientId = c.Id
- INNER JOIN producttypes bt ON b.BondTypeId = bt.Id
- LEFT JOIN CashCovers cc ON cc.BondId = b.Id -- Joining the cash cover table
- WHERE b.id = @Id";
+            const string sql = @"
+                SELECT
+                    b.Id,
+                    b.TenderNumber,
+                    b.TenderName,
+                    b.Amount,
+                    b.BankRate        AS Rate,
+                    b.TenorDays,
+                    b.TenderClosingDate,
+                    b.IsDeferredPayment,
+                    b.PaymentReference,
+                    b.PaymentReceiptPath,
+                    b.TenderDocPath,
+                    b.CR12Path,
+                    b.CompanyProfilePath,
+                    b.IndemnityDocPath,
+                    b.Notes,
+                    b.StatusNotes,
+                    b.CreatedAt,
+                    b.isApproved,
+                    ISNULL(b.ApplicationFee, 0)    AS ApplicationFee,
+                    ISNULL(b.CommissionAmount, 0)   AS CommissionAmount,
+                    ISNULL(b.BankCharge, 0)         AS BankCharge,
+                    c.CompanyName                   AS ClientName,
+                    bt.ProductName                  AS BondTypeName,
+                    o.Name                          AS ProcuringEntityName,
+                    bk.BankName                     AS IssuingBankName,
+                    ISNULL(su.FullName, b.ApprovedBy) AS ApprovedByName,
+                    b.ApprovedAt,
+                    cc.CashCoverAmount              AS CCAmount,
+                    cc.MaturityDate                 AS CCMaturityDate,
+                    cc.Reference                    AS CCReference,
+                    cc.ReceiptPath                  AS CCReceiptPath,
+                    cc.CreatedAt                    AS CCDate
+                FROM Bonds b
+                INNER JOIN Clients      c  ON c.Id  = b.ClientId
+                INNER JOIN ProductTypes bt ON bt.Id = b.BondTypeId
+                INNER JOIN Banks        bk ON bk.Id = b.IssuingBank
+                LEFT  JOIN Obligees     o  ON o.Id  = b.ProcuringEntity
+                LEFT  JOIN SystemUsers  su ON CAST(su.Id AS NVARCHAR) = b.ApprovedBy
+                LEFT  JOIN CashCovers   cc ON cc.BondId = b.Id
+                WHERE b.Id = @Id";
 
             var r = await conn.QueryFirstOrDefaultAsync<dynamic>(sql, new { Id = id });
-
             if (r == null) return null;
+
+            int approvalFlag = r.isApproved != null ? (int)r.isApproved : 0;
+            string status = approvalFlag == 1 ? "Approved"
+                          : approvalFlag == 2 ? "Rejected"
+                          : "Pending";
 
             return new BidBondResponse
             {
-                Id = r.Id,
-                ClientName = r.ClientName,
-                TenderNumber = r.TenderNumber,
-                TenderName = r.TenderName,
-                ProcuringEntity = r.ProcuringEntity,
-                Amount = (decimal)r.Amount,
-                CommissionFee = (decimal)(r.CommissionAmount ?? 0),
-                ApplicationFee = (decimal)(r.ApplicationFee ?? 0),
-                TenorDays = (int)r.TenorDays,
-                TenderClosingDate = r.TenderClosingDate,
-                IsDeferredPayment = r.IsDeferredPayment ?? false,
-                TenderDocPath = r.TenderDocPath,
-                CR12Path = r.CR12Path,
-                PaymentReceiptPath = r.PaymentReceiptPath,
-                CreatedAt = r.CreatedAt,
-
-                // Cash Cover Mapping - Updated to match your new SELECT aliases
-                HasCashCover = r.CCAmount != null,
-                CashCoverAmount = (decimal?)r.CCAmount,
-                CashCoverReceiptRef = r.CCReference, // Mapped from cc.Reference
-                CashCoverReceiptPath = r.CCReceiptPath, // Mapped from cc.ReceiptPath
-                CashCoverMaturityDate = r.CCMaturitityDate, // Mapped from cc.MaturityDate
-                CashCoverDate = r.CCDate
+                Id                    = (int)r.Id,
+                ReferenceNo           = r.TenderNumber?.ToString() ?? $"BOND-{r.Id}",
+                ClientName            = r.ClientName?.ToString() ?? "",
+                TenderNumber          = r.TenderNumber?.ToString() ?? "",
+                TenderName            = r.TenderName?.ToString() ?? "",
+                ProcuringEntity       = r.ProcuringEntityName?.ToString() ?? "",
+                ProcuringEntityName   = r.ProcuringEntityName?.ToString() ?? "",
+                IssuingBank           = r.IssuingBankName?.ToString() ?? "",
+                BondTypeName          = r.BondTypeName?.ToString() ?? "",
+                Amount                = (decimal)r.Amount,
+                Rate                  = r.Rate != null ? (decimal)r.Rate : 0m,
+                CommissionFee         = (decimal)r.CommissionAmount,
+                ApplicationFee        = (decimal)r.ApplicationFee,
+                BankCharge            = (decimal)r.BankCharge,
+                TenorDays             = (int)r.TenorDays,
+                TenderClosingDate     = (DateTime)r.TenderClosingDate,
+                IsDeferredPayment     = r.IsDeferredPayment != null && (bool)r.IsDeferredPayment,
+                PaymentReference      = r.PaymentReference?.ToString(),
+                PaymentReceiptPath    = r.PaymentReceiptPath?.ToString(),
+                TenderDocPath         = r.TenderDocPath?.ToString(),
+                CR12Path              = r.CR12Path?.ToString(),
+                CompanyProfilePath    = r.CompanyProfilePath?.ToString(),
+                IndemnityDocPath      = r.IndemnityDocPath?.ToString(),
+                Notes                 = r.Notes?.ToString(),
+                StatusNotes           = r.StatusNotes?.ToString(),
+                Status                = status,
+                ApprovedBy            = r.ApprovedByName?.ToString(),
+                ApprovedAt            = r.ApprovedAt,
+                CreatedAt             = (DateTime)r.CreatedAt,
+                HasCashCover          = r.CCAmount != null,
+                CashCoverAmount       = r.CCAmount != null ? (decimal?)r.CCAmount : null,
+                CashCoverReceiptRef   = r.CCReference?.ToString(),
+                CashCoverReceiptPath  = r.CCReceiptPath?.ToString(),
+                CashCoverMaturityDate = r.CCMaturityDate,
+                CashCoverDate         = r.CCDate,
             };
         }
 

@@ -1,0 +1,70 @@
+@model List<OnwardsSwift.Core.DTOs.ApprovalQueueItem>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light text-uppercase" style="font-size:.75rem;">
+                <tr>
+                    <th class="ps-4">Submitted</th>
+                    <th>Type</th>
+                    <th>Client &amp; Reference</th>
+                    <th>Amount (KES)</th>
+                    <th>Current Stage</th>
+                    <th class="text-center">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    bool isCheque = item.ModuleType == "CHEQUE";
+                    <tr>
+                        <td class="ps-4">
+                            <div class="small fw-bold">@item.SubmittedAt.ToString("dd MMM yyyy")</div>
+                            <div class="text-muted small">@item.SubmittedAt.ToString("hh:mm tt")</div>
+                        </td>
+                        <td>
+                            @if (isCheque)
+                            {
+                                <span class="badge px-2 py-1" style="background:#fdf4ff; color:#7e22ce; border:1px solid #e9d5ff; font-size:.7rem;">
+                                    <i class="bi bi-credit-card me-1"></i>Cheque
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge px-2 py-1" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size:.7rem;">
+                                    <i class="bi bi-shield-check me-1"></i>Bond
+                                </span>
+                            }
+                        </td>
+                        <td>
+                            <div class="fw-bold">@item.ClientName</div>
+                            <div class="text-muted small">@item.ReferenceLabel</div>
+                        </td>
+                        <td class="fw-bold">@item.Amount.ToString("N2")</td>
+                        <td>
+                            <span class="badge px-3 py-2" style="background-color:#002D72; color:#fff;">
+                                @item.CurrentStageName
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            @if (isCheque)
+                            {
+                                <a asp-action="ReviewCheque" asp-route-id="@item.ReferenceId"
+                                   class="btn btn-sm btn-primary px-3 shadow-sm">
+                                    Review <i class="bi bi-arrow-right ms-1"></i>
+                                </a>
+                            }
+                            else
+                            {
+                                <a asp-action="Review" asp-route-id="@item.ReferenceId"
+                                   class="btn btn-sm btn-primary px-3 shadow-sm">
+                                    Review <i class="bi bi-arrow-right ms-1"></i>
+                                </a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

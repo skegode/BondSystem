@@ -1,219 +1,511 @@
-﻿@model OnwardsSwift.Core.DTOs.BidBondResponse
-
+@model OnwardsSwift.Core.DTOs.BondReviewViewModel
 @{
     ViewData["Title"] = "Review Bond Application";
+    var bond     = Model.Bond;
+    var workflow = Model.Workflow;
+    bool canAct  = Model.IsCurrentApprover && workflow != null && workflow.IsActive;
 }
 
-<div class="container-fluid py-4 animate__animated animate__fadeIn">
-    <div class="row mb-4">
+<style>
+    :root { --navy: #002D72; }
+    .bg-navy    { background-color: var(--navy) !important; }
+    .text-navy  { color: var(--navy) !important; }
+    .btn-navy   { background-color: var(--navy); color: #fff; }
+    .btn-navy:hover { background-color: #001a44; color: #fff; }
+    .border-navy { border-color: var(--navy) !important; }
+    .section-divider { border: 0; border-top: 1px solid #e2e8f0; margin: 0; }
+    .kv-row { display:flex; justify-content:space-between; padding:.5rem 0;
+              border-bottom:1px solid #f1f5f9; font-size:.875rem; }
+    .kv-row:last-child { border-bottom: none; }
+    .kv-key { color:#64748b; font-weight:500; }
+    .kv-val { font-weight:600; text-align:right; }
+    .stage-step.is-past    { color:#16a34a; }
+    .stage-step.is-current { color:var(--navy); font-weight:700; }
+    .stage-step.is-future  { color:#94a3b8; }
+</style>
+
+<div class="container-fluid py-4 px-3 px-lg-4">
+
+    @* ── Breadcrumb & header ── *@
+    <div class="row mb-3">
         <div class="col-12 d-flex justify-content-between align-items-center">
             <div>
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb mb-1">
-                        <li class="breadcrumb-item"><a asp-action="Pending" class="text-decoration-none">Approvals</a></li>
+                        <li class="breadcrumb-item">
+                            <a asp-action="Pending" class="text-decoration-none">Approvals</a>
+                        </li>
                         <li class="breadcrumb-item active">Review Bond</li>
                     </ol>
                 </nav>
-                <h2 class="fw-bold mb-0">Application Review: @Model.TenderNumber</h2>
+                <h4 class="fw-bold mb-0">@bond.TenderNumber</h4>
+                <div class="text-muted small">@bond.TenderName</div>
             </div>
-            <a asp-action="Pending" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left me-1"></i> Back to List
+            <a asp-action="Pending" class="btn btn-sm btn-light border px-3">
+                <i class="bi bi-arrow-left me-1"></i>Back
             </a>
         </div>
     </div>
 
-    <div class="row g-4">
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-3">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-3">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row g-3">
+
+        @* ── LEFT column ── *@
         <div class="col-lg-8">
 
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white py-3 border-bottom">
-                    <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-info-circle me-2"></i>Project Details</h5>
+            @* Project details *@
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-info-circle me-2 text-primary"></i>Project Details</h6>
                 </div>
                 <div class="card-body">
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                            <label class="text-muted small fw-bold text-uppercase">Client / Company</label>
-                            <p class="fs-5 fw-bold mb-0 text-dark">@Model.ClientName</p>
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <div class="text-muted small fw-semibold text-uppercase mb-1">Client</div>
+                            <div class="fw-bold">@bond.ClientName</div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small fw-bold text-uppercase">Procuring Entity (Obligee)</label>
-                            <p class="fs-5 mb-0">@Model.ProcuringEntityName</p>
+                        <div class="col-sm-6">
+                            <div class="text-muted small fw-semibold text-uppercase mb-1">Procuring Entity</div>
+                            <div class="fw-semibold">@bond.ProcuringEntityName</div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small fw-bold text-uppercase">Issuing Agent</label>
-                            <p class="mb-0 fw-bold text-secondary">
-                                <i class="bi bi-person-badge me-1"></i> @Model.AgentName
-                            </p>
+                        <div class="col-sm-6">
+                            <div class="text-muted small fw-semibold text-uppercase mb-1">Agent / Broker</div>
+                            <div class="small"><i class="bi bi-person-badge me-1 text-muted"></i>@(bond.AgentName ?? "Direct Application")</div>
                         </div>
-                        <div class="col-md-6 text-md-end">
-                            <label class="text-muted small fw-bold text-uppercase">Bond Type</label>
-                            <div><span class="badge bg-soft-primary text-primary border border-primary px-3">@Model.BondTypeName</span></div>
+                        <div class="col-sm-6">
+                            <div class="text-muted small fw-semibold text-uppercase mb-1">Bond Type</div>
+                            <span class="badge px-3 py-1 fw-semibold"
+                                  style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:20px;">
+                                @bond.BondTypeName
+                            </span>
                         </div>
                         <div class="col-12">
-                            <label class="text-muted small fw-bold text-uppercase">Tender Name / Project Description</label>
-                            <div class="p-3 bg-light rounded border-start border-4 border-primary mt-1">
-                                @Model.TenderName
+                            <div class="text-muted small fw-semibold text-uppercase mb-1">Tender Description</div>
+                            <div class="p-3 rounded-3" style="background:#f8fafc; border-left:4px solid #002D72;">
+                                @bond.TenderName
                             </div>
                         </div>
                     </div>
 
-                    <div class="row g-3 mt-3">
-                        <div class="col-md-4">
-                            <div class="p-3 border rounded text-center">
-                                <label class="text-muted small d-block">Bond Amount</label>
-                                <span class="h5 fw-bold">KES @Model.Amount.ToString("N2")</span>
+                    <div class="row g-2 mt-2">
+                        <div class="col-4">
+                            <div class="text-center p-3 rounded-3 border">
+                                <div class="text-muted small mb-1">Bond Amount</div>
+                                <div class="fw-bold" style="color:var(--navy);">KES @bond.Amount.ToString("N0")</div>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="p-3 border rounded text-center">
-                                <label class="text-muted small d-block">Tenor</label>
-                                <span class="h5 fw-bold">@Model.TenorDays Days</span>
+                        <div class="col-4">
+                            <div class="text-center p-3 rounded-3 border">
+                                <div class="text-muted small mb-1">Tenor</div>
+                                <div class="fw-bold">@bond.TenorDays days</div>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="p-3 border rounded text-center text-danger">
-                                <label class="text-muted small d-block">Closing Date</label>
-                                <span class="h5 fw-bold">@Model.TenderClosingDate.ToString("dd MMM yyyy")</span>
+                        <div class="col-4">
+                            <div class="text-center p-3 rounded-3 border">
+                                <div class="text-muted small mb-1">Closing Date</div>
+                                <div class="fw-bold text-danger small">@bond.TenderClosingDate.ToString("dd MMM yyyy")</div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white py-3 border-bottom">
-                    <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-files me-2"></i>Verification Documents</h5>
+            @* Application documents *@
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-files me-2 text-primary"></i>Application Documents</h6>
                 </div>
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">
-                        <a href="@Model.TenderDocPath" target="_blank" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
-                            <span><i class="bi bi-file-earmark-pdf text-danger me-2 fs-5"></i> Tender Advertisement Document</span>
-                            <span class="btn btn-sm btn-light border shadow-sm">View <i class="bi bi-box-arrow-up-right ms-1"></i></span>
-                        </a>
-                        <a href="@Model.CR12Path" target="_blank" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
-                            <span><i class="bi bi-file-earmark-person text-info me-2 fs-5"></i> CR12 / Legal Compliance</span>
-                            <span class="btn btn-sm btn-light border shadow-sm">View <i class="bi bi-box-arrow-up-right ms-1"></i></span>
-                        </a>
-                        @if (!string.IsNullOrEmpty(Model.PaymentReceiptPath))
+                        @if (!string.IsNullOrEmpty(bond.TenderDocPath))
                         {
-                            <a href="@Model.PaymentReceiptPath" target="_blank" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
-                                <span><i class="bi bi-receipt text-success me-2 fs-5"></i> Fee Payment Receipt</span>
-                                <span class="btn btn-sm btn-outline-success fw-bold">View Receipt <i class="bi bi-check-all ms-1"></i></span>
+                            <a href="@bond.TenderDocPath" target="_blank"
+                               class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-file-earmark-pdf text-danger me-2"></i>Tender Document</span>
+                                <span class="btn btn-sm btn-light border">View <i class="bi bi-box-arrow-up-right ms-1"></i></span>
                             </a>
+                        }
+                        @if (!string.IsNullOrEmpty(bond.CR12Path))
+                        {
+                            <a href="@bond.CR12Path" target="_blank"
+                               class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-file-earmark-person text-info me-2"></i>CR12 / Legal Compliance</span>
+                                <span class="btn btn-sm btn-light border">View <i class="bi bi-box-arrow-up-right ms-1"></i></span>
+                            </a>
+                        }
+                        @if (!string.IsNullOrEmpty(bond.PaymentReceiptPath))
+                        {
+                            <a href="@bond.PaymentReceiptPath" target="_blank"
+                               class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-receipt text-success me-2"></i>Payment Receipt</span>
+                                <span class="btn btn-sm btn-outline-success fw-bold">View <i class="bi bi-check-all ms-1"></i></span>
+                            </a>
+                        }
+                        @if (string.IsNullOrEmpty(bond.TenderDocPath) && string.IsNullOrEmpty(bond.CR12Path) && string.IsNullOrEmpty(bond.PaymentReceiptPath))
+                        {
+                            <div class="list-group-item text-muted fst-italic py-3 small">No documents uploaded yet.</div>
                         }
                     </div>
                 </div>
             </div>
+
+            @* Stage documents checklist *@
+            @if (workflow != null && workflow.RequiredDocuments.Any())
+            {
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold"><i class="bi bi-card-checklist me-2 text-primary"></i>Stage Documents Checklist</h6>
+                        @{
+                            int doneCount = workflow.RequiredDocuments.Count - workflow.MissingRequiredDocNames.Count;
+                        }
+                        <span class="badge @(workflow.HasMissingRequiredDocs ? "bg-warning text-dark" : "bg-success") px-3">
+                            @doneCount / @workflow.RequiredDocuments.Count complete
+                        </span>
+                    </div>
+                    <ul class="list-group list-group-flush mb-0">
+                        @foreach (var doc in workflow.RequiredDocuments)
+                        {
+                            bool uploaded = workflow.UploadedDocuments
+                                .Any(ud => ud.DocumentName.Equals(doc.DocumentName, StringComparison.OrdinalIgnoreCase));
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    @if (uploaded)
+                                    {
+                                        <i class="bi bi-check-circle-fill text-success"></i>
+                                    }
+                                    else if (doc.IsRequired)
+                                    {
+                                        <i class="bi bi-exclamation-circle-fill text-danger"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-circle text-muted"></i>
+                                    }
+                                    <span class="@(uploaded ? "text-muted text-decoration-line-through" : "fw-semibold") small">
+                                        @doc.DocumentName
+                                    </span>
+                                    @if (!doc.IsRequired)
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary" style="font-size:.65rem;">Optional</span>
+                                    }
+                                </div>
+                                @if (!uploaded)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-primary"
+                                            onclick="showUploadModal('@doc.DocumentName', @bond.Id)">
+                                        <i class="bi bi-upload me-1"></i>Upload
+                                    </button>
+                                }
+                                else
+                                {
+                                    var uploadedDoc = workflow.UploadedDocuments
+                                        .First(ud => ud.DocumentName.Equals(doc.DocumentName, StringComparison.OrdinalIgnoreCase));
+                                    <a href="@uploadedDoc.FilePath" target="_blank" class="btn btn-sm btn-outline-success">
+                                        <i class="bi bi-eye me-1"></i>View
+                                    </a>
+                                }
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            @* Approval history *@
+            @if (workflow != null && workflow.History.Any())
+            {
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-primary"></i>Approval History</h6>
+                    </div>
+                    <div class="card-body">
+                        @foreach (var h in workflow.History)
+                        {
+                            @* Determine icon and colour per action type *@
+                            string dotBg    = h.ActionType == "APPROVED" ? "#dcfce7" : h.ActionType == "REJECTED" ? "#fee2e2" : "#fef9c3";
+                            string dotColor = h.ActionType == "APPROVED" ? "#16a34a" : h.ActionType == "REJECTED" ? "#dc2626" : "#d97706";
+                            string dotIcon  = h.ActionType == "APPROVED" ? "bi-check-lg"
+                                            : h.ActionType == "REJECTED" ? "bi-x-lg"
+                                            : "bi-arrow-return-left";
+                            <div class="d-flex gap-3 mb-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                     style="width:36px;height:36px;background:@dotBg;border:2px solid @dotColor;">
+                                    <i class="bi @dotIcon" style="color:@dotColor; font-size:.8rem;"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-semibold small">
+                                        @h.ActionLabel
+                                        <span class="badge ms-1 px-2 py-1"
+                                              style="background:@dotBg;color:@dotColor;border:1px solid @dotColor;font-size:.65rem;border-radius:12px;">
+                                            @h.StageName
+                                        </span>
+                                    </div>
+                                    <div class="text-muted small">
+                                        by <strong>@h.ActionByName</strong> &mdash; @h.ActionAt.ToString("dd MMM yyyy, hh:mm tt")
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(h.Comment))
+                                    {
+                                        <div class="mt-1 small fst-italic text-muted">&ldquo;@h.Comment&rdquo;</div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
         </div>
 
+        @* ── RIGHT column ── *@
         <div class="col-lg-4">
 
-            <div class="card border-0 shadow-sm bg-primary text-white mb-4">
-                <div class="card-body py-4">
+            @* Charges card *@
+            <div class="card border-0 shadow-sm mb-3" style="background:var(--navy);">
+                <div class="card-body py-4 text-white">
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h6 class="text-uppercase small fw-bold opacity-75 mb-0">Processing Charge Due</h6>
-                        <i class="bi bi-cash-coin fs-3 opacity-50"></i>
+                        <div class="small text-uppercase fw-bold opacity-75">Processing Charge</div>
+                        <i class="bi bi-cash-coin fs-3 opacity-40"></i>
                     </div>
-                    <h2 class="fw-bold mb-1">KES @Model.PayableCharge.ToString("N2")</h2>
-                    @if (Model.IsDeferredPayment)
+                    <div class="fw-800 mb-1" style="font-size:1.75rem;">KES @bond.PayableCharge.ToString("N2")</div>
+                    @if (bond.IsDeferredPayment)
                     {
-                        <div class="badge bg-warning text-dark animate__animated animate__pulse animate__infinite mt-2">
-                            <i class="bi bi-clock-history me-1"></i> Payment Deferred
-                        </div>
+                        <span class="badge bg-warning text-dark mt-1"><i class="bi bi-clock-history me-1"></i>Payment Deferred</span>
                     }
                     else
                     {
-                        <div class="badge bg-white text-primary mt-2">
-                            <i class="bi bi-check-circle-fill me-1"></i> Payment Verified
-                        </div>
+                        <span class="badge bg-white text-success mt-1"><i class="bi bi-check-circle-fill me-1"></i>Paid</span>
                     }
                 </div>
             </div>
 
-            @if (Model.HasCashCover)
+            @* Cash cover *@
+            @if (bond.HasCashCover && bond.CashCoverAmount > 0)
             {
-                <div class="card border-0 shadow-sm bg-success text-white mb-4 overflow-hidden">
+                <div class="card border-0 shadow-sm mb-3" style="border-left:4px solid #0ea5e9 !important;">
                     <div class="card-body">
-                        <div class="d-flex justify-content-between mb-3">
-                            <div>
-                                <p class="text-uppercase small fw-bold mb-1 opacity-75">Cash Cover Secured</p>
-                                <h3 class="fw-bold mb-0">KES @Model.CashCoverAmount?.ToString("N0")</h3>
-                            </div>
-                            <i class="bi bi-shield-lock-fill fs-1 opacity-25"></i>
+                        <div class="small text-uppercase fw-bold text-muted mb-2">Cash Cover Secured</div>
+                        <div class="fw-bold fs-5 text-primary mb-2">KES @bond.CashCoverAmount?.ToString("N0")</div>
+                        <div class="kv-row">
+                            <span class="kv-key">Maturity</span>
+                            <span class="kv-val">@(bond.CashCoverMaturityDate?.ToString("dd MMM yyyy") ?? "—")</span>
                         </div>
-                        <div class="bg-dark bg-opacity-10 p-2 rounded mb-3 small">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span class="opacity-75">Maturity Date:</span>
-                                <span class="fw-bold">@Model.CashCoverMaturityDate?.ToString("dd MMM yyyy")</span>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span class="opacity-75">Reference:</span>
-                                <span class="fw-bold">@Model.CashCoverReceiptRef</span>
-                            </div>
+                        <div class="kv-row">
+                            <span class="kv-key">Reference</span>
+                            <span class="kv-val">@(bond.CashCoverReceiptRef ?? "—")</span>
                         </div>
-
-                        @if (!string.IsNullOrEmpty(Model.CashCoverReceiptPath))
+                        @if (!string.IsNullOrEmpty(bond.CashCoverReceiptPath))
                         {
-                            <a href="@Model.CashCoverReceiptPath" target="_blank" class="btn btn-sm btn-light w-100 fw-bold text-success">
-                                <i class="bi bi-file-earmark-medical me-1"></i> View Bank Slip
+                            <a href="@bond.CashCoverReceiptPath" target="_blank"
+                               class="btn btn-sm btn-outline-primary w-100 mt-2">
+                                <i class="bi bi-file-earmark-medical me-1"></i>View Bank Slip
                             </a>
                         }
                     </div>
                 </div>
             }
-            else
+
+            @* Workflow progress *@
+            @if (workflow != null)
             {
-                <div class="alert alert-light border shadow-sm mb-4 d-flex align-items-center">
-                    <i class="bi bi-exclamation-triangle-fill text-secondary fs-4 me-3"></i>
-                    <div>
-                        <h6 class="mb-0 fw-bold text-secondary">Unsecured Bond</h6>
-                        <small class="text-muted">No cash cover linked to this application.</small>
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="mb-0 fw-bold"><i class="bi bi-diagram-3 me-2"></i>Workflow Progress</h6>
+                    </div>
+                    <ul class="list-group list-group-flush mb-0">
+                        @foreach (var stage in Model.AllStages.OrderBy(s => s.SequenceOrder))
+                        {
+                            bool isCurrent = stage.Id == workflow.CurrentStageId;
+                            bool isPast    = stage.SequenceOrder < workflow.CurrentSequenceOrder
+                                             || (!workflow.IsActive && !workflow.IsRejected);
+                            string stepClass = isPast    ? "is-past"
+                                             : isCurrent ? "is-current"
+                                             : "is-future";
+                            string stepIcon  = isPast    ? "bi-check-circle-fill text-success"
+                                             : isCurrent ? "bi-arrow-right-circle-fill"
+                                             : "bi-circle text-muted";
+                            <li class="list-group-item d-flex align-items-center gap-2 py-2 stage-step @stepClass">
+                                <i class="bi @stepIcon @(isCurrent ? "text-navy" : "")"></i>
+                                <span class="small">@stage.SequenceOrder. @stage.StageName</span>
+                                @if (isCurrent && workflow.IsActive)
+                                {
+                                    <span class="badge ms-auto px-2 py-1 text-white"
+                                          style="background:var(--navy);font-size:.6rem;border-radius:10px;">NOW</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                    @if (workflow.IsComplete)
+                    {
+                        <div class="card-footer bg-success-subtle text-success text-center fw-semibold py-2 small">
+                            <i class="bi bi-check-circle-fill me-1"></i>Workflow Complete — Approved
+                        </div>
+                    }
+                    else if (workflow.IsRejected)
+                    {
+                        <div class="card-footer bg-danger-subtle text-danger text-center fw-semibold py-2 small">
+                            <i class="bi bi-x-circle-fill me-1"></i>Application Rejected
+                        </div>
+                    }
+                </div>
+            }
+
+            @* Current approvers *@
+            @if (workflow != null && workflow.IsActive && workflow.CurrentStageApprovers.Any())
+            {
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body py-3">
+                        <div class="small fw-bold text-uppercase text-muted mb-2">Awaiting Action From</div>
+                        @foreach (var approver in workflow.CurrentStageApprovers)
+                        {
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-person-circle text-navy fs-5"></i>
+                                <span class="small fw-bold">@approver.FullName</span>
+                                <span class="badge bg-light text-muted border ms-auto" style="font-size:.65rem;">@approver.Role</span>
+                            </div>
+                        }
                     </div>
                 </div>
             }
 
-            <div class="card border-0 shadow-sm border-top border-4 border-dark">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 fw-bold">Approval Decision</h5>
+            @* Missing docs warning *@
+            @if (workflow != null && workflow.IsActive && workflow.HasMissingRequiredDocs)
+            {
+                <div class="alert alert-warning border-0 shadow-sm mb-3">
+                    <div class="fw-bold small"><i class="bi bi-exclamation-triangle-fill me-2"></i>Missing Documents</div>
+                    <ul class="mb-0 small mt-1 ps-3">
+                        @foreach (var d in workflow.MissingRequiredDocNames)
+                        {
+                            <li>@d</li>
+                        }
+                    </ul>
+                    <div class="small mt-2 text-muted">Upload these before approving.</div>
                 </div>
-                <div class="card-body pt-0">
-                    <form asp-action="ProcessBond" method="post" id="approvalForm">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="BondId" value="@Model.Id" />
+            }
 
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted">Internal Remarks / Reason</label>
-                            <textarea name="Remarks" id="Remarks" class="form-control bg-light" rows="4"
-                                      placeholder="Provide context for your decision..."></textarea>
-                        </div>
+            @* Action panel *@
+            @if (canAct)
+            {
+                <div class="card border-0 shadow-sm" style="border-top:4px solid var(--navy) !important;">
+                    <div class="card-header bg-white py-3">
+                        <div class="fw-bold">Your Decision</div>
+                        <div class="small text-muted">Stage: <strong>@workflow!.CurrentStageName</strong></div>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="Act" method="post" id="actionForm">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="InstanceId" value="@workflow!.Id" />
+                            <input type="hidden" name="BondId"     value="@bond.Id" />
+                            <input type="hidden" name="ActionType" id="ActionType" value="" />
 
-                        <div class="d-grid gap-2">
-                            <button type="submit" name="IsApproved" value="true" class="btn btn-success btn-lg py-3 shadow-sm fw-bold">
-                                <i class="bi bi-check-circle-fill me-2"></i> Approve Bond
-                            </button>
-                            <button type="submit" name="IsApproved" value="false" class="btn btn-outline-danger btn-lg py-2">
-                                <i class="bi bi-x-circle me-2"></i> Decline Application
-                            </button>
-                        </div>
-                    </form>
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Remarks <span class="text-muted fw-normal">(required for return / reject)</span>
+                                </label>
+                                <textarea name="Comment" id="Comment" class="form-control" rows="3"
+                                          placeholder="Add notes or reason..."></textarea>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-success fw-bold py-2"
+                                        @(workflow.HasMissingRequiredDocs ? "disabled" : "")
+                                        onclick="submitAction('APPROVED')">
+                                    <i class="bi bi-check-circle-fill me-2"></i>
+                                    @(workflow.IsFinalStage ? "Final Approve" : "Approve & Advance")
+                                </button>
+
+                                @if (workflow.CanReturn)
+                                {
+                                    <button type="button" class="btn btn-warning fw-bold py-2"
+                                            onclick="submitAction('RETURNED')">
+                                        <i class="bi bi-arrow-return-left me-2"></i>Return for Revision
+                                    </button>
+                                }
+
+                                <button type="button" class="btn btn-outline-danger py-2"
+                                        onclick="submitAction('REJECTED')">
+                                    <i class="bi bi-x-circle me-2"></i>Reject Application
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            </div>
+            }
+            else if (workflow == null)
+            {
+                <div class="alert alert-secondary border-0 shadow-sm">
+                    <i class="bi bi-info-circle me-2"></i>No workflow has been configured for this application.
+                </div>
+            }
+            else if (!Model.IsCurrentApprover && workflow.IsActive)
+            {
+                <div class="alert alert-light border shadow-sm">
+                    <i class="bi bi-lock me-2 text-muted"></i>
+                    <span class="text-muted small">This stage is awaiting action from the assigned approver.</span>
+                </div>
+            }
 
         </div>
     </div>
 </div>
 
-@section Scripts {
-    <script>
-        // Validation: Remarks required for rejection
-        $('#approvalForm').on('submit', function (e) {
-            const isRejection = $(document.activeElement).val() === "false";
-            const remarks = $('#Remarks').val().trim();
+@* ── Upload document modal ── *@
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <form asp-action="UploadDocument" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="bondId"       value="@bond.Id" />
+                <input type="hidden" name="documentName" id="uploadDocName" value="" />
+                <div class="modal-header bg-navy text-white">
+                    <h5 class="modal-title"><i class="bi bi-upload me-2"></i>Upload Document</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="fw-semibold mb-3" id="uploadDocLabel"></p>
+                    <input type="file" name="file" class="form-control" required
+                           accept=".pdf,.jpg,.jpeg,.png,.docx" />
+                    <div class="form-text mt-1">Accepted: PDF, JPG, PNG, DOCX</div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-navy px-4">
+                        <i class="bi bi-upload me-1"></i>Upload
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-            if (isRejection && remarks.length < 1) {
-                alert("Please provide a reason for declining this application.");
-                e.preventDefault();
-            }
-        });
-    </script>
+@section Scripts {
+<script>
+function submitAction(actionType) {
+    const comment = document.getElementById('Comment').value.trim();
+    if ((actionType === 'REJECTED' || actionType === 'RETURNED') && comment.length < 3) {
+        alert('Please provide a reason before ' +
+              (actionType === 'REJECTED' ? 'rejecting' : 'returning') + ' this application.');
+        return;
+    }
+    document.getElementById('ActionType').value = actionType;
+    document.getElementById('actionForm').submit();
+}
+
+function showUploadModal(docName, bondId) {
+    document.getElementById('uploadDocName').value  = docName;
+    document.getElementById('uploadDocLabel').textContent = docName;
+    new bootstrap.Modal(document.getElementById('uploadModal')).show();
+}
+</script>
 }

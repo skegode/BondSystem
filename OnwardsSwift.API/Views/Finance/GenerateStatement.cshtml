@@ -2,33 +2,45 @@
 @{
     var client = ViewBag.Client;
     ViewData["Title"] = "Statement - " + client.Name;
+    // Capture values for the filter inputs
+    string dateFrom = ((DateTime)ViewBag.From).ToString("yyyy-MM-dd");
+    string dateTo = ((DateTime)ViewBag.To).ToString("yyyy-MM-dd");
 }
 
 <style>
     /* Professional PDF/Print Styles */
     @@media print {
-        .no-print {
-            display: none !important;
-        }
+        .no-print, .filter-bar
 
-        .sidebar {
-            display: none !important;
-        }
+    {
+        display: none !important;
+    }
 
-        .main-content {
-            margin-left: 0 !important;
-            padding: 0 !important;
-            width: 100% !important;
-        }
+    .sidebar {
+        display: none !important;
+    }
 
-        .card {
-            border: none !important;
-            box-shadow: none !important;
-        }
+    .main-content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
 
-        body {
-            background-color: white !important;
-        }
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    body {
+        background-color: white !important;
+    }
+
+    }
+
+    .filter-bar {
+        background: #fff;
+        border-radius: 12px;
+        border: 1px solid #e9ecef;
     }
 
     .table-statement thead {
@@ -50,21 +62,44 @@
 </style>
 
 <div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
-        <button onclick="history.back()" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left"></i> Back to Search
-        </button>
-        <div>
-            <button onclick="window.print()" class="btn btn-primary shadow-sm">
-                <i class="bi bi-file-earmark-pdf"></i> Print / Save PDF
-            </button>
-            <button id="btnExcel" class="btn btn-success shadow-sm ms-2">
-                <i class="bi bi-file-earmark-excel"></i> Export Excel
-            </button>
+    <div class="card border-0 shadow-sm mb-4 no-print">
+        <div class="card-body p-3">
+            <div class="row align-items-center">
+                <div class="col-lg-2 mb-2 mb-lg-0">
+                    <button onclick="history.back()" class="btn btn-light btn-sm w-100">
+                        <i class="bi bi-arrow-left"></i> Back
+                    </button>
+                </div>
+                <div class="col-lg-7 mb-2 mb-lg-0">
+                    <form method="get" asp-action="GenerateStatement" class="row g-2 align-items-center">
+                        <input type="hidden" name="clientId" value="@ViewBag.ClientId" />
+                        <div class="col-auto">
+                            <span class="small fw-bold text-muted">Filter:</span>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="date" name="from" value="@dateFrom" class="form-control form-control-sm" />
+                        </div>
+                        <div class="col-md-4">
+                            <input type="date" name="to" value="@dateTo" class="form-control form-control-sm" />
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary btn-sm w-100">Apply</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-lg-3 text-end">
+                    <button onclick="window.print()" class="btn btn-outline-dark btn-sm">
+                        <i class="bi bi-printer"></i>
+                    </button>
+                    <button id="btnExcel" class="btn btn-success btn-sm ms-1">
+                        <i class="bi bi-file-earmark-excel"></i> Excel
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm p-4" id="printableArea">
+    <div class="card border-0 shadow-sm p-4 p-lg-5" id="printableArea">
         <div class="row mb-5">
             <div class="col-7">
                 <h2 class="fw-bold text-primary mb-0">ONWARDS SWIFT</h2>
@@ -74,14 +109,16 @@
                 </p>
             </div>
             <div class="col-5 text-end">
-                <h3 class="fw-bold text-uppercase">Statement of Account</h3>
-                <p class="mb-0 text-muted">Period: <strong>@ViewBag.From.ToString("dd-MMM-yyyy")</strong> to <strong>@ViewBag.To.ToString("dd-MMM-yyyy")</strong></p>
+                <h3 class="fw-bold text-uppercase mb-1">Statement</h3>
+                <p class="mb-0 text-muted small">Period: <strong>@ViewBag.From.ToString("dd-MMM-yyyy")</strong> to <strong>@ViewBag.To.ToString("dd-MMM-yyyy")</strong></p>
+                <p class="text-muted x-small">Generated on: @DateTime.Now.ToString("g")</p>
             </div>
         </div>
 
         <div class="row mb-4">
             <div class="col-12">
-                <h5 class="fw-bold text-dark mb-1">@client.Name</h5>
+                <label class="text-muted small text-uppercase fw-bold">Statement For:</label>
+                <h5 class="fw-bold text-dark mb-0">@client.Name</h5>
                 <p class="mb-0 text-muted">@client.Email</p>
                 <p class="mb-0 text-muted">@client.PhoneNumber</p>
             </div>
@@ -100,8 +137,8 @@
                 </thead>
                 <tbody>
                     <tr class="bof-row">
-                        <td>@ViewBag.From.ToString("dd-MMM-yyyy")</td>
-                        <td>Balance Brought Forward</td>
+                        <td class="text-muted">@ViewBag.From.ToString("dd-MMM-yyyy")</td>
+                        <td><strong>Balance Brought Forward</strong></td>
                         <td class="text-end">-</td>
                         <td class="text-end">-</td>
                         <td class="text-end fw-bold">@ViewBag.Bof.ToString("N2")</td>
@@ -121,19 +158,22 @@
             </table>
         </div>
 
-        <div class="row mt-4">
+        <div class="row mt-5">
             <div class="col-md-7">
-                <p class="small text-muted">
-                    <strong>Notes:</strong><br />
-                    1. All amounts are in Kenya Shillings (KES).<br />
-                    2. Please report any discrepancies within 14 days of the statement date.
-                </p>
+                <div class="p-3 bg-light rounded border border-dashed">
+                    <p class="small text-muted mb-0">
+                        <strong>Terms & Conditions:</strong><br />
+                        1. All amounts are in Kenya Shillings (KES).<br />
+                        2. Please report any discrepancies within 14 days.<br />
+                        3. Make payments via M-Pesa or Bank Transfer as per onboarding instructions.
+                    </p>
+                </div>
             </div>
             <div class="col-md-5">
                 <div class="summary-box">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Closing Balance:</span>
-                        <h4 class="fw-bold mb-0">KES @ViewBag.TotalDue.ToString("N2")</h4>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted fw-bold text-uppercase small">Total Amount Due</span>
+                        <h3 class="fw-bold mb-0 text-primary">KES @ViewBag.TotalDue.ToString("N2")</h3>
                     </div>
                 </div>
             </div>

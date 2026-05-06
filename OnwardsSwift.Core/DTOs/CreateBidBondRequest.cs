@@ -13,8 +13,7 @@ namespace OnwardsSwift.Core.DTOs
         [Required(ErrorMessage = "Please select a client")]
         public int ClientId { get; set; }
 
-        [Required(ErrorMessage = "Please select an agent")]
-        public int AgentId { get; set; }
+        public int? AgentId { get; set; }
 
         [Required(ErrorMessage = "Please select a bond type")]
         public int BondTypeId { get; set; }

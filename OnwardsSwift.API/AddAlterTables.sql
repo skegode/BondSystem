@@ -4,18 +4,18 @@
 -- Safe to re-run — all wrapped in IF NOT EXISTS checks
 -- ══════════════════════════════════════════════════════════════
 
--- ── BankPartners: add InstitutionType and LicenceNumber columns ──
-IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='BankPartners' AND COLUMN_NAME='InstitutionType')
+-- ── Banks: add InstitutionType and LicenceNumber columns ──
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Banks' AND COLUMN_NAME='InstitutionType')
 BEGIN
-    ALTER TABLE BankPartners ADD InstitutionType INT NOT NULL DEFAULT 1;
-    PRINT 'Added BankPartners.InstitutionType';
+    ALTER TABLE Banks ADD InstitutionType INT NOT NULL DEFAULT 1;
+    PRINT 'Added Banks.InstitutionType';
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='BankPartners' AND COLUMN_NAME='LicenceNumber')
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Banks' AND COLUMN_NAME='LicenceNumber')
 BEGIN
-    ALTER TABLE BankPartners ADD LicenceNumber NVARCHAR(100) NULL;
-    PRINT 'Added BankPartners.LicenceNumber';
+    ALTER TABLE Banks ADD LicenceNumber NVARCHAR(100) NULL;
+    PRINT 'Added Banks.LicenceNumber';
 END
 GO
 

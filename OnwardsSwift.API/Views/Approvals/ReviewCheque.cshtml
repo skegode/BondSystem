@@ -1,0 +1,427 @@
+@{
+    ViewData["Title"] = "Review Cheque Discounting Application";
+    dynamic cheque   = ViewBag.Cheque;
+    var workflow     = ViewBag.Workflow  as OnwardsSwift.Core.DTOs.ApprovalInstanceDto;
+    bool isApprover  = (bool)(ViewBag.IsApprover ?? false);
+    var  allStages   = ViewBag.AllStages as List<OnwardsSwift.Core.DTOs.WorkflowStageViewModel>
+                       ?? new List<OnwardsSwift.Core.DTOs.WorkflowStageViewModel>();
+    bool canAct      = isApprover && workflow != null && workflow.IsActive;
+
+    int     chequeId     = (int)cheque.Id;
+    string  clientName   = cheque.ClientName?.ToString() ?? "";
+    string  chequeNumber = cheque.ChequeNumber?.ToString() ?? chequeId.ToString();
+    decimal faceValue    = (decimal)(cheque.ChequeAmount ?? 0);
+    decimal discountRate = (decimal)(cheque.DiscountRate  ?? 0);
+    decimal discountAmt  = (decimal)(cheque.DiscountAmount ?? 0);
+    decimal netAdvance   = (decimal)(cheque.NetAdvance    ?? 0);
+    string  drawerBank   = cheque.DrawerBank?.ToString()     ?? "—";
+    string  drawerAcct   = cheque.DrawerAccountNo?.ToString() ?? "—";
+    DateTime expiryDate  = cheque.ExpiryDate != null ? (DateTime)cheque.ExpiryDate : DateTime.MinValue;
+    string  photoPath    = cheque.PhotoPath?.ToString() ?? "";
+    string  status       = cheque.Status?.ToString()    ?? "Awaiting Approval";
+    string  payMethod    = cheque.PaymentMethod?.ToString() ?? "—";
+    string  disburseBank = cheque.DisburseBank?.ToString()    ?? "";
+    string  disburseAcct = cheque.DisburseAccount?.ToString() ?? "";
+
+    string statusColor  = status == "Active" ? "#16a34a" : status == "Rejected" ? "#dc2626" : "#d97706";
+    string statusBg     = status == "Active" ? "#dcfce7" : status == "Rejected" ? "#fee2e2" : "#fef9c3";
+}
+
+<style>
+    :root { --navy: #002D72; }
+    .bg-navy    { background-color: var(--navy) !important; }
+    .text-navy  { color: var(--navy) !important; }
+    .btn-navy   { background-color: var(--navy); color: #fff; }
+    .btn-navy:hover { background-color: #001a44; color: #fff; }
+    .kv-row { display:flex; justify-content:space-between; padding:.5rem 0;
+              border-bottom:1px solid #f1f5f9; font-size:.875rem; }
+    .kv-row:last-child { border-bottom:none; }
+    .kv-key { color:#64748b; font-weight:500; }
+    .kv-val { font-weight:600; text-align:right; }
+    .stage-step.is-past    { color:#16a34a; }
+    .stage-step.is-current { color:var(--navy); font-weight:700; }
+    .stage-step.is-future  { color:#94a3b8; }
+</style>
+
+<div class="container-fluid py-4 px-3 px-lg-4">
+
+    @* Breadcrumb *@
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item">
+                        <a asp-action="Pending" class="text-decoration-none">Approvals</a>
+                    </li>
+                    <li class="breadcrumb-item active">Review Cheque</li>
+                </ol>
+            </nav>
+            <h4 class="fw-bold mb-0">
+                <i class="bi bi-credit-card me-2 text-purple" style="color:#7e22ce;"></i>
+                Cheque #@chequeNumber
+            </h4>
+            <div class="text-muted small">@clientName</div>
+        </div>
+        <a asp-action="Pending" class="btn btn-sm btn-light border px-3">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-3">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-3">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row g-3">
+
+        @* ── LEFT ── *@
+        <div class="col-lg-8">
+
+            @* Cheque details *@
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-info-circle me-2 text-primary"></i>Cheque Details</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6">
+                            <div class="text-muted small fw-semibold text-uppercase mb-1">Client</div>
+                            <div class="fw-bold">@clientName</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="text-muted small fw-semibold text-uppercase mb-1">Status</div>
+                            <span class="badge px-3 py-2"
+                                  style="background:@statusBg; color:@statusColor; border:1px solid @statusColor; font-size:.8rem;">
+                                @status
+                            </span>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="text-muted small fw-semibold text-uppercase mb-1">Cheque Number</div>
+                            <div class="fw-bold font-monospace">@chequeNumber</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="text-muted small fw-semibold text-uppercase mb-1">Drawer Bank</div>
+                            <div class="fw-semibold">@drawerBank</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="text-muted small fw-semibold text-uppercase mb-1">Drawer Account No.</div>
+                            <div class="fw-semibold font-monospace">@drawerAcct</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="text-muted small fw-semibold text-uppercase mb-1">Maturity / Expiry Date</div>
+                            <div class="fw-bold @(expiryDate < DateTime.Today.AddDays(7) ? "text-danger" : "")">
+                                @expiryDate.ToString("dd MMM yyyy")
+                                @if (expiryDate > DateTime.MinValue)
+                                {
+                                    int daysLeft = (int)(expiryDate - DateTime.Today).TotalDays;
+                                    <small class="text-muted fw-normal">(@daysLeft days)</small>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    @* Financial breakdown strip *@
+                    <div class="row g-2">
+                        <div class="col-4">
+                            <div class="text-center p-3 rounded-3 border">
+                                <div class="text-muted small mb-1">Face Value</div>
+                                <div class="fw-bold" style="color:var(--navy);">KES @faceValue.ToString("N2")</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-center p-3 rounded-3 border">
+                                <div class="text-muted small mb-1">Discount (@discountRate.ToString("N1")%)</div>
+                                <div class="fw-bold text-danger">- KES @discountAmt.ToString("N2")</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-center p-3 rounded-3" style="background:#f0fdf4; border:1px solid #bbf7d0;">
+                                <div class="text-muted small mb-1">Net Advance</div>
+                                <div class="fw-bold text-success">KES @netAdvance.ToString("N2")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Cheque photo *@
+            @if (!string.IsNullOrEmpty(photoPath))
+            {
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="mb-0 fw-bold"><i class="bi bi-image me-2 text-primary"></i>Cheque Image / Scan</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        @if (photoPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <a href="@photoPath" target="_blank" class="btn btn-outline-danger">
+                                <i class="bi bi-file-earmark-pdf me-2"></i>View Cheque PDF
+                            </a>
+                        }
+                        else
+                        {
+                            <img src="@photoPath" class="img-fluid rounded-3 shadow-sm"
+                                 style="max-height:280px;" alt="Cheque scan" />
+                        }
+                    </div>
+                </div>
+            }
+
+            @* Disbursement info *@
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-send me-2 text-primary"></i>Disbursement Details</h6>
+                </div>
+                <div class="card-body">
+                    <div class="kv-row">
+                        <span class="kv-key">Payment Method</span>
+                        <span class="kv-val">
+                            @if (payMethod == "MPESA")
+                            {
+                                <span class="badge px-2 py-1" style="background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0;">
+                                    <i class="bi bi-phone me-1"></i>M-Pesa
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge px-2 py-1" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;">
+                                    <i class="bi bi-bank me-1"></i>Bank Transfer
+                                </span>
+                            }
+                        </span>
+                    </div>
+                    @if (!string.IsNullOrEmpty(disburseBank))
+                    {
+                        <div class="kv-row">
+                            <span class="kv-key">Bank</span>
+                            <span class="kv-val">@disburseBank</span>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(disburseAcct))
+                    {
+                        <div class="kv-row">
+                            <span class="kv-key">Account / Phone</span>
+                            <span class="kv-val font-monospace">@disburseAcct</span>
+                        </div>
+                    }
+                    <div class="kv-row">
+                        <span class="kv-key">Net Payout Amount</span>
+                        <span class="kv-val text-success fw-bold">KES @netAdvance.ToString("N2")</span>
+                    </div>
+                </div>
+            </div>
+
+            @* Approval history *@
+            @if (workflow != null && workflow.History.Any())
+            {
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-primary"></i>Approval History</h6>
+                    </div>
+                    <div class="card-body">
+                        @foreach (var h in workflow.History)
+                        {
+                            string dotBg    = h.ActionType == "APPROVED" ? "#dcfce7" : h.ActionType == "REJECTED" ? "#fee2e2" : "#fef9c3";
+                            string dotColor = h.ActionType == "APPROVED" ? "#16a34a" : h.ActionType == "REJECTED" ? "#dc2626" : "#d97706";
+                            string dotIcon  = h.ActionType == "APPROVED" ? "bi-check-lg"
+                                            : h.ActionType == "REJECTED" ? "bi-x-lg"
+                                            : "bi-arrow-return-left";
+                            <div class="d-flex gap-3 mb-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                     style="width:36px;height:36px;background:@dotBg;border:2px solid @dotColor;">
+                                    <i class="bi @dotIcon" style="color:@dotColor; font-size:.8rem;"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-semibold small">
+                                        @h.ActionLabel
+                                        <span class="badge ms-1 px-2 py-1"
+                                              style="background:@dotBg;color:@dotColor;border:1px solid @dotColor;font-size:.65rem;border-radius:12px;">
+                                            @h.StageName
+                                        </span>
+                                    </div>
+                                    <div class="text-muted small">
+                                        by <strong>@h.ActionByName</strong> &mdash; @h.ActionAt.ToString("dd MMM yyyy, hh:mm tt")
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(h.Comment))
+                                    {
+                                        <div class="mt-1 small fst-italic text-muted">&ldquo;@h.Comment&rdquo;</div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+        </div>
+
+        @* ── RIGHT ── *@
+        <div class="col-lg-4">
+
+            @* Payout hero *@
+            <div class="card border-0 shadow-sm mb-3" style="background:var(--navy);">
+                <div class="card-body py-4 text-white">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="small text-uppercase fw-bold opacity-75">Net Advance to Client</div>
+                        <i class="bi bi-cash-coin fs-3 opacity-40"></i>
+                    </div>
+                    <div class="fw-800 mb-1" style="font-size:1.75rem;">KES @netAdvance.ToString("N2")</div>
+                    <div class="small opacity-75">
+                        Face Value: KES @faceValue.ToString("N2") &nbsp;&bull;&nbsp; Discount: @discountRate.ToString("N1")%
+                    </div>
+                </div>
+            </div>
+
+            @* Workflow progress *@
+            @if (workflow != null)
+            {
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="mb-0 fw-bold"><i class="bi bi-diagram-3 me-2"></i>Workflow Progress</h6>
+                    </div>
+                    <ul class="list-group list-group-flush mb-0">
+                        @foreach (var stage in allStages.OrderBy(s => s.SequenceOrder))
+                        {
+                            bool isCurrent = stage.Id == workflow.CurrentStageId;
+                            bool isPast    = stage.SequenceOrder < workflow.CurrentSequenceOrder
+                                             || (!workflow.IsActive && !workflow.IsRejected);
+                            string stepClass = isPast    ? "is-past"
+                                             : isCurrent ? "is-current"
+                                             : "is-future";
+                            string stepIcon  = isPast    ? "bi-check-circle-fill text-success"
+                                             : isCurrent ? "bi-arrow-right-circle-fill"
+                                             : "bi-circle text-muted";
+                            <li class="list-group-item d-flex align-items-center gap-2 py-2 stage-step @stepClass">
+                                <i class="bi @stepIcon @(isCurrent ? "text-navy" : "")"></i>
+                                <span class="small">@stage.SequenceOrder. @stage.StageName</span>
+                                @if (isCurrent && workflow.IsActive)
+                                {
+                                    <span class="badge ms-auto px-2 py-1 text-white"
+                                          style="background:var(--navy);font-size:.6rem;border-radius:10px;">NOW</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                    @if (workflow.IsComplete)
+                    {
+                        <div class="card-footer bg-success-subtle text-success text-center fw-semibold py-2 small">
+                            <i class="bi bi-check-circle-fill me-1"></i>Approved &amp; Disbursement Authorized
+                        </div>
+                    }
+                    else if (workflow.IsRejected)
+                    {
+                        <div class="card-footer bg-danger-subtle text-danger text-center fw-semibold py-2 small">
+                            <i class="bi bi-x-circle-fill me-1"></i>Application Rejected
+                        </div>
+                    }
+                </div>
+            }
+
+            @* Current approvers *@
+            @if (workflow != null && workflow.IsActive && workflow.CurrentStageApprovers.Any())
+            {
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body py-3">
+                        <div class="small fw-bold text-uppercase text-muted mb-2">Awaiting Action From</div>
+                        @foreach (var approver in workflow.CurrentStageApprovers)
+                        {
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-person-circle text-navy fs-5"></i>
+                                <span class="small fw-bold">@approver.FullName</span>
+                                <span class="badge bg-light text-muted border ms-auto" style="font-size:.65rem;">@approver.Role</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            @* Action panel *@
+            @if (canAct)
+            {
+                <div class="card border-0 shadow-sm" style="border-top:4px solid var(--navy) !important;">
+                    <div class="card-header bg-white py-3">
+                        <div class="fw-bold">Your Decision</div>
+                        <div class="small text-muted">Stage: <strong>@workflow!.CurrentStageName</strong></div>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="Act" method="post" id="actionForm">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="InstanceId" value="@workflow!.Id" />
+                            <input type="hidden" name="ChequeId"   value="@chequeId" />
+                            <input type="hidden" name="BondId"     value="0" />
+                            <input type="hidden" name="ActionType" id="ActionType" value="" />
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold">
+                                    Remarks <span class="text-muted fw-normal">(required for return / reject)</span>
+                                </label>
+                                <textarea name="Comment" id="Comment" class="form-control" rows="3"
+                                          placeholder="Add notes or reason..."></textarea>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-success fw-bold py-2"
+                                        onclick="submitAction('APPROVED')">
+                                    <i class="bi bi-check-circle-fill me-2"></i>
+                                    @(workflow.IsFinalStage ? "Final Approve &amp; Authorize Payout" : "Approve &amp; Advance")
+                                </button>
+
+                                @if (workflow.CanReturn)
+                                {
+                                    <button type="button" class="btn btn-warning fw-bold py-2"
+                                            onclick="submitAction('RETURNED')">
+                                        <i class="bi bi-arrow-return-left me-2"></i>Return for Revision
+                                    </button>
+                                }
+
+                                <button type="button" class="btn btn-outline-danger py-2"
+                                        onclick="submitAction('REJECTED')">
+                                    <i class="bi bi-x-circle me-2"></i>Reject Application
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            }
+            else if (workflow == null)
+            {
+                <div class="alert alert-secondary border-0 shadow-sm">
+                    <i class="bi bi-info-circle me-2"></i>No workflow configured for this module.
+                </div>
+            }
+            else if (!isApprover && workflow.IsActive)
+            {
+                <div class="alert alert-light border shadow-sm">
+                    <i class="bi bi-lock me-2 text-muted"></i>
+                    <span class="text-muted small">Awaiting action from the assigned approver for this stage.</span>
+                </div>
+            }
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function submitAction(actionType) {
+    const comment = document.getElementById('Comment').value.trim();
+    if ((actionType === 'REJECTED' || actionType === 'RETURNED') && comment.length < 3) {
+        alert('Please provide a reason before ' +
+              (actionType === 'REJECTED' ? 'rejecting' : 'returning') + ' this application.');
+        return;
+    }
+    document.getElementById('ActionType').value = actionType;
+    document.getElementById('actionForm').submit();
+}
+</script>
+}

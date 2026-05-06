@@ -1,18 +1,18 @@
-﻿@model List<OnwardsSwift.Core.DTOs.WorkflowStageViewModel>
+@model List<OnwardsSwift.Core.DTOs.WorkflowStageViewModel>
 @{
     ViewData["Title"] = "Workflow Configuration";
     string activeModule = ViewBag.ActiveModule ?? "BOND";
 }
 
 <div class="container-fluid py-4">
-    <div class="row mb-4 animate__animated animate__fadeIn">
+    <div class="row mb-4">
         <div class="col-12 d-flex justify-content-between align-items-center">
             <div>
                 <h1 class="h3 fw-bold text-navy mb-1">Approval Workflow Designer</h1>
-                <p class="text-muted small">Drag and drop personnel to build your approval hierarchy for <strong>@activeModule</strong>.</p>
+                <p class="text-muted small mb-0">Configure approval stages, assignees and required documents for <strong>@activeModule</strong>.</p>
             </div>
             <button class="btn btn-navy px-4 shadow-sm" onclick="showAddModal()">
-                <i class="bi bi-plus-lg me-2"></i>Add New Stage
+                <i class="bi bi-plus-lg me-2"></i>Add Stage
             </button>
         </div>
     </div>
@@ -24,145 +24,263 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
 
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body p-0">
             <ul class="nav nav-tabs nav-fill bg-light border-bottom-0">
                 <li class="nav-item">
-                    <a class="nav-link py-3 @(activeModule == "BOND" ? "active fw-bold border-top-navy text-navy" : "text-muted")" asp-action="Configure" asp-route-module="BOND">
+                    <a class="nav-link py-3 @(activeModule == "BOND" ? "active fw-bold border-top-navy text-navy" : "text-muted")"
+                       asp-action="Configure" asp-route-module="BOND">
                         <i class="bi bi-file-earmark-check me-2"></i>Bonds & Guarantees
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link py-3 @(activeModule == "CHEQUE" ? "active fw-bold border-top-navy text-navy" : "text-muted")" asp-action="Configure" asp-route-module="CHEQUE">
+                    <a class="nav-link py-3 @(activeModule == "CHEQUE" ? "active fw-bold border-top-navy text-navy" : "text-muted")"
+                       asp-action="Configure" asp-route-module="CHEQUE">
                         <i class="bi bi-bank me-2"></i>Cheque Discounting
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link py-3 @(activeModule == "CASH" ? "active fw-bold border-top-navy text-navy" : "text-muted")" asp-action="Configure" asp-route-module="CASH">
-                        <i class="bi bi-safe me-2"></i>Cash Covers
                     </a>
                 </li>
             </ul>
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light text-uppercase extra-small fw-bold">
-                    <tr>
-                        <th class="ps-4" style="width: 100px;">Sequence</th>
-                        <th>Stage Name</th>
-                        <th>Authorized Approvers</th>
-                        <th class="text-center">Final Step</th>
-                        <th class="text-end pe-4">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var stage in Model.OrderBy(x => x.SequenceOrder))
-                    {
-                        <tr>
-                            <td class="ps-4">
-                                <div class="bg-navy text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px;">
-                                    @stage.SequenceOrder
-                                </div>
-                            </td>
-                            <td>
-                                <span class="fw-bold text-dark d-block">@stage.StageName</span>
-                            </td>
-                            <td>
-                                @foreach (var user in stage.Approvers)
-                                {
-                                    <span class="badge bg-navy- Pilgrim text-navy border border-navy-subtle rounded-pill me-1 px-2 py-1">
-                                        @user.FullName <small class="opacity-75">(@user.Role)</small>
-                                    </span>
-                                }
-                            </td>
-                            <td class="text-center">
-                                @if (stage.IsFinalStage)
-                                {
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">FINAL</span>
-                                }
-                            </td>
-                            <td class="text-end pe-4">
-                                <button class="btn btn-sm btn-outline-primary me-2" onclick='editStage(@Json.Serialize(new { id = stage.Id, stageName = stage.StageName, sequenceOrder = stage.SequenceOrder, isFinalStage = stage.IsFinalStage, userIds = stage.Approvers.Select(a => a.Id).ToList() }))'>
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info border-0 shadow-sm">
+            <i class="bi bi-info-circle me-2"></i>
+            No stages configured for <strong>@activeModule</strong> yet. Click <strong>Add Stage</strong> to get started.
         </div>
-    </div>
+    }
+
+    @foreach (var stage in Model.OrderBy(x => x.SequenceOrder))
+    {
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-navy text-white rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                         style="width:36px;height:36px;">@stage.SequenceOrder</div>
+                    <div>
+                        <span class="fw-bold fs-6">@stage.StageName</span>
+                        @if (stage.IsFinalStage)
+                        {
+                            <span class="badge bg-success-subtle text-success border border-success-subtle ms-2 px-2">FINAL</span>
+                        }
+                        @if (stage.CanReturn)
+                        {
+                            string returnLabel = stage.ReturnToStepOrder.HasValue
+                                ? $"returns to step {stage.ReturnToStepOrder}"
+                                : "returns to applicant";
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-1 px-2">Can Return (@returnLabel)</span>
+                        }
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-primary"
+                            onclick='editStage(@Json.Serialize(new {
+                                id = stage.Id,
+                                stageName = stage.StageName,
+                                sequenceOrder = stage.SequenceOrder,
+                                isFinalStage = stage.IsFinalStage,
+                                canReturn = stage.CanReturn,
+                                returnToStepOrder = stage.ReturnToStepOrder,
+                                userIds = stage.Approvers.Select(a => a.Id).ToList()
+                            }))'>
+                        <i class="bi bi-pencil me-1"></i>Edit
+                    </button>
+                    <form asp-action="DeleteStage" method="post" class="d-inline"
+                          onsubmit="return confirm('Remove this stage?')">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@stage.Id" />
+                        <input type="hidden" name="module" value="@activeModule" />
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="card-body row g-4">
+
+                <div class="col-md-6">
+                    <p class="small fw-bold text-uppercase text-muted mb-2">Assigned Approvers</p>
+                    @if (!stage.Approvers.Any())
+                    {
+                        <span class="text-muted small fst-italic">No approvers assigned.</span>
+                    }
+                    else
+                    {
+                        foreach (var u in stage.Approvers)
+                        {
+                            <span class="badge bg-light text-dark border me-1 mb-1 px-2 py-1">
+                                <i class="bi bi-person me-1"></i>@u.FullName
+                                <small class="opacity-75">(@u.Role)</small>
+                            </span>
+                        }
+                    }
+                </div>
+
+                <div class="col-md-6">
+                    <p class="small fw-bold text-uppercase text-muted mb-2">
+                        Required Documents
+                        <button type="button" class="btn btn-sm btn-outline-navy ms-2 py-0 px-2"
+                                onclick="showDocModal(@stage.Id, '@activeModule')">
+                            <i class="bi bi-plus-sm"></i> Add
+                        </button>
+                    </p>
+                    @if (!stage.RequiredDocuments.Any())
+                    {
+                        <span class="text-muted small fst-italic">No documents specified.</span>
+                    }
+                    else
+                    {
+                        foreach (var doc in stage.RequiredDocuments)
+                        {
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-file-earmark-text text-navy"></i>
+                                <span class="small">@doc.DocumentName</span>
+                                @if (doc.IsRequired)
+                                {
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-1" style="font-size:.65rem;">Required</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary-subtle text-secondary px-1" style="font-size:.65rem;">Optional</span>
+                                }
+                                <form asp-action="RemoveDocument" method="post" class="d-inline ms-auto">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="docId" value="@doc.Id" />
+                                    <input type="hidden" name="module" value="@activeModule" />
+                                    <button type="submit" class="btn btn-sm text-danger p-0 border-0 bg-transparent"
+                                            onclick="return confirm('Remove this document requirement?')">
+                                        <i class="bi bi-x-circle"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        }
+                    }
+                </div>
+
+            </div>
+        </div>
+    }
 </div>
 
+@* ── Stage add / edit modal ─────────────────────────────────── *@
 <div class="modal fade" id="stageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
             <form asp-action="SaveStage" method="post" id="stageForm">
                 @Html.AntiForgeryToken()
-                <input type="hidden" name="Id" id="StageId" value="0" />
+                <input type="hidden" name="Id"         id="StageId"    value="0" />
                 <input type="hidden" name="ModuleType" value="@activeModule" />
 
                 <div class="modal-header bg-navy text-white">
-                    <h5 class="modal-title" id="modalTitle">Workflow Stage Builder</h5>
+                    <h5 class="modal-title" id="modalTitle">Workflow Stage</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <div class="row mb-4">
-                        <div class="col-md-7">
+                    <div class="row mb-3 g-3">
+                        <div class="col-md-6">
                             <label class="form-label fw-bold small text-uppercase">Stage Name</label>
-                            <input type="text" name="StageName" id="StageName" class="form-control" placeholder="e.g. Risk Assessment" required />
+                            <input type="text" name="StageName" id="StageName" class="form-control"
+                                   placeholder="e.g. Credit Assessment" required />
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold small text-uppercase">Sequence</label>
-                            <input type="number" name="SequenceOrder" id="SequenceOrder" class="form-control" required />
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold small text-uppercase">Order</label>
+                            <input type="number" name="SequenceOrder" id="SequenceOrder" class="form-control" min="1" required />
                         </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <div class="form-check form-switch mb-2">
+                        <div class="col-md-2 d-flex align-items-end pb-2">
+                            <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" name="IsFinalStage" id="IsFinalStage" value="true">
                                 <label class="form-check-label small fw-bold" for="IsFinalStage">Final?</label>
                             </div>
                         </div>
+                        <div class="col-md-2 d-flex align-items-end pb-2">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="CanReturn" id="CanReturn" value="true"
+                                       onchange="toggleReturnStep()">
+                                <label class="form-check-label small fw-bold" for="CanReturn">Can Return?</label>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="row">
+                    <div class="row mb-3" id="returnStepRow" style="display:none;">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-uppercase">Return to Step #</label>
+                            <input type="number" name="ReturnToStepOrder" id="ReturnToStepOrder"
+                                   class="form-control" min="0"
+                                   placeholder="0 = back to applicant" />
+                            <div class="form-text">Leave 0 or blank to return to applicant.</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small text-uppercase text-muted">Available Staff</label>
-                            <div class="card shadow-none border bg-light">
-                                <div class="list-group list-group-flush sortable-list" id="availableList" style="height: 300px; overflow-y: auto;">
-                                    @if (ViewBag.UserList != null)
-                                    {
-                                        foreach (var user in ViewBag.UserList)
-                                        {
-                                            <div class="list-group-item d-flex align-items-center grab" data-id="@user.Id">
-                                                <i class="bi bi-grip-vertical me-2 text-muted"></i>
-                                                <div>
-                                                    <div class="fw-bold small">@user.FullName</div>
-                                                    <div class="extra-small text-muted">@user.Role</div>
-                                                </div>
-                                            </div>
-                                        }
-                                    }
+                            <label class="form-label fw-bold small text-uppercase text-muted">
+                                Available Staff <small class="fw-normal text-muted">(click &#10140; to assign)</small>
+                            </label>
+                            <div class="card border bg-light" style="height:300px;overflow-y:auto;">
+                                <div class="list-group list-group-flush" id="availableList">
+                                    <div class="text-muted small p-3 fst-italic">Loading…</div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold small text-uppercase text-navy">Assigned Approvers</label>
-                            <div class="card shadow-none border border-navy bg-white">
-                                <div class="list-group list-group-flush sortable-list" id="selectedList" style="height: 300px; overflow-y: auto;">
+                            <label class="form-label fw-bold small text-uppercase text-navy">
+                                Assigned Approvers <small class="fw-normal text-muted">(click &#10005; to remove)</small>
+                            </label>
+                            <div class="card border border-navy bg-white" style="height:300px;overflow-y:auto;">
+                                <div class="list-group list-group-flush" id="selectedList">
                                 </div>
-                                <select name="UserIds" id="HiddenUserIds" multiple hidden required></select>
                             </div>
-                            <small class="text-muted mt-2 d-block small italic">Drag users here to assign them.</small>
+                            <select name="UserIds" id="HiddenUserIds" multiple hidden></select>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-navy px-4">Update Workflow</button>
+                    <button type="submit" class="btn btn-navy px-4">Save Stage</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* ── Add document modal ────────────────────────────────────── *@
+<div class="modal fade" id="docModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <form asp-action="AddDocument" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="stageId" id="docStageId" value="0" />
+                <input type="hidden" name="module"  id="docModule"  value="" />
+                <div class="modal-header bg-navy text-white">
+                    <h5 class="modal-title">Add Required Document</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-uppercase">Document Name</label>
+                        <input type="text" name="documentName" class="form-control"
+                               placeholder="e.g. Signed Indemnity Form" required />
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="isRequired"
+                               id="docIsRequired" value="true" checked>
+                        <label class="form-check-label fw-bold small" for="docIsRequired">
+                            Mandatory before approver can act
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-navy px-4">Add Document</button>
                 </div>
             </form>
         </div>
@@ -170,120 +288,147 @@
 </div>
 
 <style>
-    :root {
-        --navy: #002D72;
-    }
-
-    .bg-navy {
-        background-color: var(--navy) !important;
-    }
-
-    .text-navy {
-        color: var(--navy) !important;
-    }
-
-    .btn-navy {
-        background-color: var(--navy);
-        color: white;
-    }
-
-        .btn-navy:hover {
-            background-color: #001a44;
-            color: white;
-        }
-
-    .border-navy {
-        border-color: var(--navy) !important;
-    }
-
-    .grab {
-        cursor: grab;
-        transition: background 0.2s;
-    }
-
-        .grab:active {
-            cursor: grabbing;
-        }
-
-    .sortable-ghost {
-        opacity: 0.4;
-        background: #eef2f7;
-        border: 2px dashed var(--navy);
-    }
-
-    .extra-small {
-        font-size: 0.7rem;
-    }
-
-    .border-top-navy {
-        border-top: 4px solid var(--navy) !important;
-    }
-
-    .bg-navy-subtle {
-        background-color: #eef2f7 !important;
-    }
+    :root { --navy: #002D72; }
+    .bg-navy         { background-color: var(--navy) !important; }
+    .text-navy       { color: var(--navy) !important; }
+    .btn-navy        { background-color: var(--navy); color: #fff; }
+    .btn-navy:hover  { background-color: #001a44; color: #fff; }
+    .border-navy     { border-color: var(--navy) !important; }
+    .btn-outline-navy { border-color: var(--navy); color: var(--navy); }
+    .btn-outline-navy:hover { background-color: var(--navy); color: #fff; }
+    .border-top-navy { border-top: 4px solid var(--navy) !important; }
+    .grab            { cursor: grab !important; }
+    .grab:active     { cursor: grabbing !important; }
+    .sortable-ghost  { opacity: .4; background: #eef2f7; border: 2px dashed var(--navy); }
 </style>
 
 @section Scripts {
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const availEl = document.getElementById('availableList');
-            const selectEl = document.getElementById('selectedList');
+<script>
+// User list from server — shape: [{id, fullName, role}]
+var ALL_USERS = @Json.Serialize(
+    ((List<OnwardsSwift.Core.DTOs.SystemUserDto>)(ViewBag.UserList ?? new List<OnwardsSwift.Core.DTOs.SystemUserDto>()))
+        .Select(u => new { id = u.Id, fullName = u.FullName, role = u.Role ?? "" })
+        .ToList()
+);
 
-            // Initialize Sortable for both lists
-            new Sortable(availEl, {
-                group: 'approvers',
-                animation: 150,
-                sort: false // Don't allow reordering in the source list
-            });
+var _pendingSelectedIds = [];
 
-            new Sortable(selectEl, {
-                group: 'approvers',
-                animation: 150,
-                onSort: function () { updateHiddenInputs(); }
-            });
+// ── Build one user row (click the arrow to move) ──────────────────
+function buildCard(u, inSelected) {
+    var div = document.createElement('div');
+    div.className = 'list-group-item d-flex justify-content-between align-items-center py-2';
+    div.setAttribute('data-id', u.id);
+    var arrow = inSelected
+        ? '<button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 ms-2 remove-btn" title="Remove">&#10005;</button>'
+        : '<button type="button" class="btn btn-sm btn-outline-success py-0 px-2 ms-2 add-btn"    title="Add">&#10140;</button>';
+    div.innerHTML =
+        '<div>' +
+          '<div class="fw-bold small">' + u.fullName + '</div>' +
+          '<div class="text-muted" style="font-size:.7rem;">' + u.role + '</div>' +
+        '</div>' + arrow;
+    return div;
+}
 
-            function updateHiddenInputs() {
-                const select = document.getElementById('HiddenUserIds');
-                select.innerHTML = '';
-                [...selectEl.children].forEach(item => {
-                    const opt = document.createElement('option');
-                    opt.value = item.getAttribute('data-id');
-                    opt.selected = true;
-                    select.appendChild(opt);
-                });
-            }
+// ── Rebuild both panels ───────────────────────────────────────────
+function resetLists(selectedIds) {
+    var availEl  = document.getElementById('availableList');
+    var selectEl = document.getElementById('selectedList');
+    availEl.innerHTML  = '';
+    selectEl.innerHTML = '';
+    var sel = (selectedIds || []).map(String);
+    ALL_USERS.forEach(function (u) {
+        var inSel = sel.indexOf(String(u.id)) !== -1;
+        (inSel ? selectEl : availEl).appendChild(buildCard(u, inSel));
+    });
+    syncHidden();
+}
 
-            window.showAddModal = function() {
-                document.getElementById('StageId').value = 0;
-                document.getElementById('StageName').value = '';
-                document.getElementById('IsFinalStage').checked = false;
-                selectEl.innerHTML = '';
-                updateHiddenInputs();
-                document.getElementById('modalTitle').innerText = "Add New Stage";
-                $('#stageModal').modal('show');
-            }
+// ── Click delegation — add / remove buttons ────────────────────────
+document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.add-btn, .remove-btn');
+    if (!btn) return;
+    var row      = btn.closest('[data-id]');
+    var userId   = row.getAttribute('data-id');
+    var availEl  = document.getElementById('availableList');
+    var selectEl = document.getElementById('selectedList');
+    if (!availEl || !selectEl) return;
 
-            window.editStage = function(data) {
-                document.getElementById('StageId').value = data.id;
-                document.getElementById('StageName').value = data.stageName;
-                document.getElementById('SequenceOrder').value = data.sequenceOrder;
-                document.getElementById('IsFinalStage').checked = data.isFinalStage;
+    if (btn.classList.contains('add-btn')) {
+        var user = ALL_USERS.find(function(u){ return String(u.id) === String(userId); });
+        if (user) {
+            row.remove();
+            selectEl.appendChild(buildCard(user, true));
+        }
+    } else {
+        var user = ALL_USERS.find(function(u){ return String(u.id) === String(userId); });
+        if (user) {
+            row.remove();
+            availEl.appendChild(buildCard(user, false));
+        }
+    }
+    syncHidden();
+});
 
-                // Reset lists
-                selectEl.innerHTML = '';
-                data.userIds.forEach(id => {
-                    const userNode = availEl.querySelector(`[data-id="${id}"]`);
-                    if (userNode) {
-                        const clone = userNode.cloneNode(true);
-                        selectEl.appendChild(clone);
-                    }
-                });
+// ── Sync hidden <select> ──────────────────────────────────────────
+function syncHidden() {
+    var selectEl  = document.getElementById('selectedList');
+    var hiddenSel = document.getElementById('HiddenUserIds');
+    if (!selectEl || !hiddenSel) return;
+    hiddenSel.innerHTML = '';
+    Array.from(selectEl.querySelectorAll('[data-id]')).forEach(function (item) {
+        var opt = document.createElement('option');
+        opt.value    = item.getAttribute('data-id');
+        opt.selected = true;
+        hiddenSel.appendChild(opt);
+    });
+}
 
-                updateHiddenInputs();
-                document.getElementById('modalTitle').innerText = "Edit Stage";
-                $('#stageModal').modal('show');
-            }
-        });
-    </script>
+// ── Open Add modal ────────────────────────────────────────────────
+window.showAddModal = function () {
+    document.getElementById('StageId').value           = 0;
+    document.getElementById('StageName').value         = '';
+    document.getElementById('SequenceOrder').value     = '';
+    document.getElementById('IsFinalStage').checked    = false;
+    document.getElementById('CanReturn').checked       = false;
+    document.getElementById('ReturnToStepOrder').value = '';
+    _pendingSelectedIds = [];
+    toggleReturnStep();
+    document.getElementById('modalTitle').innerText = 'Add New Stage';
+    var modal = new bootstrap.Modal(document.getElementById('stageModal'));
+    modal.show();
+};
+
+// ── Open Edit modal ───────────────────────────────────────────────
+window.editStage = function (data) {
+    document.getElementById('StageId').value           = data.id;
+    document.getElementById('StageName').value         = data.stageName;
+    document.getElementById('SequenceOrder').value     = data.sequenceOrder;
+    document.getElementById('IsFinalStage').checked    = data.isFinalStage;
+    document.getElementById('CanReturn').checked       = data.canReturn;
+    document.getElementById('ReturnToStepOrder').value = data.returnToStepOrder || '';
+    _pendingSelectedIds = (data.userIds || []).map(String);
+    toggleReturnStep();
+    document.getElementById('modalTitle').innerText = 'Edit Stage';
+    var modal = new bootstrap.Modal(document.getElementById('stageModal'));
+    modal.show();
+};
+
+// ── Populate lists once modal is fully visible ────────────────────
+document.getElementById('stageModal').addEventListener('shown.bs.modal', function () {
+    resetLists(_pendingSelectedIds);
+});
+
+// ── Open Add-document modal ───────────────────────────────────────
+window.showDocModal = function (stageId, module) {
+    document.getElementById('docStageId').value = stageId;
+    document.getElementById('docModule').value  = module;
+    new bootstrap.Modal(document.getElementById('docModal')).show();
+};
+
+// ── Toggle return-step field ──────────────────────────────────────
+window.toggleReturnStep = function () {
+    var row = document.getElementById('returnStepRow');
+    row.style.display = document.getElementById('CanReturn').checked ? 'block' : 'none';
+};
+</script>
 }

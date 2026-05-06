@@ -4,6 +4,7 @@ using OnwardsSwift.Core.DTOs;
 using OnwardsSwift.Core.Enums;
 using OnwardsSwift.Core.Interfaces;
 using OnwardsSwift.Infrastructure.Data;
+using OnwardsSwift.Infrastructure.Services;
 using Dapper;
 
 namespace OnwardsSwift.API.Controllers
@@ -12,14 +13,16 @@ namespace OnwardsSwift.API.Controllers
     {
         private readonly IChequeDiscountService _chq;
         private readonly IClientService         _clients;
-        private readonly DapperContext _ctx;
+        private readonly DapperContext          _ctx;
+        private readonly WorkflowService        _workflow;
 
-
-        public ChequesController(IChequeDiscountService chq, IClientService clients, DapperContext ctx)
-        { 
-            _chq = chq;  
-            _clients = clients;
-            _ctx = ctx;
+        public ChequesController(IChequeDiscountService chq, IClientService clients,
+                                  DapperContext ctx, WorkflowService workflow)
+        {
+            _chq      = chq;
+            _clients  = clients;
+            _ctx      = ctx;
+            _workflow = workflow;
         }
 
         public async Task<IActionResult> Index()
@@ -81,6 +84,7 @@ namespace OnwardsSwift.API.Controllers
             conn.Open();
             using var trans = conn.BeginTransaction();
 
+            int newChequeId = 0;
             try
             {
                 // 1. Save file using your established helper pattern
@@ -93,18 +97,18 @@ namespace OnwardsSwift.API.Controllers
                 // 3. Insert Cheque Record
                 const string chequeSql = @"
             INSERT INTO ChequeDiscounting (
-                ClientId, ChequeNumber, DrawerBank, DrawerAccountNo, 
-                ChequeAmount, DiscountRate, ExpiryDate, PhotoPath, 
+                ClientId, ChequeNumber, DrawerBank, DrawerAccountNo,
+                ChequeAmount, DiscountRate, ExpiryDate, PhotoPath,
                 Status, CreatedAt, CreatedBy
             )
             VALUES (
-                @clientId, @chequeNumber, @drawerBank, @drawerAccountNo, 
-                @chequeAmount, @discountRate, @expiryDate, @dbPhotoPath, 
+                @clientId, @chequeNumber, @drawerBank, @drawerAccountNo,
+                @chequeAmount, @discountRate, @expiryDate, @dbPhotoPath,
                 'Awaiting Approval', GETDATE(), @User
             );
             SELECT CAST(SCOPE_IDENTITY() as int);";
 
-                int newChequeId = await conn.ExecuteScalarAsync<int>(chequeSql, new
+                newChequeId = await conn.ExecuteScalarAsync<int>(chequeSql, new
                 {
                     clientId,
                     chequeNumber,
@@ -142,8 +146,6 @@ namespace OnwardsSwift.API.Controllers
                 }, trans);
 
                 trans.Commit();
-                TempData["Success"] = "Application submitted and disbursement queued.";
-                return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
@@ -151,6 +153,13 @@ namespace OnwardsSwift.API.Controllers
                 TempData["Error"] = "Submission Error: " + ex.Message;
                 return RedirectToAction(nameof(Create));
             }
+
+            // Start approval workflow AFTER the transaction is fully committed
+            int sessionUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
+            await _workflow.StartWorkflowAsync(newChequeId, "CHEQUE", sessionUserId);
+
+            TempData["Success"] = "Application submitted and disbursement queued.";
+            return RedirectToAction(nameof(Index));
         }
         [HttpPost]
         [ValidateAntiForgeryToken]

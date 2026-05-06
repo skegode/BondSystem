@@ -1,131 +1,455 @@
 @model OnwardsSwift.Core.DTOs.BidBondResponse
-@{ ViewData["Title"] = Model.ReferenceNo; }
+@{
+    ViewData["Title"] = $"Bond — {Model.TenderNumber}";
 
-<div class="page-header d-flex align-items-center justify-content-between">
-    <div>
-        <h1>@Model.ReferenceNo</h1>
-        <div class="subtitle">@Model.ClientName · @Model.ProcuringEntity</div>
-    </div>
-    <span class="badge-status status-@Model.Status.ToLower() fs-6">@Model.Status</span>
-</div>
+    var statusColor = Model.Status switch {
+        "Approved" => ("success",  "bi-check-circle-fill",  "#dcfce7", "#166534", "#bbf7d0"),
+        "Rejected" => ("danger",   "bi-x-circle-fill",      "#fee2e2", "#991b1b", "#fecaca"),
+        _          => ("warning",  "bi-hourglass-split",    "#fef9c3", "#854d0e", "#fde68a")
+    };
+}
 
-<div class="content-body">
-<div class="row g-3">
-<div class="col-md-4">
-    <div class="card mb-3">
-        <div class="card-header">Bond Summary</div>
-        <div class="card-body">
-            <dl class="row mb-0 small">
-                <dt class="col-5 text-muted">Client</dt>
-                <dd class="col-7">@Model.ClientName</dd>
-                <dt class="col-5 text-muted">Tender No.</dt>
-                <dd class="col-7">@Model.TenderNumber</dd>
-                <dt class="col-5 text-muted">Bond Amount</dt>
-                <dd class="col-7 fw-bold">KSh @Model.Amount.ToString("N2")</dd>
-                <dt class="col-5 text-muted">Commission Fee</dt>
-                <dd class="col-7 text-primary">KSh @Model.CommissionFee.ToString("N2")</dd>
-                <dt class="col-5 text-muted">Rate</dt>
-                <dd class="col-7">@Model.Rate.ToString("F2")% p.a.</dd>
-                <dt class="col-5 text-muted">Tenor</dt>
-                <dd class="col-7">@Model.TenorDays days</dd>
-                <dt class="col-5 text-muted">Issuing Bank</dt>
-                <dd class="col-7">@Model.IssuingBank</dd>
-                <dt class="col-5 text-muted">Closing Date</dt>
-                <dd class="col-7">@Model.TenderClosingDate.ToString("dd MMM yyyy")</dd>
-                <dt class="col-5 text-muted">Submitted</dt>
-                <dd class="col-7">@Model.CreatedAt.ToString("dd MMM yyyy")</dd>
-                @if (Model.IsResold) {
-                    <dt class="col-5 text-muted">Resold To</dt>
-                    <dd class="col-7">@Model.ResalePartner</dd>
-                }
-            </dl>
+<style>
+    :root { --navy: #002D72; }
+    .detail-card  { background:#fff; border:1px solid #e2e8f0; border-radius:14px; }
+    .section-lbl  { font-size:.68rem; text-transform:uppercase; font-weight:700;
+                    letter-spacing:.08em; color:#64748b; margin-bottom:.75rem; }
+    .kv-row       { display:flex; justify-content:space-between; align-items:center;
+                    padding:.5rem 0; border-bottom:1px solid #f1f5f9; font-size:.875rem; }
+    .kv-row:last-child { border-bottom:none; }
+    .kv-key   { color:#64748b; font-weight:500; }
+    .kv-val   { font-weight:600; text-align:right; max-width:60%; }
+    .doc-chip { display:inline-flex; align-items:center; gap:.4rem; padding:.35rem .75rem;
+                background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;
+                font-size:.8rem; font-weight:500; color:#334155; text-decoration:none; }
+    .doc-chip:hover { background:#eff6ff; border-color:#bfdbfe; color:var(--navy); }
+    .doc-chip.missing { background:#f8fafc; color:#94a3b8; cursor:default; border-style:dashed; }
+    .timeline-dot { width:32px; height:32px; border-radius:50%; flex-shrink:0;
+                    display:flex; align-items:center; justify-content:center; font-size:.8rem; }
+    .timeline-line { width:2px; background:#e2e8f0; margin:0 auto; }
+    .amount-hero   { font-size:2rem; font-weight:800; letter-spacing:-.03em; }
+</style>
+
+<div class="container-fluid py-4 px-3 px-lg-5">
+
+    @* ── Alert banners ── *@
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-3">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-3">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @* ── Page header ── *@
+    <div class="d-flex flex-wrap gap-3 align-items-start justify-content-between mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a asp-action="Index" class="btn btn-sm btn-light border px-2 py-1">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h4 class="fw-bold mb-0">@Model.TenderNumber</h4>
+                <span class="badge px-3 py-2 fw-semibold"
+                      style="background:@statusColor.Item3; color:@statusColor.Item4; border:1px solid @statusColor.Item5; border-radius:20px;">
+                    <i class="bi @statusColor.Item2 me-1"></i>@Model.Status
+                </span>
+            </div>
+            <div class="text-muted small">@Model.TenderName</div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            @if (Model.Status == "Pending")
+            {
+                <button class="btn btn-success btn-sm px-3" data-bs-toggle="modal" data-bs-target="#approveModal">
+                    <i class="bi bi-check-lg me-1"></i>Approve
+                </button>
+                <button class="btn btn-danger btn-sm px-3" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                    <i class="bi bi-x-lg me-1"></i>Reject
+                </button>
+            }
+            <a asp-action="Index" class="btn btn-light btn-sm border px-3">
+                <i class="bi bi-list-ul me-1"></i>All Bonds
+            </a>
         </div>
     </div>
 
-    <!-- Actions -->
-    @if (Model.Status == "Pending" || Model.Status == "UnderReview")
-    {
-    <div class="card mb-3">
-        <div class="card-header">Approval Actions</div>
-        <div class="card-body d-grid gap-2">
-            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">
-                <i class="bi bi-check-circle me-1"></i>Approve
-            </button>
-            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
-                <i class="bi bi-x-circle me-1"></i>Reject
-            </button>
-        </div>
-    </div>
-    }
-    @if (Model.Status == "Approved")
-    {
+    <div class="row g-3">
 
-    }
-</div>
+        @* ── LEFT COLUMN ── *@
+        <div class="col-lg-8">
 
-<div class="col-md-8">
-    <div class="card">
-        <div class="card-header">Application Timeline</div>
-        <div class="card-body">
-            <div class="timeline">
-                <div class="d-flex align-items-start gap-3 mb-3">
-                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width:32px;height:32px;flex-shrink:0">
-                        <i class="bi bi-send text-white small"></i>
+            @* Bond details *@
+            <div class="detail-card p-4 mb-3">
+                <div class="section-lbl">Bond Details</div>
+                <div class="row g-0">
+                    <div class="col-md-6 pe-md-4">
+                        <div class="kv-row">
+                            <span class="kv-key">Client</span>
+                            <span class="kv-val">@Model.ClientName</span>
+                        </div>
+                        <div class="kv-row">
+                            <span class="kv-key">Bond Type</span>
+                            <span class="kv-val">@(Model.BondTypeName ?? "—")</span>
+                        </div>
+                        <div class="kv-row">
+                            <span class="kv-key">Procuring Entity</span>
+                            <span class="kv-val">@Model.ProcuringEntity</span>
+                        </div>
+                        <div class="kv-row">
+                            <span class="kv-key">Issuing Bank</span>
+                            <span class="kv-val">@Model.IssuingBank</span>
+                        </div>
+                        <div class="kv-row">
+                            <span class="kv-key">Agent / Broker</span>
+                            <span class="kv-val text-muted">@(Model.AgentName ?? "Direct Application")</span>
+                        </div>
                     </div>
-                    <div>
-                        <div class="fw-600 small">Application Submitted</div>
-                        <div class="text-muted small">@Model.CreatedAt.ToString("dd MMM yyyy HH:mm")</div>
+                    <div class="col-md-6 ps-md-4" style="border-left:1px solid #f1f5f9;">
+                        <div class="kv-row">
+                            <span class="kv-key">Tenor</span>
+                            <span class="kv-val">@Model.TenorDays days</span>
+                        </div>
+                        <div class="kv-row">
+                            <span class="kv-key">Applied Rate</span>
+                            <span class="kv-val">@Model.Rate.ToString("F3")% p.a.</span>
+                        </div>
+                        <div class="kv-row">
+                            <span class="kv-key">Tender Closing</span>
+                            <span class="kv-val">@Model.TenderClosingDate.ToString("dd MMM yyyy")</span>
+                        </div>
+                        <div class="kv-row">
+                            <span class="kv-key">Submitted</span>
+                            <span class="kv-val">@Model.CreatedAt.ToString("dd MMM yyyy")</span>
+                        </div>
+                        <div class="kv-row">
+                            <span class="kv-key">Payment</span>
+                            <span class="kv-val">
+                                @if (Model.IsDeferredPayment)
+                                {
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Deferred</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">Paid</span>
+                                }
+                            </span>
+                        </div>
                     </div>
                 </div>
-                @if (Model.DisbursedAt.HasValue)
+
+                @if (!string.IsNullOrWhiteSpace(Model.Notes))
                 {
-                <div class="d-flex align-items-start gap-3">
-                    <div class="bg-success rounded-circle d-flex align-items-center justify-content-center" style="width:32px;height:32px;flex-shrink:0">
-                        <i class="bi bi-check text-white small"></i>
+                    <div class="mt-3 p-3 rounded-3" style="background:#f8fafc; border:1px solid #e2e8f0;">
+                        <div class="section-lbl mb-1">Internal Notes</div>
+                        <p class="mb-0 small">@Model.Notes</p>
                     </div>
-                    <div>
-                        <div class="fw-600 small">Disbursed</div>
-                        <div class="text-muted small">@Model.DisbursedAt.Value.ToString("dd MMM yyyy HH:mm")</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.StatusNotes))
+                {
+                    <div class="mt-2 p-3 rounded-3" style="background:#fef9c3; border:1px solid #fde68a;">
+                        <div class="section-lbl mb-1" style="color:#854d0e;">Reviewer Remarks</div>
+                        <p class="mb-0 small">@Model.StatusNotes</p>
                     </div>
-                </div>
                 }
             </div>
+
+            @* Supporting documents *@
+            <div class="detail-card p-4 mb-3">
+                <div class="section-lbl">Supporting Documents</div>
+                <div class="d-flex flex-wrap gap-2">
+                    @if (!string.IsNullOrEmpty(Model.TenderDocPath))
+                    {
+                        <a href="@Model.TenderDocPath" target="_blank" class="doc-chip">
+                            <i class="bi bi-file-earmark-pdf text-danger"></i> Tender Document
+                        </a>
+                    }
+                    else { <span class="doc-chip missing"><i class="bi bi-file-earmark-pdf"></i> Tender Doc (not uploaded)</span> }
+
+                    @if (!string.IsNullOrEmpty(Model.CR12Path))
+                    {
+                        <a href="@Model.CR12Path" target="_blank" class="doc-chip">
+                            <i class="bi bi-file-earmark-person text-primary"></i> CR12 / ID Copy
+                        </a>
+                    }
+                    else { <span class="doc-chip missing"><i class="bi bi-file-earmark-person"></i> CR12 (not uploaded)</span> }
+
+                    @if (!string.IsNullOrEmpty(Model.PaymentReceiptPath))
+                    {
+                        <a href="@Model.PaymentReceiptPath" target="_blank" class="doc-chip">
+                            <i class="bi bi-receipt text-success"></i> Payment Receipt
+                        </a>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.CompanyProfilePath))
+                    {
+                        <a href="@Model.CompanyProfilePath" target="_blank" class="doc-chip">
+                            <i class="bi bi-building text-navy"></i> Company Profile
+                        </a>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.IndemnityDocPath))
+                    {
+                        <a href="@Model.IndemnityDocPath" target="_blank" class="doc-chip">
+                            <i class="bi bi-file-earmark-text text-secondary"></i> Indemnity Form
+                        </a>
+                    }
+                </div>
+            </div>
+
+            @* Cash cover (if applicable) *@
+            @if (Model.HasCashCover && Model.CashCoverAmount > 0)
+            {
+                <div class="detail-card p-4 mb-3" style="border-left:4px solid #0ea5e9;">
+                    <div class="section-lbl" style="color:#0369a1;">Cash Cover</div>
+                    <div class="row g-0">
+                        <div class="col-sm-6">
+                            <div class="kv-row">
+                                <span class="kv-key">Amount</span>
+                                <span class="kv-val text-primary">KES @Model.CashCoverAmount?.ToString("N2")</span>
+                            </div>
+                            <div class="kv-row">
+                                <span class="kv-key">Reference</span>
+                                <span class="kv-val">@(Model.CashCoverReceiptRef ?? "—")</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 ps-sm-4" style="border-left:1px solid #f1f5f9;">
+                            <div class="kv-row">
+                                <span class="kv-key">Maturity Date</span>
+                                <span class="kv-val">@(Model.CashCoverMaturityDate?.ToString("dd MMM yyyy") ?? "—")</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(Model.CashCoverReceiptPath))
+                            {
+                                <div class="kv-row">
+                                    <span class="kv-key">Receipt</span>
+                                    <a href="@Model.CashCoverReceiptPath" target="_blank" class="kv-val doc-chip py-0">
+                                        <i class="bi bi-receipt text-primary"></i> View
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @* Timeline *@
+            <div class="detail-card p-4">
+                <div class="section-lbl">Application Timeline</div>
+                <div class="d-flex flex-column gap-0">
+                    @* Submitted *@
+                    <div class="d-flex gap-3 align-items-start">
+                        <div class="d-flex flex-column align-items-center" style="width:32px;">
+                            <div class="timeline-dot" style="background:#eff6ff; color:#3b82f6; border:2px solid #3b82f6;">
+                                <i class="bi bi-send"></i>
+                            </div>
+                            <div class="timeline-line" style="height:32px;"></div>
+                        </div>
+                        <div class="pb-3">
+                            <div class="fw-semibold small">Application Submitted</div>
+                            <div class="text-muted" style="font-size:.75rem;">@Model.CreatedAt.ToString("dd MMM yyyy, HH:mm")</div>
+                        </div>
+                    </div>
+
+                    @* Approved *@
+                    @if (Model.Status == "Approved" && Model.ApprovedAt.HasValue)
+                    {
+                        <div class="d-flex gap-3 align-items-start">
+                            <div class="d-flex flex-column align-items-center" style="width:32px;">
+                                <div class="timeline-dot" style="background:#dcfce7; color:#16a34a; border:2px solid #16a34a;">
+                                    <i class="bi bi-check-lg"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="fw-semibold small text-success">Approved</div>
+                                <div class="text-muted" style="font-size:.75rem;">
+                                    @Model.ApprovedAt.Value.ToString("dd MMM yyyy, HH:mm")
+                                    @if (!string.IsNullOrEmpty(Model.ApprovedBy)) { <span> · @Model.ApprovedBy</span> }
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    @* Rejected *@
+                    @if (Model.Status == "Rejected")
+                    {
+                        <div class="d-flex gap-3 align-items-start">
+                            <div class="d-flex flex-column align-items-center" style="width:32px;">
+                                <div class="timeline-dot" style="background:#fee2e2; color:#dc2626; border:2px solid #dc2626;">
+                                    <i class="bi bi-x-lg"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="fw-semibold small text-danger">Rejected</div>
+                                @if (!string.IsNullOrEmpty(Model.StatusNotes))
+                                {
+                                    <div class="text-muted" style="font-size:.75rem;">@Model.StatusNotes</div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @* Pending *@
+                    @if (Model.Status == "Pending")
+                    {
+                        <div class="d-flex gap-3 align-items-start">
+                            <div class="d-flex flex-column align-items-center" style="width:32px;">
+                                <div class="timeline-dot" style="background:#fef9c3; color:#d97706; border:2px dashed #d97706;">
+                                    <i class="bi bi-hourglass-split"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="fw-semibold small text-warning">Awaiting Review</div>
+                                <div class="text-muted" style="font-size:.75rem;">Pending approver action</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* ── RIGHT COLUMN ── *@
+        <div class="col-lg-4">
+
+            @* Pricing summary *@
+            <div class="detail-card p-4 mb-3" style="border-top:4px solid var(--navy);">
+                <div class="section-lbl">Pricing Summary</div>
+                <div class="text-center py-3">
+                    <div class="text-muted small text-uppercase fw-semibold mb-1" style="letter-spacing:.07em;">Bond Amount</div>
+                    <div class="amount-hero" style="color:var(--navy);">KES @Model.Amount.ToString("N0")</div>
+                </div>
+                <hr class="my-2" />
+                <div class="kv-row">
+                    <span class="kv-key">Application Fee</span>
+                    <span class="kv-val text-success">KES @Model.ApplicationFee.ToString("N2")</span>
+                </div>
+                <div class="kv-row">
+                    <span class="kv-key">Bank Commission</span>
+                    <span class="kv-val">KES @Model.BankCharge.ToString("N2")</span>
+                </div>
+                <div class="kv-row" style="border-top:2px solid #e2e8f0; padding-top:.75rem; margin-top:.25rem;">
+                    <span class="kv-key fw-bold">Total Payable</span>
+                    <span class="kv-val fw-bold" style="color:var(--navy);">KES @Model.PayableCharge.ToString("N2")</span>
+                </div>
+                @if (!string.IsNullOrEmpty(Model.PaymentReference))
+                {
+                    <div class="mt-3 p-2 rounded-3 text-center" style="background:#f0fdf4; border:1px solid #bbf7d0;">
+                        <div class="text-muted small">Payment Reference</div>
+                        <div class="fw-bold small text-success">@Model.PaymentReference</div>
+                    </div>
+                }
+            </div>
+
+            @* Quick actions *@
+            @if (Model.Status == "Pending")
+            {
+                <div class="detail-card p-4 mb-3">
+                    <div class="section-lbl">Actions</div>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal">
+                            <i class="bi bi-check-circle me-2"></i>Approve Bond
+                        </button>
+                        <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                            <i class="bi bi-x-circle me-2"></i>Reject Application
+                        </button>
+                    </div>
+                </div>
+            }
+
+            @* Approval info if done *@
+            @if (Model.Status == "Approved")
+            {
+                <div class="detail-card p-4 mb-3" style="border-left:4px solid #16a34a;">
+                    <div class="section-lbl" style="color:#16a34a;">Approval Record</div>
+                    <div class="kv-row">
+                        <span class="kv-key">Approved By</span>
+                        <span class="kv-val">@(Model.ApprovedBy ?? "—")</span>
+                    </div>
+                    <div class="kv-row">
+                        <span class="kv-key">Approved At</span>
+                        <span class="kv-val">@(Model.ApprovedAt?.ToString("dd MMM yyyy") ?? "—")</span>
+                    </div>
+                </div>
+            }
+
+            @* Cash cover badge *@
+            <div class="detail-card p-4">
+                <div class="section-lbl">Security</div>
+                @if (Model.HasCashCover && Model.CashCoverAmount > 0)
+                {
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                             style="width:40px;height:40px;background:#ecfdf5;flex-shrink:0;">
+                            <i class="bi bi-safe2 text-success fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold small">Cash Cover Active</div>
+                            <div class="text-success fw-bold">KES @Model.CashCoverAmount?.ToString("N2")</div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-muted small fst-italic d-flex align-items-center gap-2">
+                        <i class="bi bi-dash-circle opacity-50"></i> No cash cover attached
+                    </div>
+                }
+            </div>
+
         </div>
     </div>
 </div>
-</div>
+
+@* ── Approve Modal ── *@
+<div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <form asp-action="Approve" asp-route-id="@Model.Id" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header" style="background:var(--navy);">
+                    <h5 class="modal-title text-white"><i class="bi bi-check-circle me-2"></i>Approve Bond</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info border-0 small mb-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Approving will issue the bond and post the financial entries.
+                    </div>
+                    <label class="form-label fw-semibold small">Remarks (optional)</label>
+                    <textarea name="notes" class="form-control" rows="3" placeholder="Add any approval notes..."></textarea>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success px-4"><i class="bi bi-check-lg me-1"></i>Confirm Approval</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
-<!-- Approve Modal -->
-<div class="modal fade" id="approveModal" tabindex="-1">
-    <div class="modal-dialog"><div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title">Approve Facility</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <form asp-action="Approve" asp-route-id="@Model.Id" method="post">
-            @Html.AntiForgeryToken()
-            <div class="modal-body">
-                <div class="mb-3"><label class="form-label">Notes (optional)</label><textarea name="notes" class="form-control" rows="2"></textarea></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-success">Approve</button>
-            </div>
-        </form>
-    </div></div>
-</div>
-
-<!-- Reject Modal -->
-<div class="modal fade" id="rejectModal" tabindex="-1">
-    <div class="modal-dialog"><div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title">Reject Facility</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <form asp-action="Reject" asp-route-id="@Model.Id" method="post">
-            @Html.AntiForgeryToken()
-            <div class="modal-body">
-                <div class="mb-3"><label class="form-label">Rejection Reason <span class="text-danger">*</span></label><textarea name="reason" class="form-control" rows="3" required></textarea></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-danger">Reject</button>
-            </div>
-        </form>
-    </div></div>
+@* ── Reject Modal ── *@
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <form asp-action="Reject" asp-route-id="@Model.Id" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="bi bi-x-circle me-2"></i>Reject Application</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <label class="form-label fw-semibold small">Rejection Reason <span class="text-danger">*</span></label>
+                    <textarea name="reason" class="form-control" rows="3"
+                              placeholder="State the reason for rejection..." required></textarea>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger px-4"><i class="bi bi-x-lg me-1"></i>Confirm Rejection</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>

@@ -1,178 +1,404 @@
+@model OnwardsSwift.Core.DTOs.DashboardViewModel
 @{
-    ViewData["Title"] = "Bond System Dashboard";
+    ViewData["Title"] = "Executive Dashboard";
+
+    // Pre-serialise chart data server-side so JS can consume it directly
+    var subLabels  = string.Join(",", Model.MonthlySubs.Select(x => $"\"{x.MonthLabel}\""));
+    var subCounts  = string.Join(",", Model.MonthlySubs.Select(x => x.Count));
+    var subAmounts = string.Join(",", Model.MonthlySubs.Select(x => x.Amount));
+
+    var revLabels  = string.Join(",", Model.MonthlyRevenue.Select(x => $"\"{x.MonthLabel}\""));
+    var revAmounts = string.Join(",", Model.MonthlyRevenue.Select(x => x.Amount));
+
+    var statusLabels = string.Join(",", Model.StatusBreakdown.Select(x => $"\"{x.Label}\""));
+    var statusCounts = string.Join(",", Model.StatusBreakdown.Select(x => x.Count));
+
+    var clientLabels = string.Join(",", Model.TopClients.Select(x => $"\"{x.ClientName}\""));
+    var clientAmounts = string.Join(",", Model.TopClients.Select(x => x.Exposure));
 }
 
-<div class="page-header d-flex align-items-center justify-content-between">
-    <div>
-        <h1>Bond Portfolio Overview</h1>
-        <div class="subtitle">@DateTime.Now.ToString("dddd, dd MMMM yyyy")</div>
-    </div>
-</div>
+<style>
+    :root {
+        --navy: #002D72;
+        --navy-lt: #0041a8;
+        --card-border: #e2e8f0;
+        --bg: #f4f7fb;
+        --text: #1e293b;
+        --muted: #64748b;
+    }
+    body { background: var(--bg); color: var(--text); }
 
-<div class="content-body">
+    .kpi-card {
+        background: #fff;
+        border: 1px solid var(--card-border);
+        border-radius: 14px;
+        padding: 1.25rem 1.5rem;
+        transition: transform .2s, box-shadow .2s;
+        position: relative;
+        overflow: hidden;
+    }
+    .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.07); }
+    .kpi-card .accent-bar {
+        position: absolute; left: 0; top: 0; bottom: 0;
+        width: 4px; border-radius: 14px 0 0 14px;
+    }
+    .kpi-icon {
+        width: 40px; height: 40px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+    }
+    .kpi-val  { font-size: 1.65rem; font-weight: 800; letter-spacing: -.02em; line-height:1; }
+    .kpi-lbl  { font-size: .7rem; text-transform: uppercase; font-weight: 600;
+                color: var(--muted); letter-spacing: .07em; margin-top: .35rem; }
+
+    .chart-card {
+        background: #fff; border: 1px solid var(--card-border);
+        border-radius: 14px; padding: 1.5rem;
+    }
+    .chart-title {
+        font-size: .7rem; text-transform: uppercase; font-weight: 700;
+        color: var(--muted); letter-spacing: .08em; margin-bottom: 1rem;
+    }
+
+    /* Recent table */
+    .bond-table thead th {
+        font-size: .7rem; text-transform: uppercase; color: var(--muted);
+        letter-spacing: .08em; border: none; padding: .75rem 1rem;
+        background: #f8fafc;
+    }
+    .bond-table tbody td { border: none; padding: .9rem 1rem; vertical-align: middle; }
+    .bond-table tbody tr { border-bottom: 1px solid var(--card-border); }
+    .bond-table tbody tr:last-child { border-bottom: none; }
+
+    .status-pill {
+        padding: .35em .85em; border-radius: 20px; font-size: .72rem;
+        font-weight: 700; border: 1px solid transparent;
+    }
+    .pill-approved { background:#dcfce7; color:#166534; border-color:#bbf7d0; }
+    .pill-pending  { background:#fef9c3; color:#854d0e; border-color:#fde68a; }
+    .pill-rejected { background:#fee2e2; color:#991b1b; border-color:#fecaca; }
+</style>
+
+<div class="container-fluid py-4 px-4 px-lg-5">
+
+    @* ── Header ── *@
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-800 mb-0">Portfolio Intelligence</h4>
+            <p class="text-muted small mb-0">As of @DateTime.Now.ToString("dddd, dd MMMM yyyy")</p>
+        </div>
+        <a asp-controller="BidBonds" asp-action="Create" class="btn btn-sm px-4 py-2 shadow-sm text-white"
+           style="background:var(--navy); border-radius:8px;">
+            <i class="bi bi-plus-lg me-1"></i> New Bond Application
+        </a>
+    </div>
+
+    @* ── KPI Row ── *@
     <div class="row g-3 mb-4">
-        <div class="col-sm-6 col-xl-2">
-            <div class="stat-card">
-                <div class="stat-icon blue"><i class="bi bi-shield-check"></i></div>
-                <div>
-                    <div class="stat-val">384</div>
-                    <div class="stat-lbl">Active Bonds</div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="kpi-card">
+                <div class="accent-bar" style="background:#3b82f6;"></div>
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="kpi-icon" style="background:#eff6ff; color:#3b82f6;"><i class="bi bi-shield-check"></i></div>
                 </div>
+                <div class="kpi-val mt-2">@Model.ActiveBonds</div>
+                <div class="kpi-lbl">Active Bonds</div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-2">
-            <div class="stat-card">
-                <div class="stat-icon amber"><i class="bi bi-hourglass-split"></i></div>
-                <div>
-                    <div class="stat-val">14</div>
-                    <div class="stat-lbl">Pending Review</div>
-                </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="kpi-card">
+                <div class="accent-bar" style="background:#f59e0b;"></div>
+                <div class="kpi-icon" style="background:#fffbeb; color:#f59e0b;"><i class="bi bi-hourglass-split"></i></div>
+                <div class="kpi-val mt-2">@Model.PendingReview</div>
+                <div class="kpi-lbl">Pending Review</div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-2">
-            <div class="stat-card">
-                <div class="stat-icon green"><i class="bi bi-safe"></i></div>
-                <div>
-                    <div class="stat-val">42</div>
-                    <div class="stat-lbl">Cash Covers</div>
-                </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="kpi-card">
+                <div class="accent-bar" style="background:#8b5cf6;"></div>
+                <div class="kpi-icon" style="background:#f5f3ff; color:#8b5cf6;"><i class="bi bi-clock-history"></i></div>
+                <div class="kpi-val mt-2">@Model.PendingApprovals</div>
+                <div class="kpi-lbl">Awaiting Approval</div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-2">
-            <div class="stat-card">
-                <div class="stat-icon navy"><i class="bi bi-building-check"></i></div>
-                <div>
-                    <div class="stat-val">12</div>
-                    <div class="stat-lbl">Issuing Banks</div>
-                </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="kpi-card">
+                <div class="accent-bar" style="background:#10b981;"></div>
+                <div class="kpi-icon" style="background:#ecfdf5; color:#10b981;"><i class="bi bi-people"></i></div>
+                <div class="kpi-val mt-2">@Model.TotalClients</div>
+                <div class="kpi-lbl">Total Clients</div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-2">
-            <div class="stat-card">
-                <div class="stat-icon purple"><i class="bi bi-briefcase"></i></div>
-                <div>
-                    <div class="stat-val">45.2M</div>
-                    <div class="stat-lbl">Total Exposure</div>
-                </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="kpi-card">
+                <div class="accent-bar" style="background:var(--navy);"></div>
+                <div class="kpi-icon" style="background:#e8eef8; color:var(--navy);"><i class="bi bi-activity"></i></div>
+                <div class="kpi-val mt-2">@((Model.TotalExposure / 1_000_000M).ToString("N1"))M</div>
+                <div class="kpi-lbl">Total Exposure</div>
             </div>
         </div>
-        <div class="col-sm-6 col-xl-2">
-            <div class="stat-card">
-                <div class="stat-icon green"><i class="bi bi-piggy-bank"></i></div>
-                <div>
-                    <div class="stat-val">2.8M</div>
-                    <div class="stat-lbl">Comm. Earned</div>
-                </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="kpi-card">
+                <div class="accent-bar" style="background:#06b6d4;"></div>
+                <div class="kpi-icon" style="background:#ecfeff; color:#06b6d4;"><i class="bi bi-cash-stack"></i></div>
+                <div class="kpi-val mt-2">@((Model.CommissionEarned / 1_000M).ToString("N0"))K</div>
+                <div class="kpi-lbl">Revenue Earned</div>
             </div>
         </div>
     </div>
 
-    <div class="row g-3">
+    @* ── Cheque sub-row ── *@
+    <div class="row g-3 mb-4">
         <div class="col-md-4">
-            <div class="card h-100 shadow-sm border-0">
-                <div class="card-header bg-transparent fw-bold">Bond Distribution</div>
-                <div class="card-body">
-                    <div class="mb-4">
-                        <div class="d-flex justify-content-between small mb-1">
-                            <span>Bid Bonds (Tender)</span>
-                            <span class="fw-bold">245</span>
-                        </div>
-                        <div class="progress" style="height:8px">
-                            <div class="progress-bar bg-primary" style="width: 64%"></div>
-                        </div>
-                        <div class="small text-muted mt-1">Exposure: KSh 12,400,000</div>
-                    </div>
-
-                    <div class="mb-4">
-                        <div class="d-flex justify-content-between small mb-1">
-                            <span>Performance Bonds</span>
-                            <span class="fw-bold">98</span>
-                        </div>
-                        <div class="progress" style="height:8px">
-                            <div class="progress-bar bg-success" style="width: 25%"></div>
-                        </div>
-                        <div class="small text-muted mt-1">Exposure: KSh 22,850,000</div>
-                    </div>
-
-                    <div class="mb-4">
-                        <div class="d-flex justify-content-between small mb-1">
-                            <span>Advance Payment Bonds</span>
-                            <span class="fw-bold">41</span>
-                        </div>
-                        <div class="progress" style="height:8px">
-                            <div class="progress-bar bg-warning" style="width: 11%"></div>
-                        </div>
-                        <div class="small text-muted mt-1">Exposure: KSh 9,950,000</div>
-                    </div>
+            <div class="kpi-card d-flex align-items-center gap-3">
+                <div class="accent-bar" style="background:#0ea5e9;"></div>
+                <div class="kpi-icon" style="background:#f0f9ff; color:#0ea5e9; flex-shrink:0;"><i class="bi bi-bank2"></i></div>
+                <div>
+                    <div class="kpi-val">@Model.ChequeCount</div>
+                    <div class="kpi-lbl">Active Cheque Discounts</div>
+                </div>
+                <div class="ms-auto text-end">
+                    <div class="fw-bold text-navy small">KES @((Model.ChequePortfolio / 1_000M).ToString("N1"))M</div>
+                    <div class="kpi-lbl">Portfolio</div>
                 </div>
             </div>
         </div>
-
-        <div class="col-md-8">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
-                    <span class="fw-bold">Recent Bond Requests</span>
-                    <a href="#" class="btn btn-sm btn-primary">
-                        <i class="bi bi-plus-lg me-1"></i> Issue New Bond
-                    </a>
+        <div class="col-md-4">
+            <div class="kpi-card d-flex align-items-center gap-3">
+                <div class="accent-bar" style="background:#10b981;"></div>
+                <div class="kpi-icon" style="background:#ecfdf5; color:#10b981; flex-shrink:0;"><i class="bi bi-safe2"></i></div>
+                <div>
+                    <div class="kpi-val">@Model.CashCovers</div>
+                    <div class="kpi-lbl">Cash Covers</div>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Bond Ref</th>
-                                <th>Applicant</th>
-                                <th>Issuing Bank</th>
-                                <th>Value (KSh)</th>
-                                <th>Status</th>
-                                <th>Closing</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><a href="#" class="fw-bold text-primary">BND/2026/0842</a></td>
-                                <td>Green Energy Solutions</td>
-                                <td class="small">KCB Bank</td>
-                                <td class="fw-bold">1,500,000</td>
-                                <td><span class="badge rounded-pill bg-warning text-dark">Awaiting Docs</span></td>
-                                <td class="text-muted small">12 Apr 2026</td>
-                            </tr>
-                            <tr>
-                                <td><a href="#" class="fw-bold text-primary">BND/2026/0841</a></td>
-                                <td>Rapid Logistics Ltd</td>
-                                <td class="small">Equity Bank</td>
-                                <td class="fw-bold">450,000</td>
-                                <td><span class="badge rounded-pill bg-success">Approved</span></td>
-                                <td class="text-muted small">15 Apr 2026</td>
-                            </tr>
-                            <tr>
-                                <td><a href="#" class="fw-bold text-primary">BND/2026/0839</a></td>
-                                <td>Apex Construction</td>
-                                <td class="small">Absa Kenya</td>
-                                <td class="fw-bold">5,200,000</td>
-                                <td><span class="badge rounded-pill bg-info text-dark">Under Review</span></td>
-                                <td class="text-muted small">10 Apr 2026</td>
-                            </tr>
-                            <tr>
-                                <td><a href="#" class="fw-bold text-primary">BND/2026/0835</a></td>
-                                <td>Coastal Water Works</td>
-                                <td class="small">NCBA Bank</td>
-                                <td class="fw-bold">850,000</td>
-                                <td><span class="badge rounded-pill bg-danger">Rejected</span></td>
-                                <td class="text-muted small">08 Apr 2026</td>
-                            </tr>
-                            <tr>
-                                <td><a href="#" class="fw-bold text-primary">BND/2026/0830</a></td>
-                                <td>Safari Telecoms</td>
-                                <td class="small">Standard Chartered</td>
-                                <td class="fw-bold">2,100,000</td>
-                                <td><span class="badge rounded-pill bg-success">Approved</span></td>
-                                <td class="text-muted small">20 Apr 2026</td>
-                            </tr>
-                        </tbody>
-                    </table>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="kpi-card d-flex align-items-center gap-3">
+                <div class="accent-bar" style="background:#475569;"></div>
+                <div class="kpi-icon" style="background:#f1f5f9; color:#475569; flex-shrink:0;"><i class="bi bi-building"></i></div>
+                <div>
+                    <div class="kpi-val">@Model.IssuingBanks</div>
+                    <div class="kpi-lbl">Partner Banks</div>
                 </div>
             </div>
         </div>
     </div>
+
+    @* ── Charts Row 1: Monthly bars + Status donut ── *@
+    <div class="row g-3 mb-4">
+        <div class="col-lg-8">
+            <div class="chart-card h-100">
+                <div class="chart-title">Bond Applications — Last 6 Months</div>
+                <canvas id="chartMonthly" height="110"></canvas>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="chart-card h-100 d-flex flex-column">
+                <div class="chart-title">Status Distribution</div>
+                <div class="d-flex justify-content-center align-items-center flex-grow-1">
+                    <canvas id="chartStatus" style="max-height:220px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ── Charts Row 2: Revenue line + Top clients ── *@
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6">
+            <div class="chart-card">
+                <div class="chart-title">Monthly Revenue (KES)</div>
+                <canvas id="chartRevenue" height="140"></canvas>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="chart-card">
+                <div class="chart-title">Top Clients by Exposure</div>
+                <canvas id="chartClients" height="140"></canvas>
+            </div>
+        </div>
+    </div>
+
+    @* ── Recent bonds table ── *@
+    <div class="chart-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="chart-title mb-0">Recent Bond Applications</div>
+            <a asp-controller="BidBonds" asp-action="Index" class="small fw-bold text-decoration-none" style="color:var(--navy);">
+                View all <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+        <div class="table-responsive">
+            <table class="table bond-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Reference / ID</th>
+                        <th>Client</th>
+                        <th>Partner Bank</th>
+                        <th class="text-end">Amount (KES)</th>
+                        <th class="text-center">Status</th>
+                        <th>Closing Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var b in Model.RecentBonds)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-bold small">@b.Reference</div>
+                                <div class="text-muted" style="font-size:.68rem;">#@b.Id</div>
+                            </td>
+                            <td class="small fw-semibold">@b.Applicant</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="bg-light rounded-circle d-flex align-items-center justify-content-center"
+                                         style="width:28px;height:28px;flex-shrink:0;">
+                                        <i class="bi bi-bank" style="font-size:.65rem;"></i>
+                                    </div>
+                                    <span class="small">@b.Bank</span>
+                                </div>
+                            </td>
+                            <td class="text-end fw-bold small">@b.Value.ToString("N0")</td>
+                            <td class="text-center">
+                                @{
+                                    var pill = b.Status == "Approved" ? "pill-approved"
+                                             : b.Status == "Rejected" ? "pill-rejected"
+                                             : "pill-pending";
+                                }
+                                <span class="status-pill @pill">@b.Status</span>
+                            </td>
+                            <td class="small text-muted">@b.Expiry.ToString("dd MMM yyyy")</td>
+                        </tr>
+                    }
+                    @if (!Model.RecentBonds.Any())
+                    {
+                        <tr><td colspan="6" class="text-center text-muted py-4 fst-italic">No bond applications yet.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
 </div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    const NAVY    = '#002D72';
+    const NAVY_LT = '#1a4fa0';
+    const TEAL    = '#06b6d4';
+    const GREEN   = '#10b981';
+    const AMBER   = '#f59e0b';
+    const RED     = '#ef4444';
+
+    Chart.defaults.font.family = "'Inter', 'Segoe UI', sans-serif";
+    Chart.defaults.font.size   = 12;
+
+    // ── 1. Monthly submissions bar chart ────────────────────────
+    new Chart(document.getElementById('chartMonthly'), {
+        type: 'bar',
+        data: {
+            labels: [@Html.Raw(subLabels)],
+            datasets: [
+                {
+                    label: 'Applications',
+                    data:  [@Html.Raw(subCounts)],
+                    backgroundColor: NAVY + 'cc',
+                    borderRadius: 6,
+                    yAxisID: 'yCount'
+                },
+                {
+                    label: 'Volume (KES)',
+                    data:  [@Html.Raw(subAmounts)],
+                    type:  'line',
+                    borderColor: TEAL,
+                    backgroundColor: TEAL + '22',
+                    fill: true,
+                    tension: .4,
+                    pointRadius: 4,
+                    yAxisID: 'yAmount'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            interaction: { mode: 'index' },
+            plugins: { legend: { position: 'top' } },
+            scales: {
+                yCount:  { type: 'linear', position: 'left',  beginAtZero: true, ticks: { stepSize: 1 }, title: { display: true, text: 'Applications' } },
+                yAmount: { type: 'linear', position: 'right', beginAtZero: true, grid: { drawOnChartArea: false },
+                           ticks: { callback: v => 'KES ' + (v/1e6).toFixed(1) + 'M' }, title: { display: true, text: 'Volume' } }
+            }
+        }
+    });
+
+    // ── 2. Status donut ──────────────────────────────────────────
+    new Chart(document.getElementById('chartStatus'), {
+        type: 'doughnut',
+        data: {
+            labels: [@Html.Raw(statusLabels)],
+            datasets: [{
+                data:             [@Html.Raw(statusCounts)],
+                backgroundColor:  [GREEN, AMBER, RED],
+                borderColor:      '#fff',
+                borderWidth:      3,
+                hoverOffset:      6
+            }]
+        },
+        options: {
+            responsive: true,
+            cutout: '68%',
+            plugins: {
+                legend: { position: 'bottom', labels: { padding: 14, usePointStyle: true } }
+            }
+        }
+    });
+
+    // ── 3. Monthly revenue line ──────────────────────────────────
+    new Chart(document.getElementById('chartRevenue'), {
+        type: 'line',
+        data: {
+            labels: [@Html.Raw(revLabels)],
+            datasets: [{
+                label: 'Revenue (KES)',
+                data:  [@Html.Raw(revAmounts)],
+                borderColor: GREEN,
+                backgroundColor: GREEN + '18',
+                fill: true,
+                tension: .4,
+                pointBackgroundColor: GREEN,
+                pointRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { callback: v => 'KES ' + (v/1e3).toFixed(0) + 'K' } }
+            }
+        }
+    });
+
+    // ── 4. Top clients horizontal bar ────────────────────────────
+    new Chart(document.getElementById('chartClients'), {
+        type: 'bar',
+        data: {
+            labels: [@Html.Raw(clientLabels)],
+            datasets: [{
+                label: 'Exposure (KES)',
+                data:  [@Html.Raw(clientAmounts)],
+                backgroundColor: [NAVY, NAVY_LT, TEAL, GREEN, AMBER],
+                borderRadius: 5
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { beginAtZero: true, ticks: { callback: v => (v/1e6).toFixed(1) + 'M' } }
+            }
+        }
+    });
+})();
+</script>
+}

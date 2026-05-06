@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Dapper;
+using Microsoft.AspNetCore.Http;
 using OnwardsSwift.Core.DTOs;
 using OnwardsSwift.Core.Interfaces;
 using OnwardsSwift.Infrastructure.Data;
@@ -45,40 +46,24 @@ namespace OnwardsSwift.Infrastructure.Services
         
     FROM Clients c";
 
-        public async Task<ClientResponse> CreateAsync(CreateClientRequest req, string by)
+  
+
+        private async Task<string?> SaveKycFile(IFormFile? file, string type)
         {
-            using var conn = _ctx.Create();
+            if (file == null || file.Length == 0) return null;
 
-            // 1. Add 'OUTPUT INSERTED.Id' or use 'SELECT SCOPE_IDENTITY()'
-            var sql = @"
-        INSERT INTO Clients
-            (CompanyName, KraPin, ContactPerson, Email, Phone, PhoneAlt, ClientType,
-             PhysicalAddress, PostalAddress, BusinessRegNumber,
-             CreditLimit, UtilisedLimit, Status, IsCrbCleared, CreatedAt, CreatedBy, IsDeleted)
-        VALUES
-            (@Co, @Kra, @Con, @Em, @Ph, @PhA, @CT, @Addr, @Post, @Reg, @Lim, 0, 1, 0, GETUTCDATE(), @By, 0);
-        
-        SELECT CAST(SCOPE_IDENTITY() as int);";
+            var folderPath = Path.Combine("wwwroot", "uploads", "kyc");
+            if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
 
-            // 2. Execute and get the new ID
-            var newId = await conn.QuerySingleAsync<int>(sql, new
+            var fileName = $"{type}_{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+            var filePath = Path.Combine(folderPath, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
             {
-                Co = req.CompanyName,
-                Kra = req.KraPin,
-                Con = req.ContactPerson,
-                Em = req.Email,
-                Ph = req.Phone,
-                PhA = req.PhoneAlt,
-                CT = (int)req.ClientType,
-                Addr = req.PhysicalAddress,
-                Post = req.PostalAddress,
-                Reg = req.BusinessRegNumber,
-                Lim = req.CreditLimit,
-                By = by
-            });
+                await file.CopyToAsync(stream);
+            }
 
-            // 3. Use the newId to fetch the full object
-            return await GetByIdAsync(newId) ?? throw new Exception("Client not found after insert.");
+            return $"/uploads/kyc/{fileName}";
         }
         public async Task<ClientResponse?> GetByIdAsync(int id)
         {

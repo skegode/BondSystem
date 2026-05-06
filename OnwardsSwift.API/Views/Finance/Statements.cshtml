@@ -19,7 +19,10 @@
                         <label class="form-label fw-bold small">Client Selection</label>
                         <select name="clientId" class="form-select select2" required>
                             <option value="">Search Client Name...</option>
-                            @* Populate with your clients list *@
+                            @foreach (var c in ViewBag.Clients)
+                            {
+                                <option value="@c.Id">@c.CompanyName</option>
+                            }
                         </select>
                     </div>
 

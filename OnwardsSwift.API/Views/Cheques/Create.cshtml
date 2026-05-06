@@ -1,147 +1,322 @@
-<div class="page-header mb-4">
-    <h1 class="h3 fw-bold text-navy">New Cheque Discounting Application</h1>
-</div>
+@{
+    ViewData["Title"] = "New Cheque Discounting Application";
+}
 
-<form asp-action="Create" method="post" enctype="multipart_form-data">
-    @Html.AntiForgeryToken()
-    <div class="row">
-        <div class="col-lg-7">
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white py-3">
-                    <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-card-heading me-2"></i>Cheque Information</h6>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-muted">CLIENT / COMPANY</label>
-                        <select name="clientId" class="form-select select2" required>
-                            <option value="">-- Select Client --</option>
-                            @foreach (var client in ViewBag.Clients)
-                            {
-                                <option value="@client.Id">@client.CompanyName</option>
-                            }
-                        </select>
+<style>
+    :root { --navy: #002D72; }
+    .bg-navy  { background-color: var(--navy) !important; }
+    .text-navy { color: var(--navy) !important; }
+    .btn-navy  { background-color: var(--navy); color: #fff; border: none; }
+    .btn-navy:hover { background-color: #001a44; color: #fff; }
+    .section-lbl { font-size:.7rem; text-transform:uppercase; font-weight:700;
+                   letter-spacing:.08em; color:#64748b; margin-bottom:.75rem; }
+    .calc-row { display:flex; justify-content:space-between; padding:.45rem 0;
+                border-bottom:1px solid #f1f5f9; font-size:.875rem; }
+    .calc-row:last-child { border-bottom:none; }
+</style>
+
+<div class="container-fluid py-4 px-3 px-lg-5">
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a asp-action="Index" class="btn btn-sm btn-light border px-2">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <div>
+            <h4 class="fw-bold mb-0">New Cheque Discounting Application</h4>
+            <p class="text-muted small mb-0">Complete the form — application goes into the approval workflow before funds are released.</p>
+        </div>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-3">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <form asp-action="Create" method="post" enctype="multipart/form-data" id="chequeForm">
+        @Html.AntiForgeryToken()
+
+        <div class="row g-4">
+
+            @* ── LEFT: Cheque details ── *@
+            <div class="col-lg-8">
+
+                @* Section 1 – Client & Cheque *@
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="mb-0 fw-bold">
+                            <span class="d-inline-flex align-items-center justify-content-center bg-navy text-white rounded-circle me-2"
+                                  style="width:22px;height:22px;font-size:.7rem;">1</span>
+                            Cheque Information
+                        </h6>
                     </div>
-
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-muted">CHEQUE NUMBER</label>
-                            <input type="text" name="chequeNumber" class="form-control" required placeholder="000123" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-muted">DRAWER BANK (SOURCE)</label>
-                            <select name="drawerBank" class="form-select select2" required>
-                                <option value="">-- Select Bank --</option>
-                                @foreach (var bank in ViewBag.Banks)
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Client / Company <span class="text-danger">*</span></label>
+                            <select name="clientId" class="form-select" required>
+                                <option value="">— Select Client —</option>
+                                @foreach (var c in (IEnumerable<dynamic>)ViewBag.Clients)
                                 {
-                                    <option value="@bank">@bank</option>
+                                    <option value="@c.Id">@c.CompanyName</option>
                                 }
                             </select>
                         </div>
-                    </div>
 
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-muted">DRAWER ACCOUNT NUMBER</label>
-                            <input type="text" name="drawerAccountNo" class="form-control" required placeholder="Account on the cheque" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-muted">ATTACH CHEQUE PHOTO</label>
-                            <input type="file" name="chequePhoto" class="form-control" accept="image/*" required />
-                        </div>
-                    </div>
-
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-muted">CHEQUE AMOUNT</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light small">KES</span>
-                                <input type="number" id="txtAmount" name="chequeAmount" step="0.01" class="form-control fw-bold" required />
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Cheque Number <span class="text-danger">*</span></label>
+                                <input type="text" name="chequeNumber" class="form-control" required
+                                       placeholder="e.g. 000123" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Drawer Bank <span class="text-danger">*</span></label>
+                                <select name="drawerBank" class="form-select" required>
+                                    <option value="">— Select Bank —</option>
+                                    @foreach (var b in (IEnumerable<string>)ViewBag.Banks)
+                                    {
+                                        <option value="@b">@b</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Drawer Account No. <span class="text-danger">*</span></label>
+                                <input type="text" name="drawerAccountNo" class="form-control" required
+                                       placeholder="Account number on the cheque" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Maturity / Expiry Date <span class="text-danger">*</span></label>
+                                <input type="date" name="expiryDate" class="form-control" required
+                                       min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" />
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-muted">DISCOUNT RATE (%)</label>
-                            <input type="number" id="txtRate" name="discountRate" step="0.1" class="form-control" value="3.5" required />
+                    </div>
+                </div>
+
+                @* Section 2 – Financial *@
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="mb-0 fw-bold">
+                            <span class="d-inline-flex align-items-center justify-content-center bg-navy text-white rounded-circle me-2"
+                                  style="width:22px;height:22px;font-size:.7rem;">2</span>
+                            Financial Details
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-5">
+                                <label class="form-label small fw-semibold">Cheque Face Value (KES) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted small">KES</span>
+                                    <input type="number" id="txtAmount" name="chequeAmount"
+                                           class="form-control fw-bold" step="0.01" min="1000" required
+                                           placeholder="0.00" />
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold">Discount Rate (% p.a.) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="number" id="txtRate" name="discountRate"
+                                           class="form-control" step="0.1" min="0.1" max="100"
+                                           value="3.5" required />
+                                    <span class="input-group-text bg-light text-muted small">%</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <div class="p-3 rounded-3 w-100 text-center"
+                                     style="background:#f0fdf4; border:1px solid #bbf7d0;">
+                                    <div class="text-muted small">Net Advance</div>
+                                    <div class="fw-bold text-success" id="lblNet" style="font-size:1.1rem;">KES 0.00</div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-muted">MATURITY DATE</label>
-                            <input type="date" name="expiryDate" class="form-control" required />
+
+                        @* Breakdown strip *@
+                        <div class="mt-3 p-3 rounded-3" style="background:#f8fafc; border:1px solid #e2e8f0;">
+                            <div class="row g-2 text-center small">
+                                <div class="col-4">
+                                    <div class="text-muted">Face Value</div>
+                                    <div class="fw-bold" id="calcGross">—</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="text-muted">Discount</div>
+                                    <div class="fw-bold text-danger" id="calcDiscount">—</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="text-muted">Net Advance</div>
+                                    <div class="fw-bold text-success" id="calcNet">—</div>
+                                </div>
+                            </div>
                         </div>
+                    </div>
+                </div>
+
+                @* Section 3 – Cheque photo *@
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-header bg-white py-3">
+                        <h6 class="mb-0 fw-bold">
+                            <span class="d-inline-flex align-items-center justify-content-center bg-navy text-white rounded-circle me-2"
+                                  style="width:22px;height:22px;font-size:.7rem;">3</span>
+                            Cheque Photo / Scan
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Upload Cheque Image</label>
+                                <input type="file" name="chequePhoto" id="chequePhoto"
+                                       class="form-control" accept="image/*,.pdf"
+                                       onchange="previewCheque(this)" />
+                                <div class="form-text">JPG, PNG or PDF — max 5 MB</div>
+                            </div>
+                            <div class="col-md-6 text-center">
+                                <div id="chequePreview" class="rounded-3 border bg-light d-flex align-items-center justify-content-center"
+                                     style="height:100px;">
+                                    <span class="text-muted small"><i class="bi bi-image me-1"></i>Preview here</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            @* ── RIGHT: Disbursement + submit ── *@
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm sticky-top" style="top:1.5rem;">
+
+                    @* Disbursement *@
+                    <div class="card-header bg-white py-3">
+                        <h6 class="mb-0 fw-bold">
+                            <span class="d-inline-flex align-items-center justify-content-center bg-navy text-white rounded-circle me-2"
+                                  style="width:22px;height:22px;font-size:.7rem;">4</span>
+                            Disbursement Details
+                        </h6>
+                    </div>
+                    <div class="card-body">
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Payment Method <span class="text-danger">*</span></label>
+                            <select name="paymentMethod" id="payMethod" class="form-select" required
+                                    onchange="togglePaymentFields()">
+                                <option value="">— Select Method —</option>
+                                <option value="MPESA">M-Pesa B2C</option>
+                                <option value="BANK">Bank Transfer (EFT / RTGS)</option>
+                            </select>
+                        </div>
+
+                        @* M-Pesa fields *@
+                        <div id="mpesaSection" style="display:none;">
+                            <div class="mb-3 p-3 rounded-3" style="background:#f0fdf4; border:1px solid #bbf7d0;">
+                                <label class="form-label small fw-semibold text-success">Recipient Phone</label>
+                                <input type="text" name="phone" class="form-control" placeholder="2547XXXXXXXX" />
+                                <div class="form-text">Safaricom number in international format.</div>
+                            </div>
+                            @* required by controller even when MPESA *@
+                            <input type="hidden" name="bankName"   value="MPESA" />
+                            <input type="hidden" name="accountNo"  value="" />
+                            <input type="hidden" name="branchName" value="" />
+                        </div>
+
+                        @* Bank fields *@
+                        <div id="bankSection" style="display:none;">
+                            <div class="mb-2 p-3 rounded-3" style="background:#eff6ff; border:1px solid #bfdbfe;">
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Destination Bank</label>
+                                    <input type="text" name="bankName" class="form-control form-control-sm"
+                                           placeholder="e.g. KCB Bank" />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Account Number</label>
+                                    <input type="text" name="accountNo" class="form-control form-control-sm" />
+                                </div>
+                                <div>
+                                    <label class="form-label small fw-semibold">Branch</label>
+                                    <input type="text" name="branchName" class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                            <input type="hidden" name="phone" value="" />
+                        </div>
+
+                        <hr class="my-3" />
+
+                        @* Payout summary *@
+                        <div class="p-3 rounded-3 mb-3 text-center"
+                             style="background:var(--navy); color:#fff;">
+                            <div class="small opacity-75 text-uppercase fw-semibold mb-1">Estimated Payout</div>
+                            <div class="fw-bold" id="payoutHero" style="font-size:1.5rem;">KES 0.00</div>
+                            <div class="small opacity-60" id="payoutNote">Enter amount and rate above</div>
+                        </div>
+
+                        <div class="alert alert-info border-0 small mb-3 py-2">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Application enters the <strong>approval workflow</strong> before funds are disbursed.
+                        </div>
+
+                        <button type="submit" class="btn btn-navy w-100 py-3 fw-bold shadow-sm" id="submitBtn">
+                            <i class="bi bi-send-check-fill me-2"></i>Submit for Approval
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
+    </form>
+</div>
 
-        <div class="col-lg-5">
-            <div class="card border-0 shadow-sm sticky-top" style="top: 20px;">
-                <div class="card-header bg-white py-3">
-                    <h6 class="mb-0 fw-bold text-success"><i class="bi bi-cash-coin me-2"></i>Disbursement Details</h6>
-                </div>
-                <div class="card-body">
-                    <div class="p-3 bg-success-subtle rounded-3 mb-4 text-center border border-success-subtle">
-                        <div class="text-uppercase extra-small fw-bold text-success">Estimated Payout</div>
-                        <h3 class="fw-bold text-success mb-0" id="lblNet">KES 0.00</h3>
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="form-label small fw-bold text-muted">PAYMENT METHOD</label>
-                        <select name="paymentMethod" id="payMethod" class="form-select border-primary-subtle" onchange="togglePaymentFields()" required>
-                            <option value="">-- Select Method --</option>
-                            <option value="MPESA">M-Pesa B2C</option>
-                            <option value="BANK">Bank (EFT/RTGS)</option>
-                        </select>
-                    </div>
-
-                    <div id="mpesaSection" style="display:none;" class="p-3 bg-light rounded-3 mb-4 animate__animated animate__fadeIn">
-                        <label class="form-label small fw-bold text-success">RECIPIENT PHONE</label>
-                        <input type="text" name="phone" class="form-control" placeholder="2547XXXXXXXX" />
-                    </div>
-
-                    <div id="bankSection" style="display:none;" class="p-3 bg-light rounded-3 mb-4 animate__animated animate__fadeIn">
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-primary">DESTINATION BANK</label>
-                            <input type="text" name="bankName" class="form-control" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-primary">ACCOUNT NUMBER</label>
-                            <input type="text" name="accountNo" class="form-control" />
-                        </div>
-                        <div>
-                            <label class="form-label small fw-bold text-primary">BRANCH NAME</label>
-                            <input type="text" name="branchName" class="form-control" />
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn-navy w-100 py-3 shadow-sm fw-bold">
-                        <i class="bi bi-shield-lock-fill me-2"></i>SUBMIT APPLICATION
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</form>
-
+@section Scripts {
 <script>
-    function togglePaymentFields() {
-        const method = document.getElementById('payMethod').value;
-        const mpesa = document.getElementById('mpesaSection');
-        const bank = document.getElementById('bankSection');
+const fmt = n => new Intl.NumberFormat('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
-        mpesa.style.display = (method === 'MPESA') ? 'block' : 'none';
-        bank.style.display = (method === 'BANK') ? 'block' : 'none';
+function recalc() {
+    const amount   = parseFloat(document.getElementById('txtAmount').value) || 0;
+    const rate     = parseFloat(document.getElementById('txtRate').value)   || 0;
+    const discount = amount * (rate / 100);
+    const net      = amount - discount;
+
+    document.getElementById('lblNet').textContent      = 'KES ' + fmt(net);
+    document.getElementById('payoutHero').textContent  = 'KES ' + fmt(net);
+    document.getElementById('calcGross').textContent   = amount > 0 ? 'KES ' + fmt(amount)   : '—';
+    document.getElementById('calcDiscount').textContent= amount > 0 ? '- KES ' + fmt(discount): '—';
+    document.getElementById('calcNet').textContent     = amount > 0 ? 'KES ' + fmt(net)       : '—';
+    document.getElementById('payoutNote').textContent  = amount > 0 ? 'Rate: ' + rate + '%' : 'Enter amount and rate above';
+}
+
+function togglePaymentFields() {
+    const method = document.getElementById('payMethod').value;
+    document.getElementById('mpesaSection').style.display = method === 'MPESA' ? 'block' : 'none';
+    document.getElementById('bankSection').style.display  = method === 'BANK'  ? 'block' : 'none';
+}
+
+function previewCheque(input) {
+    const preview = document.getElementById('chequePreview');
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                preview.innerHTML = '<img src="' + e.target.result + '" class="img-fluid rounded-3" style="max-height:100px;" />';
+            };
+            reader.readAsDataURL(file);
+        } else {
+            preview.innerHTML = '<div class="text-muted small"><i class="bi bi-file-earmark-pdf text-danger me-1"></i>' + file.name + '</div>';
+        }
     }
+}
 
-    // Live Calculation Logic
-    const amountInput = document.getElementById('txtAmount');
-    const rateInput = document.getElementById('txtRate');
-    const displayNet = document.getElementById('lblNet');
+document.getElementById('txtAmount').addEventListener('input', recalc);
+document.getElementById('txtRate').addEventListener('input', recalc);
 
-    function calculateNet() {
-        const amount = parseFloat(amountInput.value) || 0;
-        const rate = parseFloat(rateInput.value) || 0;
-        const net = amount - (amount * (rate / 100));
-        displayNet.innerText = 'KES ' + net.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    }
-
-    amountInput.addEventListener('input', calculateNet);
-    rateInput.addEventListener('input', calculateNet);
+// Disable inputs in the hidden payment section before submit so duplicate
+// field names don't corrupt model binding on the server.
+document.getElementById('chequeForm').addEventListener('submit', function () {
+    const method = document.getElementById('payMethod').value;
+    const disableSection = method === 'MPESA'
+        ? document.getElementById('bankSection')
+        : document.getElementById('mpesaSection');
+    disableSection.querySelectorAll('input').forEach(function (el) {
+        el.disabled = true;
+    });
+});
 </script>
+}
