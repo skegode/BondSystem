@@ -1,0 +1,39 @@
+# Build output
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Publish output
+publish/
+PublishProfiles/
+
+# User-uploaded files
+**/wwwroot/uploads/
+
+# Logs
+*.log
+logs/
+
+# NuGet
+*.nupkg
+packages/
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code
+.claude/
+
+# Misc
+absa responses.txt
