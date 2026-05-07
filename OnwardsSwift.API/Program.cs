@@ -2,8 +2,12 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using OnwardsSwift.Core.Interfaces;
 using OnwardsSwift.Infrastructure.Data;
 using OnwardsSwift.Infrastructure.Services;
+using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// QuestPDF license configuration (required by newer QuestPDF versions).
+QuestPDF.Settings.License = LicenseType.Community;
 
 // ── MVC ───────────────────────────────────────────────────────
 builder.Services.AddControllersWithViews();
@@ -42,6 +46,7 @@ builder.Services.AddScoped<ICalculatorService,      CalculatorService>();
 builder.Services.AddScoped<IMenuService, MenuService>();
 builder.Services.AddScoped<WorkflowService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<OnwardsSwift.Core.Interfaces.INotificationService, OnwardsSwift.Infrastructure.Services.NotificationService>();
 
 // ── Build ─────────────────────────────────────────────────────
 var app = builder.Build();

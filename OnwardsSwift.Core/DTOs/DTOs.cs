@@ -48,6 +48,15 @@ namespace OnwardsSwift.Core.DTOs
         [Required, MinLength(8)] public string NewPassword { get; set; } = string.Empty;
     }
 
+    public class EmailSendResult
+    {
+        public bool Accepted { get; set; }
+        public string? FailureReason { get; set; }
+        public string? ProviderMessageId { get; set; }
+        public int Attempts { get; set; }
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    }
+
     // ─────────────────────────────────────────────
     // SHARED
     // ─────────────────────────────────────────────

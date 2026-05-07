@@ -1,5 +1,9 @@
 ﻿@{
     ViewData["Title"] = "Client Statements";
+    var selectedClientId = ViewBag.SelectedClientId?.ToString();
+    var defaultFrom = ViewBag.DefaultFrom?.ToString() ?? DateTime.Now.AddMonths(-1).ToString("yyyy-MM-dd");
+    var defaultTo = ViewBag.DefaultTo?.ToString() ?? DateTime.Now.ToString("yyyy-MM-dd");
+    var selectedBondTypeIds = new HashSet<string>(((ViewBag.SelectedBondTypeIds as int[]) ?? Array.Empty<int>()).Select(x => x.ToString()));
 }
 
 <div class="row animate__animated animate__fadeIn">
@@ -12,6 +16,11 @@
                 <h4 class="fw-bold">Client Statements</h4>
                 <p class="text-muted small">Search for a client to generate a detailed financial statement.</p>
 
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger text-start small mb-3">@TempData["Error"]</div>
+                }
+
                 <hr class="my-4">
 
                 <form asp-action="GenerateStatement" method="get">
@@ -21,7 +30,7 @@
                             <option value="">Search Client Name...</option>
                             @foreach (var c in ViewBag.Clients)
                             {
-                                <option value="@c.Id">@c.CompanyName</option>
+                                <option value="@c.Id" selected="@(selectedClientId == c.Id.ToString())">@c.CompanyName</option>
                             }
                         </select>
                     </div>
@@ -29,19 +38,59 @@
                     <div class="row g-2 mb-4">
                         <div class="col-6 text-start">
                             <label class="form-label fw-bold small">From Date</label>
-                            <input type="date" name="from" class="form-control" value="@DateTime.Now.AddMonths(-1).ToString("yyyy-MM-dd")" />
+                            <input type="date" name="from" class="form-control" value="@defaultFrom" />
                         </div>
                         <div class="col-6 text-start">
                             <label class="form-label fw-bold small">To Date</label>
-                            <input type="date" name="to" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                            <input type="date" name="to" class="form-control" value="@defaultTo" />
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100 py-2">
-                        <i class="bi bi-printer me-2"></i>Generate Statement
-                    </button>
+                    <div class="mb-4 text-start">
+                        <label class="form-label fw-bold small">Product Types <span class="text-muted fw-normal">(leave all unchecked for all)</span></label>
+                        <div class="border rounded p-3 d-flex flex-column gap-2">
+                            @foreach (var pt in ViewBag.ProductTypeList)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="bondTypeIds" value="@pt.Id" id="pt_@pt.Id"
+                                           @(selectedBondTypeIds.Contains(((int)pt.Id).ToString()) ? "checked" : "") />
+                                    <label class="form-check-label" for="pt_@pt.Id">@pt.ProductName</label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary w-100 py-2">
+                            <i class="bi bi-eye me-2"></i>Preview Statement
+                        </button>
+                        <button type="submit" name="format" value="pdf" class="btn btn-danger w-100 py-2">
+                            <i class="bi bi-file-earmark-pdf me-2"></i>Export PDF with Selected Dates
+                        </button>
+                        <button type="submit" formaction="@Url.Action("GenerateInvoicePdf", "Finance")" class="btn btn-outline-dark w-100 py-2">
+                            <i class="bi bi-receipt me-2"></i>Export Invoice PDF with Selected Dates
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.querySelector('form[asp-action="GenerateStatement"]') || document.querySelector('form[action*="GenerateStatement"]');
+            if (!form) return;
+
+            form.addEventListener('submit', function (e) {
+                const from = form.querySelector('input[name="from"]')?.value;
+                const to = form.querySelector('input[name="to"]')?.value;
+                if (from && to && from > to) {
+                    e.preventDefault();
+                    alert("From Date must be earlier than or equal to To Date.");
+                }
+            });
+        });
+    </script>
+}

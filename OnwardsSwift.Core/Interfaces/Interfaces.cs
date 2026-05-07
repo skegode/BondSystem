@@ -34,7 +34,7 @@ namespace OnwardsSwift.Core.Interfaces
 
     public interface INotificationService
     {
-        Task SendEmailAsync(string to, string subject, string body);
+        Task<OnwardsSwift.Core.DTOs.EmailSendResult> SendEmailAsync(string to, string subject, string htmlBody, string? plainBody = null);
         Task SendSmsAsync(string phone, string message);
     }
 }

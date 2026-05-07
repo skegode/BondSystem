@@ -270,6 +270,27 @@
                             <span id="sideProfit" class="text-success fw-bold">KES 0.00</span>
                         </div>
 
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Client Charges (KES)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">KES</span>
+                                <input type="number" asp-for="ClientCharges" id="ClientCharges" class="form-control" step="0.01" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Bank Charges (KES)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">KES</span>
+                                <input type="number" asp-for="BankCharges" id="BankCharges" class="form-control" step="0.01" />
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-3">
+                            <span class="text-muted small">Net Profit</span>
+                            <span id="sideNetProfit" class="fw-semibold">KES 0.00</span>
+                        </div>
+
                         <div class="bg-white p-4 rounded-4 border text-center mb-4 shadow-sm">
                             <label class="text-muted small text-uppercase fw-bold mb-1 d-block" style="letter-spacing: 1px;">Estimated Premium</label>
                             <h2 class="mb-0 text-dark fw-bold" id="sideTotalDisplay">0.00</h2>
@@ -317,6 +338,9 @@
 
                 el("hCommissionAmount").value = bankCharge.toFixed(2);
                 el("hApplicationFee").value   = profitAmount.toFixed(2);
+                // default client/bank charges
+                if (!el("ClientCharges").value) el("ClientCharges").value = (profitAmount + bankCharge).toFixed(2);
+                if (!el("BankCharges").value) el("BankCharges").value = bankCharge.toFixed(2);
                 el("hAppliedRate").value      = combined.toFixed(3);
 
                 el("sideBankCharge").textContent = "KES " + fmt(bankCharge);
@@ -324,6 +348,7 @@
                 el("sideTotalDisplay").textContent = fmt(total);
 
                 if (triggerId !== 'sideTotal2') el("sideTotal2").value = total.toFixed(2);
+                updateNetProfit();
 
                 const isLoss = combined < bankFloorRate && combined > 0;
                 el("rateWarning").classList.toggle("d-none", !isLoss);
@@ -339,6 +364,20 @@
                     el("uiCombinedRate").value = rate.toFixed(3);
                     runCalc('sideTotal2');
                 }
+
+                function updateNetProfit() {
+                    const client = parseFloat(el("ClientCharges").value) || 0;
+                    const bank = parseFloat(el("BankCharges").value) || 0;
+                    const net = client - bank;
+                    el("sideNetProfit").textContent = "KES " + fmt(net);
+                    // set hidden application fee to net profit so it's persisted
+                    el("hApplicationFee").value = net.toFixed(2);
+                }
+
+                document.addEventListener("DOMContentLoaded", function() {
+                    ["ClientCharges","BankCharges"].forEach(id => {
+                        el(id).addEventListener("input", updateNetProfit);
+                    });
             }
 
             async function loadRates() {

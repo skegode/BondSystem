@@ -155,12 +155,12 @@
                     <h6 class="mb-0 fw-bold">Financial Actions</h6>
                 </div>
                 <div class="card-body d-grid gap-2">
-                    <a asp-controller="Finance" asp-action="GenerateStatement"
+                    <a asp-controller="Finance" asp-action="Statements"
                        asp-route-clientId="@Model.Id"
                        asp-route-from="@(new DateTime(DateTime.Now.Year, 1, 1).ToString("yyyy-MM-dd"))"
                        asp-route-to="@DateTime.Now.ToString("yyyy-MM-dd")"
                        class="btn btn-sm btn-outline-dark text-start">
-                        <i class="bi bi-file-earmark-spreadsheet me-2"></i>Full Account Statement
+                        <i class="bi bi-file-earmark-pdf me-2"></i>Full Account Statement (PDF)
                     </a>
 
                     @if (isAdmin)

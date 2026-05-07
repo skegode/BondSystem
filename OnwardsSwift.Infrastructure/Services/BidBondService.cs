@@ -58,7 +58,7 @@ namespace OnwardsSwift.Infrastructure.Services
             {
                 // 1. We use the values already present in 'req' 
                 // These were calculated by the JS Wizard/Professional View
-                var bondSql = @"
+                    var bondSql = @"
             INSERT INTO Bonds (
                 BondTypeId, TenderNumber, ProcuringEntity, IssuingBank, TenderClosingDate, 
                 Amount, BankRate, TenderName, TenderDocPath, CR12Path, 
@@ -79,6 +79,11 @@ namespace OnwardsSwift.Infrastructure.Services
             );
             SELECT CAST(SCOPE_IDENTITY() as int);";
 
+                // compute net profit = client charges - bank charges
+                var clientCharges = req.ClientCharges;
+                var bankCharges = req.BankCharges;
+                var netProfit = clientCharges - bankCharges;
+
                 int newBondId = await conn.QuerySingleAsync<int>(bondSql, new
                 {
                     BTid = req.BondTypeId,
@@ -91,9 +96,9 @@ namespace OnwardsSwift.Infrastructure.Services
                     TName = req.TenderName,
                     TDoc = req.TenderDocPath,
                     CR12 = req.CR12Path,
-                    AFee = req.ApplicationFee,     // From UI Hidden Field
-                    CAmt = req.CommissionAmount,   // From UI Hidden Field
-                    BCharge = req.CommissionAmount, 
+                    AFee = netProfit,     // store net profit as application fee
+                    CAmt = clientCharges,   // client charges
+                    BCharge = bankCharges, 
                     CreatedBy = currentUserId.ToString(),
                     Cid = req.ClientId,
                     AgentId = req.AgentId == 0 ? (int?)null : req.AgentId,

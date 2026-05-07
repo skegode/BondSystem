@@ -68,6 +68,11 @@ namespace OnwardsSwift.Core.DTOs
         public decimal AppliedRate { get; set; }
         public decimal ApplicationFee { get; set; }
         public decimal CommissionAmount { get; set; }
+        // Client & Bank charge inputs
+        public decimal ClientCharges { get; set; }
+        public decimal BankCharges { get; set; }
+        // Computed
+        public decimal NetProfit { get; set; }
 
 
         // --- EXTRA METADATA ---

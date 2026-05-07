@@ -15,7 +15,12 @@ namespace OnwardsSwift.API.Controllers
     public class AccountController : Controller
     {
         private readonly DapperContext _ctx;
-        public AccountController(DapperContext ctx) => _ctx = ctx;
+        private readonly OnwardsSwift.Core.Interfaces.INotificationService _notifier;
+        public AccountController(DapperContext ctx, OnwardsSwift.Core.Interfaces.INotificationService notifier)
+        {
+            _ctx = ctx;
+            _notifier = notifier;
+        }
 
         // ── Login ─────────────────────────────────────────────
         [HttpGet]
@@ -84,6 +89,46 @@ namespace OnwardsSwift.API.Controllers
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return RedirectToAction("Login");
         }
+
+        // ── Forgot Password ─────────────────────────────────────
+        [HttpGet]
+        public IActionResult ForgotPassword() => View(new ForgotPasswordRequest());
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            using var conn = _ctx.Create();
+            var u = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                "SELECT Id, Email FROM SystemUsers WHERE Email=@E AND IsActive=1 AND IsDeleted=0",
+                new { E = model.Email });
+
+            // For security, do not reveal whether the email exists. If user exists,
+            // a real implementation would generate a reset token and email it.
+            // Here we simply redirect to a confirmation page.
+
+            if (u != null)
+            {
+                var tokenBytes = RandomNumberGenerator.GetBytes(32);
+                var token = Convert.ToBase64String(tokenBytes);
+                var encoded = System.Net.WebUtility.UrlEncode(token);
+                var resetUrl = Url.Action("ResetPassword", "Account", new { email = model.Email, token = encoded }, Request.Scheme ?? "https");
+
+                var subject = "Reset your Onwards Swift password";
+                var htmlBody = $"<p>Hello,</p><p>We received a request to reset your password. Click the link below to reset it:</p><p><a href=\"{resetUrl}\">Reset password</a></p><p>If you didn't request this, you can ignore this message.</p><p>— Onwards Swift</p>";
+                var plainBody = $"Hello,\n\nWe received a request to reset your password. Use this link to reset it: {resetUrl}\n\nIf you didn't request this, you can ignore this message.\n\n— Onwards Swift";
+
+                var sendResult = await _notifier.SendEmailAsync((string)u.Email, subject, htmlBody, plainBody);
+                // Optionally: you can inspect sendResult and act (log, surface error). We keep flow generic for security.
+            }
+
+            return RedirectToAction("ForgotPasswordConfirmation");
+        }
+
+        [HttpGet]
+        public IActionResult ForgotPasswordConfirmation() => View();
 
         // ── Change Password ───────────────────────────────────
         [Authorize]

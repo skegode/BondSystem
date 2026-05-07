@@ -268,6 +268,27 @@
                             <span class="text-success small fw-bold">Profit (Application Fee)</span>
                             <span id="sideProfit" class="text-success fw-bold">KES 0.00</span>
                         </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Client Charges (KES)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">KES</span>
+                                <input type="number" asp-for="ClientCharges" id="ClientCharges" class="form-control" step="0.01" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Bank Charges (KES)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">KES</span>
+                                <input type="number" asp-for="BankCharges" id="BankCharges" class="form-control" step="0.01" />
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-3">
+                            <span class="text-muted small">Net Profit</span>
+                            <span id="sideNetProfit" class="fw-semibold">KES 0.00</span>
+                        </div>
 
                         <div class="bg-white p-4 rounded-4 border text-center mb-4 shadow-sm">
                             <label class="text-muted small text-uppercase fw-bold mb-1 d-block" style="letter-spacing: 1px;">Estimated Premium</label>
@@ -329,6 +350,16 @@
                 el("submitBtn").disabled = isLoss;
             }
 
+            function updateNetProfit() {
+                const client = parseFloat(el("ClientCharges")?.value) || 0;
+                const bank = parseFloat(el("BankCharges")?.value) || 0;
+                const net = client - bank;
+                const fmt = val => new Intl.NumberFormat('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
+                el("sideNetProfit").textContent = "KES " + fmt(net);
+                // persist net profit into hidden application fee field
+                if (el("hApplicationFee")) el("hApplicationFee").value = net.toFixed(2);
+            }
+
             function backCalculate() {
                 const principal = parseFloat(el("Amount").value) || 0;
                 const days = parseInt(el("Tenor").value) || 0;
@@ -377,6 +408,15 @@
                 cashCoverToggle.addEventListener("change", syncToggles);
                 deferredToggle.addEventListener("change", syncToggles);
                 syncToggles();
+
+                // Wire client/bank charge inputs to recalc net profit and initialize values
+                ["ClientCharges","BankCharges"].forEach(id => {
+                    const eln = el(id);
+                    if (eln) eln.addEventListener("input", updateNetProfit);
+                });
+
+                // Initialize displays
+                try { updateNetProfit(); } catch(e){}
                 runCalc();
             });
         })();
