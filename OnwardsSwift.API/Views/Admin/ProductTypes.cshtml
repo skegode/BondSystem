@@ -1,0 +1,30 @@
+@{ ViewData["Title"] = "Product Types"; }
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div><h1>Product Types</h1><div class="subtitle">Configure the documents the mobile app requires for each bond type</div></div>
+</div>
+
+<div class="content-body">
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead><tr><th>Product Name</th><th>Category</th><th>Documents Configured</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var p in (List<dynamic>)Model)
+                {
+                    <tr>
+                        <td>@p.ProductName</td>
+                        <td class="small text-muted">@(p.ProductType == null ? "—" : p.ProductType.ToString())</td>
+                        <td><span class="badge bg-primary-subtle text-primary">@p.DocumentCount document(s)</span></td>
+                        <td>
+                            <a asp-action="ProductTypeDocuments" asp-route-id="@p.Id" class="btn btn-sm btn-outline-secondary">Manage Documents</a>
+                        </td>
+                    </tr>
+                }
+                @if (!((List<dynamic>)Model).Any())
+                { <tr><td colspan="4" class="text-center text-muted py-4">No product types found</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>

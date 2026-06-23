@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cheque Encashment Application</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    :root{--bg:#f4f6f8;--card:#ffffff;--muted:#6b7280;--accent:#123a70;--accent-2:#0b5bd7}
+    body{font-family:Inter,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:28px;background:var(--bg);color:#0f172a}
+    .container{max-width:980px;margin:0 auto}
+    .card{background:var(--card);padding:20px;border-radius:12px;box-shadow:0 10px 30px rgba(16,24,40,0.06)}
+    .header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px;border-radius:8px;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff}
+    h1{margin:0;font-size:16px}
+    label{display:block;font-weight:600;margin-bottom:6px;color:#06203a}
+    .muted{color:#6b7280;font-size:13px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+    .col{flex:1 1 240px;min-width:160px}
+    input,select,textarea{width:100%;padding:10px;border:1px solid #e6eef6;border-radius:8px;background:#fbfdff;font-size:14px}
+    .line{border-bottom:1px dotted rgba(3,7,18,0.6);padding:8px 6px}
+    .actions{display:flex;gap:12px;justify-content:flex-end;margin-top:14px}
+    button{padding:10px 14px;border-radius:8px;border:0;background:var(--accent-2);color:#fff;cursor:pointer;font-weight:600}
+    button.secondary{background:#eef2f7;color:#0f172a}
+    .small{font-size:13px;color:var(--muted)}
+    @media(max-width:720px){.row{flex-direction:column}}
+  </style>
+</head>
+<body>
+  <div id="tcOverlay" style="position:fixed;inset:0;background:rgba(2,6,23,0.6);display:flex;align-items:center;justify-content:center;z-index:9999">
+    <div style="max-width:880px;width:94%;background:#fff;border-radius:12px;padding:18px;box-shadow:0 20px 50px rgba(2,6,23,0.5);max-height:86vh;overflow:auto">
+      <h2 style="margin-top:0;color:var(--accent)">Terms &amp; Conditions — Cheque Encashment</h2>
+      <div style="font-size:14px;color:#111827;line-height:1.45;">
+        <p>For collection by themselves and hereby agree and undertake that:-</p>
+        <ol>
+          <li>I confirm and undertake that if the Cheque(s) above is/are not honored for whatever reason I shall upon demand of not less than Seven (7) days from the date of such demand repay the cash collected plus interest at 5% for every 2 weeks and any other charges incurred in respect to the Cheque(s) not being honored to Onwards Swift Company Limited.</li>
+          <li>I agree and undertake that if the Cheque(s) mentioned is/are not honored for whatever reason, I hereby give a personal guarantee and pledge my personal and or family household assets namely: Refrigerator, Television Set, Radio and other electronics, Microwave, Dining table and chairs, Gas cooker, Beds and/or any other additional assets as may be sufficient to repay the cash advanced to me such as motor vehicles and I hereby waive any claims of ownership of the said assets by any third party whatsoever, PROVIDED THAT any attachment of my assets a seven (7) days’ notice shall be given before sale is made by private treaty and/or public auction whichever ONWARDS SWIFT  COMPANY LIMITED may deem fit.</li>
+          <li>Any request and demand made upon ONWARDS SWIFT  COMPANY LIMITED by any person(s) legally entitled to the Cheque(s) shall be sufficient authority to ONWARDS SWIFT  COMPANY LIMITED to make good such proceeds through recovery from myself.</li>
+          <li>I indemnify ONWARDS SWIFT  COMPANY LIMITED from and against all action, proceeding, damages, costs, claims, demands or losses which you may suffer, incur or sustain or are made to you by reason or on your account having agreed that the Cheque(s) be endorsed to you or otherwise in the premises however.</li>
+          <li>Cheque(s) represent genuine trade transactions and I shall be fully responsible for any discrepancies in the Cheque(s).</li>
+          <li>THAT In the event of bankruptcy liquidation, analogous proceedings, or any other reason, or the inability of myself, or the drawer, at any time to any the Cheque(s) as and of when it falls due (such occurrence to be decided by ONWARDS SWIFT  COMPANY LIMITED at its discretion), I will become liable to pay you the face value of the Cheque(s) together with all charges and penalties as per clause (i) above.</li>
+          <li>In case the amount of the Cheque(s) is/are attached or held by a Court of law for any reason, I shall repay you all due sums on first demand.</li>
+          <li>I have read and fully understood the terms and conditions of this letter of indemnity without any coercion whatsoever and undertake to abide strictly by the said terms and conditions.</li>
+          <li>I acknowledge and consent that the information provided, pursuant to this transaction, shall be handled, processed, stored in accordance with ONWARDS SWIFT Data Privacy statement available in our website www.onwardsswift.co.ke from time to time.</li>
+        </ol>
+
+        <h3>ACCEPTANCE</h3>
+        <p>I, <input id="tcNameInput" name="tcNameInput" placeholder="Full name" style="border:1px solid #e6eef6;padding:6px;border-radius:6px;width:260px" />, of I.D Number <input id="tcIdInput" name="tcIdInput" placeholder="ID / Passport No." style="border:1px solid #e6eef6;padding:6px;border-radius:6px;width:160px" /> being an adult of sound mind and legal capacity, do hereby appoint Onwards Swift Limited to act as Debt Collection Agent in case of default by the Drawer. I also hereby confirm acceptance of the above Indemnity having read and had a chance to seek independent advise thereof and fully understood the terms and conditions thereof. I further acknowledge-that I have not been induced to sign this indemnity by any representations made to me by the said firm aforesaid and/or its agents and I will not be entitled to a cancellation or variation of this indemnity on any grounds whatsoever, except a herein provided or by further mutual agreement. I therefore append my signature hereto having fully understood its full implications and effect.</p>
+
+        <div style="display:flex;gap:12px;align-items:center;margin-top:12px">
+          <input id="acceptTc" type="checkbox" style="width:18px;height:18px" />
+          <label for="acceptTc" style="margin:0;font-weight:600">I have read and accept the Terms &amp; Conditions</label>
+        </div>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+          <button id="tcDecline" style="background:#ef4444;color:#fff;padding:8px 12px;border-radius:8px;border:0">Decline</button>
+          <button id="tcAccept" style="background:var(--accent-2);color:#fff;padding:8px 12px;border-radius:8px;border:0" disabled>Accept & Continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <h1>CHEQUE ENCASHMENT APPLICATION FORM</h1>
+        <div class="small">Please complete all fields and attach cheque copy</div>
+      </div>
+
+      <form id="chequeForm" style="margin-top:14px">
+        <input type="hidden" id="tcName" name="tcName" />
+        <input type="hidden" id="tcId" name="tcId" />
+        <input type="hidden" id="clientId" name="clientId" />
+        <h3 style="margin:12px 0 6px;color:var(--accent)">Applicant / Payee</h3>
+        <div class="row">
+          <div class="col">
+            <label for="appName">Name</label>
+            <input id="appName" name="appName" />
+            <div style="margin-top:6px">
+              <input id="clientSearch" placeholder="Search client by name or ID" style="width:100%;padding:8px;border:1px solid #e6eef6;border-radius:6px" />
+              <div id="clientResults" style="background:#fff;border:1px solid #e6eef6;border-radius:6px;margin-top:6px;display:none;max-height:180px;overflow:auto"></div>
+            </div>
+          </div>
+          <div class="col">
+            <label for="appPostal">Postal Address</label>
+            <input id="appPostal" name="appPostal" />
+          </div>
+          <div class="col">
+            <label for="appPhone">Phone</label>
+            <input id="appPhone" name="appPhone" />
+          </div>
+        </div>
+
+        <h3 style="margin:12px 0 6px;color:var(--accent)">Account / ID</h3>
+        <div class="row">
+          <div class="col">
+            <label for="accountNo">Account No.</label>
+            <input id="accountNo" name="accountNo" />
+          </div>
+          <div class="col">
+            <label for="idNo">ID / Passport No.</label>
+            <input id="idNo" name="idNo" />
+          </div>
+          <div class="col">
+            <label for="bankName">Bank</label>
+            <input id="bankName" name="bankName" />
+          </div>
+        </div>
+
+        <h3 style="margin:12px 0 6px;color:var(--accent)">Cheque(s) Details</h3>
+        <div style="overflow:auto;border:1px solid #eef2f7;border-radius:8px;padding:8px;background:#fbfdff;margin-bottom:12px">
+          <table id="chequeTable" style="width:100%;border-collapse:collapse;font-size:14px">
+            <thead>
+              <tr style="background:#f1f5f9;color:#0f172a">
+                <th style="padding:8px;border-bottom:1px solid #e6eef6;width:40px;text-align:left">No.</th>
+                <th style="padding:8px;border-bottom:1px solid #e6eef6;text-align:left">Cheque Number</th>
+                <th style="padding:8px;border-bottom:1px solid #e6eef6;text-align:left">Amount in KES (in Figures)</th>
+                <th style="padding:8px;border-bottom:1px solid #e6eef6;text-align:left">Dated (dd/mm/yy)</th>
+                <th style="padding:8px;border-bottom:1px solid #e6eef6;text-align:left">Drawer</th>
+                <th style="padding:8px;border-bottom:1px solid #e6eef6;text-align:left">Bank</th>
+                <th style="padding:8px;border-bottom:1px solid #e6eef6;text-align:left">Branch</th>
+                <th style="padding:8px;border-bottom:1px solid #e6eef6;text-align:left">Payee</th>
+                <th style="padding:8px;border-bottom:1px solid #e6eef6;width:80px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:6px">1</td>
+                <td style="padding:6px"><input class="tbl cheque-number" placeholder="Cheque #" /></td>
+                <td style="padding:6px"><input class="tbl amount-fig" placeholder="0.00" /></td>
+                <td style="padding:6px"><input type="date" class="tbl dated" /></td>
+                <td style="padding:6px"><input class="tbl drawer" placeholder="Drawer" /></td>
+                <td style="padding:6px"><input class="tbl bank" placeholder="Bank" /></td>
+                <td style="padding:6px"><input class="tbl branch" placeholder="Branch" /></td>
+                <td style="padding:6px"><input class="tbl payee" placeholder="Payee" /></td>
+                <td style="padding:6px"><button type="button" class="remove-row" style="background:#ef4444;color:#fff;border-radius:6px;padding:6px 8px;border:0">Remove</button></td>
+              </tr>
+              <tr>
+                <td style="padding:6px">2</td>
+                <td style="padding:6px"><input class="tbl cheque-number" placeholder="Cheque #" /></td>
+                <td style="padding:6px"><input class="tbl amount-fig" placeholder="0.00" /></td>
+                <td style="padding:6px"><input type="date" class="tbl dated" /></td>
+                <td style="padding:6px"><input class="tbl drawer" placeholder="Drawer" /></td>
+                <td style="padding:6px"><input class="tbl bank" placeholder="Bank" /></td>
+                <td style="padding:6px"><input class="tbl branch" placeholder="Branch" /></td>
+                <td style="padding:6px"><input class="tbl payee" placeholder="Payee" /></td>
+                <td style="padding:6px"><button type="button" class="remove-row" style="background:#ef4444;color:#fff;border-radius:6px;padding:6px 8px;border:0">Remove</button></td>
+              </tr>
+              <tr>
+                <td style="padding:6px">3</td>
+                <td style="padding:6px"><input class="tbl cheque-number" placeholder="Cheque #" /></td>
+                <td style="padding:6px"><input class="tbl amount-fig" placeholder="0.00" /></td>
+                <td style="padding:6px"><input type="date" class="tbl dated" /></td>
+                <td style="padding:6px"><input class="tbl drawer" placeholder="Drawer" /></td>
+                <td style="padding:6px"><input class="tbl bank" placeholder="Bank" /></td>
+                <td style="padding:6px"><input class="tbl branch" placeholder="Branch" /></td>
+                <td style="padding:6px"><input class="tbl payee" placeholder="Payee" /></td>
+                <td style="padding:6px"><button type="button" class="remove-row" style="background:#ef4444;color:#fff;border-radius:6px;padding:6px 8px;border:0">Remove</button></td>
+              </tr>
+              <tr>
+                <td style="padding:6px">4</td>
+                <td style="padding:6px"><input class="tbl cheque-number" placeholder="Cheque #" /></td>
+                <td style="padding:6px"><input class="tbl amount-fig" placeholder="0.00" /></td>
+                <td style="padding:6px"><input type="date" class="tbl dated" /></td>
+                <td style="padding:6px"><input class="tbl drawer" placeholder="Drawer" /></td>
+                <td style="padding:6px"><input class="tbl bank" placeholder="Bank" /></td>
+                <td style="padding:6px"><input class="tbl branch" placeholder="Branch" /></td>
+                <td style="padding:6px"><input class="tbl payee" placeholder="Payee" /></td>
+                <td style="padding:6px"><button type="button" class="remove-row" style="background:#ef4444;color:#fff;border-radius:6px;padding:6px 8px;border:0">Remove</button></td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
+            <button type="button" id="addRow" style="background:#0b5bd7;color:#fff;border-radius:8px;padding:8px 12px;border:0">Add row</button>
+          </div>
+        </div>
+
+        <h3 style="margin:12px 0 6px;color:var(--accent)">Purpose</h3>
+        <div style="margin-bottom:10px">
+          <textarea id="purpose" name="purpose" rows="3" style="resize:vertical"></textarea>
+        </div>
+
+        <h3 style="margin:12px 0 6px;color:var(--accent)">Attachments</h3>
+        <div class="small" style="margin-bottom:8px">Attach scanned cheque and ID document (PDF/JPG/PNG)</div>
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            <div style="flex:1">
+              <h3 style="margin:0 0 8px;color:var(--accent)">Documents required (Cheque Discounting)</h3>
+              <div style="background:#f8fafc;border:1px solid #e6eef6;padding:12px;border-radius:8px;color:#0f172a;font-size:14px;line-height:1.45">
+                <strong>1. Individual cheques from a reputable institution</strong>
+                <ul>
+                  <li>Original copy of the cheque (must be current; no post-dated cheques)</li>
+                  <li>Original identity card of the payee</li>
+                  <li>KRA PIN of the director</li>
+                  <li>Supporting document validating the payment</li>
+                </ul>
+
+                <strong>2. Company cheque from a reputable institution</strong>
+                <ul>
+                  <li>Company KRA PIN certificate</li>
+                  <li>Certificate of registration / incorporation</li>
+                  <li>Directors PIN certificate</li>
+                  <li>Original Directors' identity card</li>
+                  <li>CR-12</li>
+                  <li>Board resolution on company letterhead signed by all directors agreeing on discounting their cheques and the mandate on each transaction</li>
+                  <li>Supporting document validating the payment</li>
+                </ul>
+
+                <strong>Charges</strong>
+                <ul>
+                  <li>Charges: 5% on the cheque amount</li>
+                  <li>Minimum charges: Ksh. 300</li>
+                </ul>
+
+                <strong>Bounced cheque</strong>
+                <ul>
+                  <li>Charges — Ksh. 5,000</li>
+                  <li>Replacement of the cheque should be immediate</li>
+                </ul>
+              </div>
+            </div>
+            <div style="width:360px">
+              <h3 style="margin:0 0 8px;color:var(--accent)">Attachments</h3>
+              <div style="font-size:13px;color:#444;margin-bottom:8px">Please attach scanned cheque and required KYC documents — PDF / JPG / PNG. Max 10MB each.</div>
+              <input type="file" id="attachment1" name="attachments" accept="application/pdf,image/*" multiple />
+              <div id="attachmentList" style="margin-top:8px;font-size:13px;color:#374151"></div>
+            </div>
+          </div>
+
+        <h3 style="margin:12px 0 6px;color:var(--accent)">Declaration & Signature</h3>
+        <p class="small">I/We confirm the information provided is true. I/We authorise Onwards Swift to encash the cheque on my behalf.</p>
+        <div class="row">
+          <div class="col">
+            <label for="sigName">Name</label>
+            <input id="sigName" name="sigName" />
+          </div>
+          <div class="col">
+            <label for="sigRole">Role</label>
+            <input id="sigRole" name="sigRole" />
+          </div>
+          <div class="col">
+            <label for="sigDate">Date</label>
+            <input id="sigDate" name="sigDate" type="date" />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" id="preview">Preview</button>
+          <button type="button" id="generateOfficial" style="background:#0a66c2">Generate Official Use Document</button>
+          <button type="submit">Submit</button>
+          <button type="button" class="secondary" id="resetBtn">Reset</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('chequeForm');
+    document.getElementById('resetBtn').addEventListener('click', ()=>{ form.reset(); attachmentsStore.length = 0; renderAttachmentList(); });
+    
+    // Terms & Conditions overlay logic
+    const tcOverlay = document.getElementById('tcOverlay');
+    const acceptCheckbox = document.getElementById('acceptTc');
+    const tcAcceptBtn = document.getElementById('tcAccept');
+    const tcDeclineBtn = document.getElementById('tcDecline');
+    const tcNameInput = document.getElementById('tcNameInput');
+    const tcIdInput = document.getElementById('tcIdInput');
+    const tcNameHidden = document.getElementById('tcName');
+    const tcIdHidden = document.getElementById('tcId');
+
+    function updateAcceptState(){
+      const ok = acceptCheckbox.checked && tcNameInput.value.trim().length>0 && tcIdInput.value.trim().length>0;
+      tcAcceptBtn.disabled = !ok;
+    }
+
+    // Client search autocomplete
+    const clientSearch = document.getElementById('clientSearch');
+    const clientResults = document.getElementById('clientResults');
+    const clientIdHidden = document.getElementById('clientId');
+    let clientTimer = 0;
+    if(clientSearch){
+      clientSearch.addEventListener('input', (e)=>{
+        const q = e.target.value.trim();
+        clearTimeout(clientTimer);
+        if(q.length < 2){ clientResults.style.display='none'; return; }
+        clientTimer = setTimeout(async ()=>{
+          try{
+            const res = await fetch('/api/clients/search?q='+encodeURIComponent(q));
+            if(!res.ok) return;
+            const data = await res.json();
+            if(!Array.isArray(data) || data.length===0){ clientResults.innerHTML='<div style="padding:8px;color:#6b7280">No clients</div>'; clientResults.style.display='block'; return; }
+            clientResults.innerHTML = data.map(c=>`<div class="client-hit" data-id="${c.id}" style="padding:8px;border-bottom:1px solid #eef2f7;cursor:pointer"><strong>${c.name}</strong><div class="small" style="color:#6b7280">ID: ${c.idNumber || ''} • ${c.phone || ''}</div></div>`).join('');
+            clientResults.style.display='block';
+          }catch(err){ /* ignore */ }
+        }, 300);
+      });
+
+      clientResults.addEventListener('click', (ev)=>{
+        const hit = ev.target.closest('.client-hit');
+        if(!hit) return;
+        const id = hit.getAttribute('data-id');
+        const name = hit.querySelector('strong')?.textContent || '';
+        const idnum = hit.querySelector('.small')?.textContent || '';
+        clientIdHidden.value = id;
+        document.getElementById('appName').value = name;
+        // optionally fill ID field if available
+        const idNumberMatch = idnum.match(/ID:\s*([^•]+)/);
+        if(idNumberMatch) document.getElementById('idNo').value = idNumberMatch[1].trim();
+        clientResults.style.display='none';
+      });
+    }
+
+    // enable Accept button only when checkbox checked and inputs filled
+    acceptCheckbox.addEventListener('change', updateAcceptState);
+    tcNameInput.addEventListener('input', updateAcceptState);
+    tcIdInput.addEventListener('input', updateAcceptState);
+
+    tcDeclineBtn.addEventListener('click', ()=>{
+      alert('You must accept the Terms & Conditions to continue.');
+    });
+
+    tcAcceptBtn.addEventListener('click', ()=>{
+      // copy values into hidden form fields so they are submitted
+      tcNameHidden.value = tcNameInput.value.trim();
+      tcIdHidden.value = tcIdInput.value.trim();
+      tcOverlay.style.display = 'none';
+    });
+
+    // Cheque table row management
+    const chequeTable = document.getElementById('chequeTable').getElementsByTagName('tbody')[0];
+    document.getElementById('addRow').addEventListener('click', ()=>{
+      const nextIndex = chequeTable.rows.length + 1;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="padding:6px">${nextIndex}</td>
+        <td style="padding:6px"><input class="tbl cheque-number" placeholder="Cheque #" /></td>
+        <td style="padding:6px"><input class="tbl amount-fig" placeholder="0.00" /></td>
+        <td style="padding:6px"><input type="date" class="tbl dated" /></td>
+        <td style="padding:6px"><input class="tbl drawer" placeholder="Drawer" /></td>
+        <td style="padding:6px"><input class="tbl bank" placeholder="Bank" /></td>
+        <td style="padding:6px"><input class="tbl branch" placeholder="Branch" /></td>
+        <td style="padding:6px"><input class="tbl payee" placeholder="Payee" /></td>
+        <td style="padding:6px"><button type="button" class="remove-row" style="background:#ef4444;color:#fff;border-radius:6px;padding:6px 8px;border:0">Remove</button></td>
+      `;
+      chequeTable.appendChild(tr);
+    });
+
+    // delegate remove
+    chequeTable.addEventListener('click', (e)=>{
+      if(e.target && e.target.classList.contains('remove-row')){
+        const row = e.target.closest('tr');
+        row.remove();
+        // renumber
+        Array.from(chequeTable.rows).forEach((r,i)=> r.cells[0].textContent = (i+1).toString());
+      }
+    });
+
+    // Attachment multiple files UI (store files in-memory so users can add/remove)
+    const attachmentInput = document.getElementById('attachment1');
+    const attachmentList = document.getElementById('attachmentList');
+    const attachmentsStore = [];
+    function renderAttachmentList(){
+      if(attachmentsStore.length === 0){ attachmentList.innerHTML = '<span class="small">No files selected</span>'; return; }
+      attachmentList.innerHTML = attachmentsStore.map((f,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #eef2f7"><div>${i+1}. ${f.name} (${Math.round(f.size/1024)} KB)</div><button data-idx="${i}" class="remove-attachment" style="background:#ef4444;color:#fff;border:0;border-radius:6px;padding:4px 8px">Remove</button></div>`).join('');
+    }
+    if(attachmentInput){
+      attachmentInput.addEventListener('change', (e)=>{
+        const files = Array.from(e.target.files || []);
+        // append new files to store
+        files.forEach(f=> attachmentsStore.push(f));
+        renderAttachmentList();
+        // clear the input so same file can be re-added if needed
+        attachmentInput.value = '';
+      });
+      // remove handler (event delegation)
+      attachmentList.addEventListener('click', (ev)=>{
+        const btn = ev.target.closest('.remove-attachment');
+        if(!btn) return;
+        const idx = Number(btn.getAttribute('data-idx'));
+        if(!Number.isFinite(idx)) return;
+        attachmentsStore.splice(idx,1);
+        renderAttachmentList();
+      });
+    }
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(form);
+      const data = {};
+      fd.forEach((v,k)=>{ if(v instanceof File) return; data[k]=v; });
+      // collect cheques
+      const cheques = [];
+      Array.from(chequeTable.rows).forEach(row=>{
+        const cNo = row.querySelector('.cheque-number')?.value || '';
+        const amt = row.querySelector('.amount-fig')?.value || '';
+        const dated = row.querySelector('.dated')?.value || '';
+        const drawer = row.querySelector('.drawer')?.value || '';
+        const bank = row.querySelector('.bank')?.value || '';
+        const branch = row.querySelector('.branch')?.value || '';
+        const payee = row.querySelector('.payee')?.value || '';
+        // only include non-empty rows
+        if(cNo || amt || dated || drawer || bank || branch || payee){
+          cheques.push({ chequeNumber: cNo, amountKES: amt, dated, drawer, bank, branch, payee });
+        }
+      });
+      data.cheques = cheques;
+      data.formType = 'cheque-encashment';
+      // include acceptance metadata
+      const accepted = document.getElementById('acceptTc')?.checked ? true : false;
+      data.tcAccepted = accepted;
+      // include attachments metadata (names, sizes) since files aren't uploaded in this JSON flow
+      const files = Array.from(document.getElementById('attachment1')?.files || []);
+      data.attachments = files.map(f=>({ name: f.name, size: f.size, type: f.type }));
+      try{
+        // If files selected in attachmentsStore, submit multipart/form-data to save files
+        const files = attachmentsStore.slice();
+        if(files.length){
+          const mf = new FormData();
+          // append form fields
+          Object.entries(data).forEach(([k,v])=>{
+            if(k === 'cheques' || k === 'attachments') return; // handled separately
+            mf.append(k, v ?? '');
+          });
+          // append cheques as JSON string
+          mf.append('cheques', JSON.stringify(data.cheques || []));
+          // append files
+          files.forEach(f=> mf.append('files', f, f.name));
+
+          const res = await fetch('/api/forms/submit-multipart', { method: 'POST', body: mf });
+          if(res.ok){ alert('Submitted and files uploaded'); form.reset(); attachmentsStore.length = 0; renderAttachmentList(); }
+          else { alert('Server error: '+await res.text()); }
+        } else {
+          const res = await fetch('/api/forms/submit',{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify(data)});
+          if(res.ok){ alert('Submitted'); form.reset(); attachmentsStore.length = 0; renderAttachmentList(); } else { alert('Error: '+await res.text()); }
+        }
+      }catch(err){ alert('Network error: '+err.message); }
+    });
+    document.getElementById('preview').addEventListener('click', ()=>{
+      // Build preview data similar to submit
+      const data = {};
+      const fd = new FormData(form);
+      fd.forEach((v,k)=>{ if(v instanceof File) return; data[k]=v; });
+
+      // cheques
+      const cheques = [];
+      Array.from(chequeTable.rows).forEach(row=>{
+        const cNo = row.querySelector('.cheque-number')?.value || '';
+        const amt = row.querySelector('.amount-fig')?.value || '';
+        const dated = row.querySelector('.dated')?.value || '';
+        const drawer = row.querySelector('.drawer')?.value || '';
+        const bank = row.querySelector('.bank')?.value || '';
+        const branch = row.querySelector('.branch')?.value || '';
+        const payee = row.querySelector('.payee')?.value || '';
+        if(cNo || amt || dated || drawer || bank || branch || payee){
+          cheques.push({ chequeNumber: cNo, amountKES: amt, dated, drawer, bank, branch, payee });
+        }
+      });
+      data.cheques = cheques;
+
+      // attachments (use attachmentsStore)
+      data.attachments = attachmentsStore.map(f=>({ name: f.name, size: f.size, type: f.type }));
+
+      data.tcAccepted = document.getElementById('acceptTc')?.checked ? true : false;
+
+      // Render preview HTML
+      const rows = Object.keys(data).filter(k=>k!=='cheques' && k!=='attachments').map(k=>`<tr><th style="text-align:left;padding:6px;border-bottom:1px solid #eee">${k}</th><td style="padding:6px;border-bottom:1px solid #eee">${data[k]}</td></tr>`);
+      const chequeRows = data.cheques.map((c,i)=>`<tr><td style="padding:6px;border-bottom:1px solid #eee">${i+1}</td><td style="padding:6px;border-bottom:1px solid #eee">${c.chequeNumber}</td><td style="padding:6px;border-bottom:1px solid #eee">${c.amountKES}</td><td style="padding:6px;border-bottom:1px solid #eee">${c.dated}</td><td style="padding:6px;border-bottom:1px solid #eee">${c.drawer}</td><td style="padding:6px;border-bottom:1px solid #eee">${c.bank}</td><td style="padding:6px;border-bottom:1px solid #eee">${c.branch}</td><td style="padding:6px;border-bottom:1px solid #eee">${c.payee}</td></tr>`).join('');
+      const attachmentsHtml = data.attachments.length ? data.attachments.map(a=>`<li>${a.name} (${Math.round(a.size/1024)} KB)</li>`).join('') : '<li>No attachments selected</li>';
+
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>Preview</title><style>body{font-family:Inter,Arial;color:#0f172a;padding:18px}table{border-collapse:collapse;width:100%;margin-bottom:16px}th,td{font-size:14px}</style></head><body><h2>Cheque Encashment Preview</h2><h3>Submission Details</h3><table>${rows.join('')}</table><h3>Cheques</h3><table><thead><tr><th style="text-align:left;padding:6px">No.</th><th style="text-align:left;padding:6px">Cheque Number</th><th style="text-align:left;padding:6px">Amount (KES)</th><th style="text-align:left;padding:6px">Dated</th><th style="text-align:left;padding:6px">Drawer</th><th style="text-align:left;padding:6px">Bank</th><th style="text-align:left;padding:6px">Branch</th><th style="text-align:left;padding:6px">Payee</th></tr></thead><tbody>${chequeRows || '<tr><td colspan="8" style="padding:6px">No cheques entered</td></tr>'}</tbody></table><h3>Attachments</h3><ul>${attachmentsHtml}</ul><h3>Terms &amp; Conditions accepted</h3><p>${data.tcAccepted ? 'Yes' : 'No'}</p></body></html>`;
+      const w = window.open('','_blank'); w.document.write(html); w.document.close();
+    });
+    // Generate Official Use document (PDF)
+    document.getElementById('generateOfficial').addEventListener('click', async ()=>{
+      const fd = new FormData(form);
+      const data = {};
+      fd.forEach((v,k)=>{ if(v instanceof File) return; data[k]=v; });
+      // collect cheques
+      const cheques = [];
+      Array.from(chequeTable.rows).forEach(row=>{
+        const cNo = row.querySelector('.cheque-number')?.value || '';
+        const amt = row.querySelector('.amount-fig')?.value || '';
+        const dated = row.querySelector('.dated')?.value || '';
+        const drawer = row.querySelector('.drawer')?.value || '';
+        const bank = row.querySelector('.bank')?.value || '';
+        const branch = row.querySelector('.branch')?.value || '';
+        const payee = row.querySelector('.payee')?.value || '';
+        if(cNo || amt || dated || drawer || bank || branch || payee){
+          cheques.push({ chequeNumber: cNo, amountKES: amt, dated, drawer, bank, branch, payee });
+        }
+      });
+      data.cheques = cheques;
+      try{
+        const res = await fetch('/api/forms/export-official', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+        if(!res.ok){ const t = await res.text(); alert('Error generating document: '+t); return; }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'official-use.pdf'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      }catch(err){ alert('Network error: '+err.message); }
+    });
+  </script>
+</body>
+</html>

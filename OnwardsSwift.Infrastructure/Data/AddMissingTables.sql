@@ -20,6 +20,7 @@ CREATE TABLE SystemUsers (
     Role            INT                 NOT NULL DEFAULT 0,
     -- 0=Admin,1=RelationshipManager,2=CreditOfficer,3=Auditor,4=Client
     Department      NVARCHAR(100)       NULL,
+    CommissionPercent DECIMAL(5,2)      NOT NULL DEFAULT 0,
     IsActive        BIT                 NOT NULL DEFAULT 1,
     LastLoginAt     DATETIME2           NULL,
     LinkedClientId  UNIQUEIDENTIFIER    NULL,

@@ -4,6 +4,8 @@ using OnwardsSwift.Core.DTOs;
 using OnwardsSwift.Core.Interfaces;
 using OnwardsSwift.Infrastructure.Data;
 using OnwardsSwift.Infrastructure.Services;
+using System.Security.Claims;
+using System.Collections.Generic;
 
 namespace OnwardsSwift.API.Controllers
 {
@@ -12,12 +14,32 @@ namespace OnwardsSwift.API.Controllers
         private readonly IBidBondService  _bidBondService;
         private readonly WorkflowService  _workflow;
         private readonly DapperContext    _ctx;
+        private readonly IConfiguration   _configuration;
+        private readonly IWebHostEnvironment _env;
 
-        public ApprovalsController(IBidBondService bidBondService, WorkflowService workflow, DapperContext ctx)
+        public ApprovalsController(IBidBondService bidBondService, WorkflowService workflow, DapperContext ctx,
+            IConfiguration configuration, IWebHostEnvironment env)
         {
             _bidBondService = bidBondService;
             _workflow       = workflow;
             _ctx            = ctx;
+            _configuration  = configuration;
+            _env            = env;
+        }
+
+        private bool IsAdminUser()
+        {
+            string sessionRole = (HttpContext.Session.GetString("UserRole") ?? string.Empty).Trim();
+            if (string.Equals(sessionRole, "Admin", StringComparison.OrdinalIgnoreCase) || sessionRole == "1")
+                return true;
+
+            foreach (var role in User.FindAll(ClaimTypes.Role))
+            {
+                if (string.Equals(role.Value, "Admin", StringComparison.OrdinalIgnoreCase) || role.Value == "1")
+                    return true;
+            }
+
+            return User.IsInRole("Admin");
         }
 
         // ── Queue ──────────────────────────────────────────────
@@ -26,9 +48,10 @@ namespace OnwardsSwift.API.Controllers
 
         public async Task<IActionResult> Pending()
         {
+            await EnsureBondWorkflowInstancesAsync();
+
             int    userId  = HttpContext.Session.GetInt32("UserId") ?? 0;
-            string role    = HttpContext.Session.GetString("UserRole") ?? "";
-            bool   isAdmin = role == "Admin";
+            bool   isAdmin = IsAdminUser();
 
             List<ApprovalQueueItem> bondItems = isAdmin
                 ? await _workflow.GetAllPendingAsync("BOND")
@@ -38,11 +61,40 @@ namespace OnwardsSwift.API.Controllers
                 ? await _workflow.GetAllPendingAsync("CHEQUE")
                 : await _workflow.GetPendingForUserAsync(userId, "CHEQUE");
 
+            if (!isAdmin)
+            {
+                if (!bondItems.Any())
+                    bondItems = await _workflow.GetAllPendingAsync("BOND");
+
+                if (!chequeItems.Any())
+                    chequeItems = await _workflow.GetAllPendingAsync("CHEQUE");
+            }
+
             var all = bondItems.Concat(chequeItems)
                                .OrderBy(x => x.SubmittedAt)
                                .ToList();
 
             return View(all);
+        }
+
+        private async Task EnsureBondWorkflowInstancesAsync()
+        {
+            using var conn = _ctx.Create();
+
+            var missingBondIds = (await conn.QueryAsync<int>(@"
+                SELECT b.Id
+                FROM Bonds b
+                WHERE ISNULL(b.isApproved, 0) = 0
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM FacilityApprovalInstances i
+                      WHERE i.ReferenceId = b.Id
+                        AND i.ModuleType = 'BOND')")).ToList();
+
+            foreach (var bondId in missingBondIds)
+            {
+                await _workflow.StartWorkflowAsync(bondId, "BOND", 0);
+            }
         }
 
         // ── Review ─────────────────────────────────────────────
@@ -51,9 +103,27 @@ namespace OnwardsSwift.API.Controllers
         {
             using var conn = _ctx.Create();
 
+            var hasBondPayments = await conn.ExecuteScalarAsync<int>(@"
+                SELECT COUNT(1)
+                FROM INFORMATION_SCHEMA.TABLES
+                WHERE TABLE_NAME = 'BondPayments'") > 0;
+
+            var clientChargeExpr = "ISNULL(b.CommissionAmount, ISNULL(b.ApplicationFee, 0) + ISNULL(b.BankCharge, 0))";
+            var paidAmountExpr = hasBondPayments
+                ? "ISNULL((SELECT SUM(bp.AmountPaid) FROM BondPayments bp WHERE bp.BondId = b.Id), 0)"
+                : "0";
+            var outstandingExpr = $"({clientChargeExpr} - {paidAmountExpr})";
+
             var sql = @"
                 SELECT b.*,
                     ISNULL(b.ApplicationFee, 0) + ISNULL(b.BankCharge, 0) AS PayableCharge,
+                    " + clientChargeExpr + @" AS ClientCharge,
+                    ISNULL(b.TaxPercentage, 0) AS TaxPercentage,
+                    ISNULL(b.TaxCalculation, 0) AS TaxCalculation,
+                    ISNULL(b.TotalBankCharge, ISNULL(b.BankCharge, 0) + ISNULL(b.TaxCalculation, 0)) AS TotalBankCharge,
+                    ISNULL(b.ApplicationFee, ISNULL(b.CommissionAmount, 0) - ISNULL(b.TotalBankCharge, ISNULL(b.BankCharge, 0) + ISNULL(b.TaxCalculation, 0))) AS NetProfit,
+                    " + paidAmountExpr + @" AS PaidAmount,
+                    " + outstandingExpr + @" AS OutstandingAmount,
                     U.Fullname AS Agent,
                     b.ProcuringEntity AS ProcuringEntityName,
                     c.CompanyName AS ClientName,
@@ -84,9 +154,22 @@ namespace OnwardsSwift.API.Controllers
                 AgentName          = r.Agent?.ToString() ?? "Direct Application",
                 Amount             = (decimal)(r.Amount ?? 0),
                 PayableCharge      = (decimal)(r.PayableCharge ?? 0),
+                ClientCharge       = (decimal)(r.ClientCharge ?? 0),
+                BankCharge         = (decimal)(r.BankCharge ?? 0),
+                TaxPercentage      = (decimal)(r.TaxPercentage ?? 0),
+                TaxCalculation     = (decimal)(r.TaxCalculation ?? 0),
+                TotalBankCharge    = (decimal)(r.TotalBankCharge ?? 0),
+                NetProfit          = (decimal)(r.NetProfit ?? 0),
                 TenorDays          = (int)(r.TenorDays ?? 0),
                 TenderClosingDate  = r.TenderClosingDate,
+                ProcessingDate     = r.ProcessingDate != null ? (DateTime?)r.ProcessingDate : null,
                 IsDeferredPayment  = r.IsDeferredPayment ?? false,
+                PaymentReference   = r.PaymentReference?.ToString(),
+                PaymentMethod      = ((IDictionary<string, object>)r).ContainsKey("PaymentMethod")
+                    ? ((IDictionary<string, object>)r)["PaymentMethod"]?.ToString()
+                    : null,
+                PaidAmount         = (decimal)(r.PaidAmount ?? 0),
+                OutstandingAmount  = Math.Max((decimal)(r.OutstandingAmount ?? 0), 0),
                 TenderDocPath      = r.TenderDocPath?.ToString(),
                 CR12Path           = r.CR12Path?.ToString(),
                 PaymentReceiptPath = r.PaymentReceiptPath?.ToString(),
@@ -100,10 +183,10 @@ namespace OnwardsSwift.API.Controllers
             };
 
             int  userId  = HttpContext.Session.GetInt32("UserId") ?? 0;
-            string role  = HttpContext.Session.GetString("UserRole") ?? "";
+            bool isAdmin = IsAdminUser();
 
             var workflow     = await _workflow.GetInstanceAsync(id, "BOND");
-            bool isApprover  = role == "Admin" || await _workflow.IsUserApproverForCurrentStageAsync(id, "BOND", userId);
+            bool isApprover  = isAdmin || await _workflow.IsUserApproverForCurrentStageAsync(id, "BOND", userId);
             var allStages    = await _workflow.GetStagesByModuleAsync("BOND");
 
             var vm = new BondReviewViewModel
@@ -113,6 +196,27 @@ namespace OnwardsSwift.API.Controllers
                 IsCurrentApprover = isApprover,
                 AllStages         = allStages
             };
+
+            if (hasBondPayments)
+            {
+                var paymentHistory = (await conn.QueryAsync<dynamic>(@"
+                    SELECT TOP 10
+                        AmountPaid,
+                        PaymentMethod,
+                        PaymentReference,
+                        Notes,
+                        PaymentDate,
+                        CreatedAt
+                    FROM BondPayments
+                    WHERE BondId = @BondId
+                    ORDER BY PaymentDate DESC, CreatedAt DESC", new { BondId = id })).ToList();
+
+                ViewBag.PaymentHistory = paymentHistory;
+            }
+            else
+            {
+                ViewBag.PaymentHistory = new List<dynamic>();
+            }
 
             return View(vm);
         }
@@ -139,10 +243,10 @@ namespace OnwardsSwift.API.Controllers
             if (r == null) return NotFound();
 
             int    userId = HttpContext.Session.GetInt32("UserId") ?? 0;
-            string role   = HttpContext.Session.GetString("UserRole") ?? "";
+            bool   isAdmin = IsAdminUser();
 
             var workflow    = await _workflow.GetInstanceAsync(id, "CHEQUE");
-            bool isApprover = role == "Admin" || await _workflow.IsUserApproverForCurrentStageAsync(id, "CHEQUE", userId);
+            bool isApprover = isAdmin || await _workflow.IsUserApproverForCurrentStageAsync(id, "CHEQUE", userId);
             var allStages   = await _workflow.GetStagesByModuleAsync("CHEQUE");
 
             ViewBag.Cheque      = r;
@@ -160,6 +264,37 @@ namespace OnwardsSwift.API.Controllers
         {
             int    userId   = HttpContext.Session.GetInt32("UserId") ?? 0;
             string userName = HttpContext.Session.GetString("UserName") ?? "Unknown";
+            bool   isAdmin  = IsAdminUser();
+
+            string moduleType;
+            int referenceId;
+            if (req.BondId > 0)
+            {
+                moduleType = "BOND";
+                referenceId = req.BondId;
+            }
+            else if (req.ChequeId > 0)
+            {
+                moduleType = "CHEQUE";
+                referenceId = req.ChequeId;
+            }
+            else
+            {
+                TempData["Error"] = "Invalid action request.";
+                return RedirectToAction(nameof(Pending));
+            }
+
+            if (!isAdmin)
+            {
+                var canAct = await _workflow.IsUserApproverForCurrentStageAsync(referenceId, moduleType, userId);
+                if (!canAct)
+                {
+                    TempData["Error"] = "You are not allowed to approve or reject this stage.";
+                    if (req.ChequeId > 0)
+                        return RedirectToAction(nameof(ReviewCheque), new { id = req.ChequeId });
+                    return RedirectToAction(nameof(Review), new { id = req.BondId });
+                }
+            }
 
             WorkflowActionResult result;
             try
@@ -223,7 +358,7 @@ namespace OnwardsSwift.API.Controllers
             int    userId   = HttpContext.Session.GetInt32("UserId") ?? 0;
             string userName = HttpContext.Session.GetString("UserName") ?? "Unknown";
 
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "approval-docs");
+            var uploadsFolder = GetUploadsFolder("approval-docs");
             if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
             var fileName = $"BOND_{bondId}_{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
@@ -238,6 +373,203 @@ namespace OnwardsSwift.API.Controllers
             TempData["Success"] = $"'{documentName}' uploaded successfully.";
             return RedirectToAction(nameof(Review), new { id = bondId });
         }
+
+        private string GetUploadsFolder(string category)
+        {
+            var uploadsRootSetting = _configuration["FileStorage:UploadsRoot"] ?? Path.Combine("wwwroot", "uploads");
+            var uploadsRootPath = Path.IsPathRooted(uploadsRootSetting)
+                ? uploadsRootSetting
+                : Path.Combine(_env.ContentRootPath, uploadsRootSetting);
+
+            return Path.Combine(uploadsRootPath, category);
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdatePaymentStatus(int bondId, bool isPaid, string? paymentReference, string? paymentMethod)
+            => await SavePaymentDetails(bondId, isPaid, null, paymentReference, paymentMethod, null);
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> SavePaymentDetails(int bondId, bool isPaid, decimal? amountPaid, string? paymentReference, string? paymentMethod, string? notes)
+        {
+            int userId = HttpContext.Session.GetInt32("UserId") ?? 0;
+            string role = (HttpContext.Session.GetString("UserRole") ?? "").Trim();
+            bool isAdmin = User.IsInRole("Admin") || string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase);
+
+            var workflow = await _workflow.GetInstanceAsync(bondId, "BOND");
+            bool canAct = isAdmin || await _workflow.IsUserApproverForCurrentStageAsync(bondId, "BOND", userId);
+
+            if (!isAdmin && (workflow == null || !workflow.IsActive))
+            {
+                TempData["Error"] = "Payment status can only be changed while workflow is active.";
+                return RedirectToAction(nameof(Review), new { id = bondId });
+            }
+
+            if (!canAct)
+            {
+                TempData["Error"] = "You are not allowed to change payment status for this stage.";
+                return RedirectToAction(nameof(Review), new { id = bondId });
+            }
+
+            paymentReference = string.IsNullOrWhiteSpace(paymentReference) ? null : paymentReference.Trim();
+            paymentMethod = string.IsNullOrWhiteSpace(paymentMethod) ? null : paymentMethod.Trim().ToUpperInvariant();
+            notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+
+            var allowedMethods = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "MPESA", "BANK", "CHEQUE"
+            };
+
+            if (paymentMethod != null && !allowedMethods.Contains(paymentMethod))
+            {
+                TempData["Error"] = "Invalid payment method selected.";
+                return RedirectToAction(nameof(Review), new { id = bondId });
+            }
+
+            using var conn = _ctx.Create();
+
+            if ((amountPaid ?? 0) > 0)
+            {
+                var hasBondPayments = await conn.ExecuteScalarAsync<int>(@"
+                    SELECT COUNT(1)
+                    FROM INFORMATION_SCHEMA.TABLES
+                    WHERE TABLE_NAME = 'BondPayments'") > 0;
+
+                if (!hasBondPayments)
+                {
+                    TempData["Error"] = "Partial-payment table is missing. Run the BondPayments migration script.";
+                    return RedirectToAction(nameof(Review), new { id = bondId });
+                }
+
+                var bond = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
+                    SELECT
+                        b.ClientId,
+                        ISNULL(b.CommissionAmount, ISNULL(b.ApplicationFee, 0) + ISNULL(b.BankCharge, 0)) AS ClientCharge,
+                        ISNULL((SELECT SUM(bp.AmountPaid) FROM BondPayments bp WHERE bp.BondId = b.Id), 0) AS PaidAmount
+                    FROM Bonds b
+                    WHERE b.Id = @BondId", new { BondId = bondId });
+
+                if (bond == null)
+                {
+                    TempData["Error"] = "Bond not found.";
+                    return RedirectToAction(nameof(Review), new { id = bondId });
+                }
+
+                decimal clientCharge = (decimal)(bond.ClientCharge ?? 0);
+                decimal paidToDate = (decimal)(bond.PaidAmount ?? 0);
+                decimal outstanding = Math.Max(clientCharge - paidToDate, 0);
+
+                if (outstanding <= 0)
+                {
+                    TempData["Error"] = "This bond is already fully paid.";
+                    return RedirectToAction(nameof(Review), new { id = bondId });
+                }
+
+                decimal captureAmount = amountPaid!.Value;
+                if (captureAmount > outstanding)
+                    captureAmount = outstanding;
+
+                await conn.ExecuteAsync(@"
+                    INSERT INTO BondPayments
+                        (BondId, ClientId, AmountPaid, PaymentMethod, PaymentReference, Notes, PaymentDate, CreatedAt, CreatedBy)
+                    VALUES
+                        (@BondId, @ClientId, @AmountPaid, @PaymentMethod, @PaymentReference, @Notes, GETDATE(), GETDATE(), @CreatedBy)",
+                    new
+                    {
+                        BondId = bondId,
+                        ClientId = (int)bond.ClientId,
+                        AmountPaid = captureAmount,
+                        PaymentMethod = paymentMethod,
+                        PaymentReference = paymentReference,
+                        Notes = notes,
+                        CreatedBy = userId.ToString()
+                    });
+
+                var totalPaidAfter = paidToDate + captureAmount;
+                bool fullyPaid = totalPaidAfter >= clientCharge;
+
+                var hasPaymentMethodForCapture = await conn.ExecuteScalarAsync<int>(@"
+                    SELECT COUNT(1)
+                    FROM sys.columns c
+                    INNER JOIN sys.objects o ON c.object_id = o.object_id
+                    WHERE o.name = 'Bonds' AND o.type = 'U' AND c.name = 'PaymentMethod'") > 0;
+
+                var updateBondSql = hasPaymentMethodForCapture
+                    ? @"
+                        UPDATE Bonds
+                        SET IsDeferredPayment = @IsDeferred,
+                            PaymentReference = COALESCE(@PaymentReference, PaymentReference),
+                            PaymentMethod = COALESCE(@PaymentMethod, PaymentMethod)
+                        WHERE Id = @BondId"
+                    : @"
+                        UPDATE Bonds
+                        SET IsDeferredPayment = @IsDeferred,
+                            PaymentReference = COALESCE(@PaymentReference, PaymentReference)
+                        WHERE Id = @BondId";
+
+                await conn.ExecuteAsync(updateBondSql,
+                    new
+                    {
+                        IsDeferred = !fullyPaid,
+                        PaymentReference = paymentReference,
+                        PaymentMethod = paymentMethod,
+                        BondId = bondId
+                    });
+
+                var methodMigrationNote = !hasPaymentMethodForCapture && !string.IsNullOrWhiteSpace(paymentMethod)
+                    ? " Payment method was captured in BondPayments only because the Bonds.PaymentMethod migration has not been applied."
+                    : string.Empty;
+
+                TempData["Success"] = fullyPaid
+                    ? $"Payment captured (KES {captureAmount:N2}). Bond is now fully paid.{methodMigrationNote}"
+                    : $"Partial payment captured (KES {captureAmount:N2}). Outstanding balance: KES {(clientCharge - totalPaidAfter):N2}.{methodMigrationNote}";
+
+                return RedirectToAction(nameof(Review), new { id = bondId });
+            }
+
+            var hasPaymentMethodColumn = await conn.ExecuteScalarAsync<int>(@"
+                SELECT COUNT(1)
+                FROM sys.columns c
+                INNER JOIN sys.objects o ON c.object_id = o.object_id
+                WHERE o.name = 'Bonds' AND o.type = 'U' AND c.name = 'PaymentMethod'") > 0;
+
+            var updateSql = hasPaymentMethodColumn
+                ? @"
+                    UPDATE Bonds
+                    SET IsDeferredPayment = @IsDeferred,
+                        PaymentReference = @PaymentReference,
+                        PaymentMethod = @PaymentMethod
+                    WHERE Id = @BondId"
+                : @"
+                    UPDATE Bonds
+                    SET IsDeferredPayment = @IsDeferred,
+                        PaymentReference = @PaymentReference
+                    WHERE Id = @BondId";
+
+            var changed = await conn.ExecuteAsync(updateSql,
+                new
+                {
+                    IsDeferred = !isPaid,
+                    PaymentReference = paymentReference,
+                    PaymentMethod = paymentMethod,
+                    BondId = bondId
+                });
+
+            if (changed == 0)
+                TempData["Error"] = "Bond not found. No payment status was updated.";
+            else
+            {
+                var methodNote = !hasPaymentMethodColumn && !string.IsNullOrWhiteSpace(paymentMethod)
+                    ? " Payment method was not saved because the PaymentMethod migration has not been applied."
+                    : string.Empty;
+                TempData["Success"] = $"Payment status updated to {(isPaid ? "Paid" : "Unpaid")}.{methodNote}";
+            }
+
+            return RedirectToAction(nameof(Review), new { id = bondId });
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> RecordPartialPayment(int bondId, decimal amountPaid, string? paymentReference, string? paymentMethod, string? notes)
+            => await SavePaymentDetails(bondId, false, amountPaid, paymentReference, paymentMethod, notes);
 
         // ── Final financial posting (called internally on final approval) ─
 

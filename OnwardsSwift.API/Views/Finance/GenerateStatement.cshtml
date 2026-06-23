@@ -1,10 +1,18 @@
 @model IEnumerable<dynamic>
 @{
     var client = ViewBag.Client;
-    ViewData["Title"] = "Statement - " + client.Name;
+    string clientName = Convert.ToString(client?.Name) ?? string.Empty;
+    ViewData["Title"] = "Statement - " + clientName;
     string dateFrom = ((DateTime)ViewBag.From).ToString("yyyy-MM-dd");
     string dateTo = ((DateTime)ViewBag.To).ToString("yyyy-MM-dd");
     var selectedBondTypeIds = new HashSet<string>(((ViewBag.SelectedBondTypeIds as List<int>) ?? new List<int>()).Select(x => x.ToString()));
+    string contactPerson = Convert.ToString(client?.ContactPerson) ?? string.Empty;
+    string clientEmail = Convert.ToString(client?.Email) ?? string.Empty;
+    string clientPhone = Convert.ToString(client?.PhoneNumber) ?? string.Empty;
+    string kraPin = Convert.ToString(client?.KraPin) ?? string.Empty;
+    string businessRegNumber = Convert.ToString(client?.BusinessRegNumber) ?? string.Empty;
+    string physicalAddress = Convert.ToString(client?.PhysicalAddress) ?? string.Empty;
+    string postalAddress = Convert.ToString(client?.PostalAddress) ?? string.Empty;
 }
 
 <style>
@@ -43,11 +51,92 @@
         background-color: #fafafa;
         font-style: italic;
     }
-    .summary-box {
-        background: #f4f7f6;
-        border-radius: 10px;
-        padding: 20px;
-        border-right: 5px solid #0d6efd;
+    .brand-logo {
+        max-height: 92px;
+        width: auto;
+        object-fit: contain;
+    }
+
+    .statement-sheet {
+        position: relative;
+        border-radius: 18px;
+        overflow: hidden;
+    }
+
+    .statement-meta {
+        font-size: 0.92rem;
+        line-height: 1.6;
+    }
+
+    .client-card,
+    .summary-card,
+    .signature-card {
+        border: 1px solid #e9ecef;
+        border-radius: 14px;
+        background: #fff;
+    }
+
+    .client-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.9rem 1.25rem;
+    }
+
+    .client-detail-label {
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6c757d;
+        margin-bottom: 0.15rem;
+    }
+
+    .client-detail-value {
+        color: #212529;
+        font-weight: 600;
+        word-break: break-word;
+    }
+
+    .statement-table thead th {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        white-space: nowrap;
+    }
+
+    .payment-row td {
+        background: #f8fbff;
+        font-size: 0.92rem;
+    }
+
+    .payment-item {
+        padding-left: 1.5rem;
+        position: relative;
+        color: #0d6efd;
+        font-weight: 600;
+    }
+
+    .payment-item::before {
+        content: "";
+        position: absolute;
+        left: 0.45rem;
+        top: 50%;
+        width: 0.55rem;
+        height: 1px;
+        background: #0d6efd;
+    }
+
+    .signature-line {
+        height: 52px;
+        border-bottom: 1px solid #212529;
+        margin-bottom: 0.5rem;
+    }
+
+    @@media (max-width: 767.98px) {
+        .client-detail-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 
@@ -94,7 +183,7 @@
                         <i class="bi bi-file-earmark-pdf"></i> PDF
                     </a>
                     <a id="btnInvoicePdf" href="#" class="btn btn-outline-dark btn-sm ms-1">
-                        <i class="bi bi-receipt"></i> Invoice PDF
+                        <i class="bi bi-receipt"></i> Invoice Preview
                     </a>
                     <button onclick="window.print()" class="btn btn-outline-dark btn-sm">
                         <i class="bi bi-printer"></i>
@@ -107,46 +196,92 @@
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm p-4 p-lg-5" id="printableArea">
+    <div class="card border-0 shadow-sm p-4 p-lg-5 statement-sheet" id="printableArea">
+        <!-- watermark removed as requested -->
+
         <div class="row mb-5">
-            <div class="col-7">
-                <h2 class="fw-bold text-primary mb-0">ONWARDS SWIFT</h2>
-                <p class="text-muted small">
-                    Nairobi, Kenya<br />
-                    FinTech Infrastructure & Payments
-                </p>
+            <div class="col-md-6 d-flex align-items-start">
+                <img src="@Url.Content("~/images/onwards-logo.jpg")" alt="Onwards Swift" class="brand-logo" />
             </div>
-            <div class="col-5 text-end">
-                <h3 class="fw-bold text-uppercase mb-1">Statement</h3>
-                <p class="mb-0 text-muted small">Period: <strong>@ViewBag.From.ToString("dd-MMM-yyyy")</strong> to <strong>@ViewBag.To.ToString("dd-MMM-yyyy")</strong></p>
-                <p class="text-muted x-small">Generated on: @DateTime.Now.ToString("g")</p>
+            <div class="col-md-6 text-md-end mt-4 mt-md-0 statement-meta">
+                <div class="fw-bold text-uppercase fs-5 mb-2">Statement</div>
+                <div>IPS Building, 4th Floor</div>
+                <div>Kimathi Street, Nairobi CBD</div>
+                <div>P.O Box 104322-00100 NRB</div>
+                <div>Website: onwardsswift.com</div>
+                <div class="text-muted mt-3">Period: <strong>@ViewBag.From.ToString("dd-MMM-yyyy")</strong> to <strong>@ViewBag.To.ToString("dd-MMM-yyyy")</strong></div>
+                <div class="text-muted">Generated on: @DateTime.Now.ToString("dd-MMM-yyyy HH:mm")</div>
             </div>
         </div>
 
-        <div class="row mb-4">
-            <div class="col-12">
-                <label class="text-muted small text-uppercase fw-bold">Statement For:</label>
-                <h5 class="fw-bold text-dark mb-0">@client.Name</h5>
-                <p class="mb-0 text-muted">@client.Email</p>
-                <p class="mb-0 text-muted">@client.PhoneNumber</p>
+        <div class="client-card p-4 mb-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+                <div>
+                    <label class="text-muted small text-uppercase fw-bold">Statement For</label>
+                    <h5 class="fw-bold text-dark mb-0">@clientName</h5>
+                </div>
+                <div class="summary-card px-4 py-3 text-end">
+                    <div class="small text-muted text-uppercase fw-bold">Closing Balance</div>
+                    <div class="fs-4 fw-bold text-primary">KES @ViewBag.TotalDue.ToString("N2")</div>
+                    <div class="small text-muted">Brought Forward: KES @ViewBag.Bof.ToString("N2")</div>
+                </div>
+            </div>
+
+            <div class="client-detail-grid">
+                <div>
+                    <span class="client-detail-label">Contact Person</span>
+                    <span class="client-detail-value">@(string.IsNullOrWhiteSpace(contactPerson) ? "-" : contactPerson)</span>
+                </div>
+                <div>
+                    <span class="client-detail-label">Phone</span>
+                    <span class="client-detail-value">@(string.IsNullOrWhiteSpace(clientPhone) ? "-" : clientPhone)</span>
+                </div>
+                <div>
+                    <span class="client-detail-label">Email</span>
+                    <span class="client-detail-value">@(string.IsNullOrWhiteSpace(clientEmail) ? "-" : clientEmail)</span>
+                </div>
+                <div>
+                    <span class="client-detail-label">KRA PIN</span>
+                    <span class="client-detail-value">@(string.IsNullOrWhiteSpace(kraPin) ? "-" : kraPin)</span>
+                </div>
+                <div>
+                    <span class="client-detail-label">Business Registration No</span>
+                    <span class="client-detail-value">@(string.IsNullOrWhiteSpace(businessRegNumber) ? "-" : businessRegNumber)</span>
+                </div>
+                <div>
+                    <span class="client-detail-label">Postal Address</span>
+                    <span class="client-detail-value">@(string.IsNullOrWhiteSpace(postalAddress) ? "-" : postalAddress)</span>
+                </div>
+                <div style="grid-column: 1 / -1;">
+                    <span class="client-detail-label">Physical Address</span>
+                    <span class="client-detail-value">@(string.IsNullOrWhiteSpace(physicalAddress) ? "-" : physicalAddress)</span>
+                </div>
             </div>
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle" id="statementTable">
+            <table class="table table-hover align-middle statement-table" id="statementTable">
                 <thead class="table-light">
                     <tr>
-                        <th style="width: 15%">Date</th>
-                        <th style="width: 45%">Description</th>
-                        <th class="text-end" style="width: 13%">Debit (+)</th>
-                        <th class="text-end" style="width: 13%">Credit (-)</th>
-                        <th class="text-end" style="width: 14%">Balance</th>
+                        <th style="width: 11%">Date</th>
+                        <th style="width: 20%">Product Item</th>
+                        <th style="width: 16%">Procuring Entity</th>
+                        <th class="text-end" style="width: 11%">Bond Amount</th>
+                        <th class="text-end" style="width: 11%">Cash Cover</th>
+                        <th style="width: 13%">Ref No</th>
+                        <th class="text-end" style="width: 9%">Debit</th>
+                        <th class="text-end" style="width: 9%">Credit</th>
+                        <th class="text-end" style="width: 10%">Balance</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr class="bof-row">
                         <td class="text-muted">@ViewBag.From.ToString("dd-MMM-yyyy")</td>
-                        <td><strong>Balance Brought Forward</strong></td>
+                        <td><strong>Opening Balance</strong></td>
+                        <td>-</td>
+                        <td class="text-end">-</td>
+                        <td class="text-end">-</td>
+                        <td>-</td>
                         <td class="text-end">-</td>
                         <td class="text-end">-</td>
                         <td class="text-end fw-bold">@ViewBag.Bof.ToString("N2")</td>
@@ -154,9 +289,22 @@
 
                     @foreach (var line in Model)
                     {
-                        <tr>
+                        <tr class="@(line.IsPaymentLine ? "payment-row" : string.Empty)">
                             <td>@line.TransactionDate.ToString("dd-MMM-yyyy")</td>
-                            <td>@line.Description</td>
+                            <td>
+                                @if (line.IsPaymentLine)
+                                {
+                                    <span class="payment-item">@line.ProductItem</span>
+                                }
+                                else
+                                {
+                                    <span class="fw-semibold">@line.ProductItem</span>
+                                }
+                            </td>
+                            <td>@(!string.IsNullOrWhiteSpace(line.ProcuringEntity) ? line.ProcuringEntity : "-")</td>
+                            <td class="text-end">@(line.BondAmount > 0 ? ((decimal)line.BondAmount).ToString("N2") : "-")</td>
+                            <td class="text-end">@(line.CashCoverAmount > 0 ? ((decimal)line.CashCoverAmount).ToString("N2") : "-")</td>
+                            <td>@(!string.IsNullOrWhiteSpace(line.ReferenceNo) ? line.ReferenceNo : "-")</td>
                             <td class="text-end text-danger">@(line.Debit > 0 ? ((decimal)line.Debit).ToString("N2") : "-")</td>
                             <td class="text-end text-success">@(line.Credit > 0 ? ((decimal)line.Credit).ToString("N2") : "-")</td>
                             <td class="text-end fw-bold">@(((decimal)line.RunningBalance).ToString("N2"))</td>
@@ -166,23 +314,19 @@
             </table>
         </div>
 
-        <div class="row mt-5">
-            <div class="col-md-7">
-                <div class="p-3 bg-light rounded border border-dashed">
-                    <p class="small text-muted mb-0">
-                        <strong>Terms & Conditions:</strong><br />
-                        1. All amounts are in Kenya Shillings (KES).<br />
-                        2. Please report any discrepancies within 14 days.<br />
-                        3. Make payments via M-Pesa or Bank Transfer as per onboarding instructions.
-                    </p>
+        <div class="row mt-5 g-4 align-items-stretch">
+            <div class="col-md-6">
+                <div class="signature-card p-4 h-100">
+                    <div class="small text-uppercase fw-bold text-muted mb-3">Signature</div>
+                    <div class="signature-line"></div>
+                    <div class="text-muted small">Authorized Signature</div>
                 </div>
             </div>
-            <div class="col-md-5">
-                <div class="summary-box">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted fw-bold text-uppercase small">Total Amount Due</span>
-                        <h3 class="fw-bold mb-0 text-primary">KES @ViewBag.TotalDue.ToString("N2")</h3>
-                    </div>
+            <div class="col-md-6">
+                <div class="signature-card p-4 h-100">
+                    <div class="small text-uppercase fw-bold text-muted mb-3">Date</div>
+                    <div class="signature-line"></div>
+                    <div class="text-muted small">Date Signed</div>
                 </div>
             </div>
         </div>
@@ -194,7 +338,7 @@
     <script>
         $(document).ready(function () {
             var baseUrl = '@Url.Action("GenerateStatement", "Finance")';
-            var invoiceUrl = '@Url.Action("GenerateInvoicePdf", "Finance")';
+            var invoiceUrl = '@Url.Action("GenerateInvoice", "Finance")';
             var clientId = '@ViewBag.ClientId';
             var from = '@dateFrom';
             var to = '@dateTo';
@@ -220,7 +364,7 @@
             $("#btnExcel").click(function () {
                 let table = document.getElementById("statementTable");
                 TableToExcel.convert(table, {
-                    name: "Statement_@client.Name" + ".xlsx",
+                    name: "Statement_@(string.IsNullOrWhiteSpace(clientName) ? "Client" : clientName.Replace(" ", "_"))" + ".xlsx",
                     sheet: { name: "Transaction History" }
                 });
             });

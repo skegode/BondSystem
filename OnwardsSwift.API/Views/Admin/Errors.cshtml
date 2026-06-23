@@ -1,0 +1,40 @@
+@model List<OnwardsSwift.Infrastructure.Services.ApplicationErrorRow>
+@{ ViewData["Title"] = "Application Errors"; }
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div><h1>Application Errors</h1><div class="subtitle">Unhandled exceptions captured across the web portal and mobile API, most recent first</div></div>
+</div>
+
+<div class="content-body">
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead><tr><th style="width:160px">When</th><th>Type</th><th>Message</th><th>Path</th><th>User</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var e in Model)
+                {
+                    <tr>
+                        <td class="small text-muted text-nowrap">@e.CreatedAtUtc.ToString("dd MMM yyyy HH:mm:ss")</td>
+                        <td class="small">@e.ExceptionType</td>
+                        <td class="small">@e.Message</td>
+                        <td class="small text-muted">@e.RequestPath</td>
+                        <td class="small text-muted">@(e.UserName ?? "—")</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#trace-@e.Id">
+                                Stack trace
+                            </button>
+                        </td>
+                    </tr>
+                    <tr class="collapse" id="trace-@e.Id">
+                        <td colspan="6">
+                            <pre class="small bg-light p-2 mb-0" style="white-space:pre-wrap;">@e.StackTrace</pre>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                { <tr><td colspan="6" class="text-center text-muted py-4">No errors recorded</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>

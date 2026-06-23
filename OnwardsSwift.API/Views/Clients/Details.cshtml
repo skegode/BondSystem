@@ -2,6 +2,23 @@
 @{
     ViewData["Title"] = Model.CompanyName;
     var isAdmin = User.IsInRole("Admin");
+
+    string ResolveUrl(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return "#";
+        if (path.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            return path;
+        var trimmed = path.TrimStart('/');
+        if (!trimmed.StartsWith("uploads/", StringComparison.OrdinalIgnoreCase))
+            trimmed = "uploads/" + trimmed;
+        return Url.Content("~/" + trimmed) ?? ("/" + trimmed);
+    }
+
+    var hasKycDocs = !string.IsNullOrWhiteSpace(Model.KycIdFrontPath)
+        || !string.IsNullOrWhiteSpace(Model.KycIdBackPath)
+        || !string.IsNullOrWhiteSpace(Model.KycPassportPhotoPath)
+        || !string.IsNullOrWhiteSpace(Model.KycRegCertPath);
 }
 
 <style>
@@ -151,6 +168,59 @@
             </div>
 
             <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold">KYC Documents</h6>
+                    @if (hasKycDocs)
+                    {
+                        <span class="badge bg-success-subtle text-success border">Uploaded</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-warning-subtle text-warning border">Not Uploaded</span>
+                    }
+                </div>
+                <div class="card-body">
+                    @if (!hasKycDocs)
+                    {
+                        <div class="small text-muted">No KYC documents uploaded for this client yet.</div>
+                    }
+                    else
+                    {
+                        <div class="list-group list-group-flush">
+                            @if (!string.IsNullOrWhiteSpace(Model.KycIdFrontPath))
+                            {
+                                <a href="@ResolveUrl(Model.KycIdFrontPath)" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                                    <span><i class="bi bi-file-earmark-text me-2 text-primary"></i>ID Front</span>
+                                    <span class="small text-primary">View</span>
+                                </a>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Model.KycIdBackPath))
+                            {
+                                <a href="@ResolveUrl(Model.KycIdBackPath)" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                                    <span><i class="bi bi-file-earmark-text me-2 text-primary"></i>ID Back</span>
+                                    <span class="small text-primary">View</span>
+                                </a>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Model.KycPassportPhotoPath))
+                            {
+                                <a href="@ResolveUrl(Model.KycPassportPhotoPath)" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                                    <span><i class="bi bi-image me-2 text-primary"></i>Passport Photo</span>
+                                    <span class="small text-primary">View</span>
+                                </a>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Model.KycRegCertPath))
+                            {
+                                <a href="@ResolveUrl(Model.KycRegCertPath)" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                                    <span><i class="bi bi-file-earmark-check me-2 text-primary"></i>Certificate of Incorporation</span>
+                                    <span class="small text-primary">View</span>
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mt-4">
                 <div class="card-header bg-white py-3">
                     <h6 class="mb-0 fw-bold">Financial Actions</h6>
                 </div>

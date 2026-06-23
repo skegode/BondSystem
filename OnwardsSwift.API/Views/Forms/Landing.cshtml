@@ -1,0 +1,394 @@
+@{
+    ViewData["Title"] = "Onboarding - Landing";
+}
+
+<style>
+    .portal-shell {
+        max-width: 1140px;
+    }
+
+    .portal-header {
+        border: 1px solid #e7ebf0;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 26px rgba(15, 28, 46, 0.06);
+        padding: 1rem 1.25rem;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+
+    .portal-header img {
+        height: 54px;
+        width: auto;
+        object-fit: contain;
+    }
+
+    .portal-header h1 {
+        margin: 0.65rem 0 0.25rem;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #0f1c2e;
+    }
+
+    .portal-header p {
+        margin: 0;
+        color: #64748b;
+        font-size: 0.92rem;
+    }
+
+    .portal-nav {
+        border: 1px solid #e7ebf0;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 8px 20px rgba(15, 28, 46, 0.06);
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .portal-nav .nav-link {
+        border-radius: 10px;
+        font-weight: 600;
+        color: #27466f;
+        padding: 0.55rem 0.8rem;
+    }
+
+    .portal-nav .nav-link.active {
+        background: #0b4da2;
+        color: #fff;
+    }
+
+    .portal-hero {
+        border: 1px solid #dbe6f5;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #f9fbff 0%, #eef4ff 45%, #f8fcff 100%);
+        box-shadow: 0 18px 40px rgba(15, 28, 46, 0.1);
+        padding: 1.75rem 1.5rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .portal-eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #305585;
+    }
+
+    .portal-title {
+        margin: 0.4rem 0 0.75rem;
+        color: #10203c;
+        font-weight: 800;
+        font-size: 2rem;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+    }
+
+    .portal-subtitle {
+        color: #4d6076;
+        margin-bottom: 1rem;
+        max-width: 760px;
+        line-height: 1.7;
+        font-size: 0.98rem;
+    }
+
+    .portal-highlights {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .portal-highlight {
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(96, 133, 194, 0.16);
+        padding: 0.95rem 1rem;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    .portal-highlight strong {
+        display: block;
+        color: #12325f;
+        margin-bottom: 0.35rem;
+        font-size: 0.92rem;
+    }
+
+    .portal-highlight span {
+        color: #55647c;
+        font-size: 0.88rem;
+    }
+
+    .wizard-card {
+        border: 1px solid transparent;
+        border-radius: 20px;
+        background: #fff;
+        box-shadow: 0 20px 44px rgba(15, 28, 46, 0.08);
+        overflow: hidden;
+        height: 100%;
+        position: relative;
+    }
+
+    .wizard-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.75) 100%);
+        pointer-events: none;
+    }
+
+    .wizard-card.onboarding-card {
+        border-color: #dfe8fb;
+        background: linear-gradient(180deg, #f5f9ff 0%, #ffffff 100%);
+    }
+
+    .wizard-card.bond-card {
+        border-color: #d9ede7;
+        background: linear-gradient(180deg, #f3fbf6 0%, #ffffff 100%);
+    }
+
+    .wizard-card .card-body {
+        padding: 1.4rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .wizard-card.onboarding-card .wizard-kicker {
+        color: #1d4f8a;
+        background: rgba(39, 96, 182, 0.12);
+        border-color: rgba(39, 96, 182, 0.2);
+    }
+
+    .wizard-card.bond-card .wizard-kicker {
+        color: #1f684e;
+        background: rgba(40, 156, 103, 0.12);
+        border-color: rgba(40, 156, 103, 0.2);
+    }
+
+    .wizard-card h4 {
+        margin-bottom: 1rem;
+    }
+
+    .wizard-summary {
+        color: #4d5e7a;
+        margin-bottom: 1rem;
+        line-height: 1.7;
+    }
+
+    .wizard-summary span {
+        display: block;
+    }
+
+    .wizard-card.onboarding-card .wizard-summary {
+        color: #3a4f74;
+    }
+
+    .wizard-card.bond-card .wizard-summary {
+        color: #2f5f47;
+    }
+
+    .wizard-events {
+        margin: 0;
+        padding-left: 1.1rem;
+        color: #203553;
+    }
+
+    .wizard-events li {
+        margin-bottom: 0.55rem;
+    }
+
+    .wizard-meta {
+        border-top: 1px solid rgba(142, 169, 211, 0.24);
+        margin-top: 1rem;
+        padding-top: 0.9rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.85rem;
+    }
+
+    .wizard-meta small {
+        color: #5b718c;
+    }
+
+    .wizard-card.onboarding-card .btn-primary {
+        background-color: #1b4ca6;
+        border-color: #1b4ca6;
+    }
+
+    .wizard-card.bond-card .btn-outline-primary {
+        color: #1f654c;
+        border-color: #1f654c;
+    }
+
+    .wizard-card.bond-card .btn-outline-primary:hover {
+        background: rgba(31, 101, 76, 0.08);
+    }
+
+    @@media (max-width: 992px) {
+        .portal-highlights {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .portal-shell {
+            padding: 0 0.5rem;
+        }
+
+        .portal-hero {
+            padding: 1.25rem 1rem;
+        }
+
+        .portal-title {
+            font-size: 1.8rem;
+        }
+
+        .portal-highlights {
+            grid-template-columns: 1fr;
+        }
+
+        .wizard-meta {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .wizard-meta .btn {
+            width: 100%;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .portal-nav {
+            position: sticky;
+            top: 0.5rem;
+            z-index: 20;
+        }
+
+        .portal-hero {
+            padding: 1rem;
+        }
+    }
+</style>
+
+<div class="container py-4 py-md-5 portal-shell">
+    <div class="portal-header">
+        <img src="@Url.Content("~/images/onwards-logo.jpg")" alt="Onwards Swift" />
+        <h1>Onboarding Portal</h1>
+        <p>Access the onboarding wizard or bond request wizard from one clean entry point.</p>
+    </div>
+
+    <nav class="portal-nav" aria-label="Onboarding navigation">
+        <ul class="nav nav-pills flex-column flex-md-row gap-2">
+            <li class="nav-item"><a class="nav-link active" aria-current="page" href="@Url.Action("Landing", "Forms")"><i class="bi bi-house-door me-1"></i> Portal Home</a></li>
+            <li class="nav-item"><a class="nav-link" href="@Url.Action("OnboardingWizard", "Forms")"><i class="bi bi-diagram-3 me-1"></i> Client Onboarding</a></li>
+            <li class="nav-item"><a class="nav-link" href="@Url.Action("FullApplication", "Forms")"><i class="bi bi-file-earmark-text me-1"></i> Bond Request Wizard</a></li>
+        </ul>
+    </nav>
+
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+        @if (TempData["Success"] != null)
+        {
+            <div id="successToast" class="toast align-items-center text-bg-success border-0 shadow-sm" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        }
+    </div>
+
+    <section class="portal-hero">
+        <div class="portal-eyebrow">Onboarding Portal</div>
+        <h1 class="h3 portal-title">Choose a workflow and complete it with guided steps</h1>
+        <p class="portal-subtitle">
+            Use the portal to either onboard a new client with KYC capture and cheque encashment processing, or to submit
+            a bond request with all supporting documents and formal counter-guarantee approval.
+        </p>
+        <div class="portal-highlights">
+            <div class="portal-highlight">
+                <strong>Fast, guided intake</strong>
+                <span>Step-by-step data collection keeps new client onboarding structured and efficient.</span>
+            </div>
+            <div class="portal-highlight">
+                <strong>Document-ready workflow</strong>
+                <span>Upload documents and manage approvals in one place, with helpful checks along the way.</span>
+            </div>
+            <div class="portal-highlight">
+                <strong>Clear decision path</strong>
+                <span>Separate flows let you focus on onboarding or bond requests without confusion.</span>
+            </div>
+        </div>
+    </section>
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="wizard-card onboarding-card">
+                        <div class="card-body d-flex flex-column">
+                            <span class="wizard-kicker"><i class="bi bi-person-badge"></i> Client Onboarding</span>
+                            <h4 class="card-title mb-2">Client Onboarding Wizard</h4>
+                            <p class="wizard-summary">
+                                A comprehensive intake flow for new clients that captures identity, KYC documentation, cheque encashment details,
+                                and internal official-use approval steps.
+                            </p>
+                            <p class="fw-semibold mb-2">Ideal for:</p>
+                            <ul class="wizard-events">
+                                <li>New client registration and KYC verification.</li>
+                                <li>Cheque encashment data capture with supporting attachments.</li>
+                                <li>Internal review, approval notes and official-use signoff.</li>
+                            </ul>
+                            <div class="wizard-meta mt-auto">
+                                <small><i class="bi bi-clock-history me-1"></i> Typical completion: 8-12 minutes</small>
+                                <a class="btn btn-primary" href="@Url.Action("OnboardingWizard", "Forms")">Open Onboarding Wizard</a>
+                            </div>
+                        </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="wizard-card bond-card">
+                <div class="card-body d-flex flex-column">
+                    <span class="wizard-kicker"><i class="bi bi-file-earmark-text"></i> Bond Request</span>
+                    <h4 class="card-title mb-2">Bank Guarantee / Bond Request Wizard</h4>
+                    <p class="wizard-summary">
+                        A focused bond application workflow for entering transaction details, uploading required documents, and confirming
+                        the final counter-guarantee and indemnity terms in one secure process.
+                    </p>
+                    <p class="fw-semibold mb-2">This wizard helps you:</p>
+                    <ol class="wizard-events">
+                        <li>Build the bond application with applicant, beneficiary and bond value information.</li>
+                        <li>Attach all supporting documents and compliance paperwork.</li>
+                        <li>Review and approve counter-guarantee and indemnity terms before submission.</li>
+                    </ol>
+                    <div class="wizard-meta mt-auto">
+                        <small><i class="bi bi-clock-history me-1"></i> Typical completion: 6-10 minutes</small>
+                        <a class="btn btn-outline-primary" href="@Url.Action("FullApplication", "Forms")">Open Bond Request Wizard</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function() {
+            const toastEl = document.getElementById('successToast');
+            if (toastEl && window.bootstrap?.Toast) {
+                const toast = new bootstrap.Toast(toastEl, { delay: 6000 });
+                toast.show();
+            }
+
+            // Clear previous wizard drafts after a successful submission.
+            if (toastEl) {
+                localStorage.removeItem('onboarding_wizard_step1');
+                localStorage.removeItem('onboarding_wizard_step2');
+                localStorage.removeItem('onboarding_wizard_step3');
+                localStorage.removeItem('bond_wizard_step1');
+                localStorage.removeItem('bond_wizard_currentStep');
+            }
+        })();
+    </script>
+}
+

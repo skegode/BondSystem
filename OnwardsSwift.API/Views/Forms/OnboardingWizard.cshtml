@@ -1,0 +1,1500 @@
+﻿@model OnwardsSwift.Core.DTOs.OnboardingWizardViewModel
+@{
+    ViewData["Title"] = "Client Onboarding Wizard";
+    int currentStep   = (ViewData["WizardStep"] as int?) ?? 1;
+    int? wizClientId  = ViewData["WizardClientId"]  as int?;
+    int? wizRequestId = ViewData["WizardRequestId"] as int?;
+}
+
+<style>
+    .portal-header { border:1px solid #e7ebf0; background:#fff; border-radius:16px; box-shadow:0 10px 26px rgba(15,28,46,.06); padding:1rem 1.25rem; margin-bottom:1rem; text-align:center; }
+    .portal-header img { height:54px; width:auto; object-fit:contain; }
+    .portal-header h1 { margin:.65rem 0 .25rem; font-size:1.1rem; font-weight:700; color:#0f1c2e; }
+    .portal-header p  { margin:0; color:#64748b; font-size:.92rem; }
+
+    .wiz-stepper { display:flex; gap:0; margin-bottom:1.5rem; }
+    .wiz-step-tab { flex:1; text-align:center; padding:.65rem .5rem; font-size:.8rem; font-weight:600;
+        border-bottom:3px solid #dee2e6; color:#6c757d; position:relative; }
+    .wiz-step-tab.done  { border-bottom-color:#28a745; color:#28a745; }
+    .wiz-step-tab.active{ border-bottom-color:#002D72; color:#002D72; }
+    .wiz-step-num { display:inline-flex; align-items:center; justify-content:center;
+        width:28px; height:28px; border-radius:50%; font-weight:700; font-size:.82rem;
+        background:#e9ecef; color:#495057; margin-bottom:.25rem; }
+    .wiz-step-tab.active .wiz-step-num { background:#002D72; color:#fff; }
+    .wiz-step-tab.done   .wiz-step-num { background:#28a745; color:#fff; }
+
+    .wiz-card { border:1px solid #e3e8f0; border-radius:14px; background:#fff; box-shadow:0 8px 24px rgba(15,28,46,.07); }
+    .wiz-card-header { background:linear-gradient(135deg,#002D72 0%,#0b4da2 100%); color:#fff; border-radius:13px 13px 0 0; padding:1rem 1.25rem; }
+    .wiz-card-header.step2 { background:linear-gradient(135deg,#155724 0%,#28a745 100%); }
+    .wiz-card-header.step3 { background:linear-gradient(135deg,#5a3e7d 0%,#8c5cbc 100%); }
+
+    .nav-portal { border:1px solid #e7ebf0; background:#fff; border-radius:12px; box-shadow:0 8px 20px rgba(15,28,46,.06); padding:.75rem; margin-bottom:1rem; }
+    .nav-portal .nav-link { border-radius:10px; font-weight:600; color:#27466f; padding:.5rem .8rem; }
+    .nav-portal .nav-link.active { background:#0b4da2; color:#fff; }
+
+    .signature-preview {
+        min-height: 4rem;
+        border: 1px dashed #d1d5db;
+        border-radius: 0.6rem;
+        padding: 0.75rem;
+        margin-top: 0.6rem;
+        background: #f8f9fb;
+    }
+    .signature-preview img {
+        max-width: 100%;
+        max-height: 180px;
+        display: block;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 6px rgba(15,23,42,.08);
+    }
+    .signature-preview a {
+        color: #0b4da2;
+        text-decoration: none;
+    }
+    .signature-preview a:hover {
+        text-decoration: underline;
+    }
+</style>
+
+<div class="container py-3 py-md-4">
+
+    <div class="portal-header">
+        <img src="@Url.Content("~/images/onwards-logo.jpg")" alt="Onwards Swift" />
+        <h1>Client Onboarding Wizard</h1>
+        <p>Complete client registration, cheque details and official approval in three steps.</p>
+    </div>
+
+    @if (TempData["Success"] != null || TempData["Error"] != null)
+    {
+        <div class="mb-3">
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success">@TempData["Success"]</div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger">@TempData["Error"]</div>
+            }
+        </div>
+    }
+
+    <nav class="nav-portal" aria-label="Portal navigation">
+        <ul class="nav nav-pills flex-column flex-md-row gap-2">
+            <li class="nav-item"><a class="nav-link" href="@Url.Action("Landing","Forms")"><i class="bi bi-house-door me-1"></i>Portal Home</a></li>
+            <li class="nav-item"><a class="nav-link active" href="@Url.Action("OnboardingWizard","Forms")"><i class="bi bi-diagram-3 me-1"></i>Client Onboarding</a></li>
+            <li class="nav-item"><a class="nav-link" href="@Url.Action("FullApplication","Forms")"><i class="bi bi-file-earmark-text me-1"></i>Bond Request Wizard</a></li>
+        </ul>
+    </nav>
+
+    <!-- Step indicator -->
+    <div class="wiz-stepper">
+        <div class="wiz-step-tab @(currentStep == 1 ? "active" : currentStep > 1 ? "done" : "")">
+            <div class="wiz-step-num">@(currentStep > 1 ? "✓" : "1")</div><br/>Client Information
+        </div>
+        <div class="wiz-step-tab @(currentStep == 2 ? "active" : currentStep > 2 ? "done" : "")">
+            <div class="wiz-step-num">@(currentStep > 2 ? "✓" : "2")</div><br/>Cheque Encashment
+        </div>
+        <div class="wiz-step-tab @(currentStep == 3 ? "active" : "")">
+            <div class="wiz-step-num">3</div><br/>Official Use
+        </div>
+    </div>
+
+    @* ── STEP 1: Client Registration ─────────────────────────────────────────── *@
+    @if (currentStep == 1)
+    {
+        <div class="wiz-card">
+            <div class="wiz-card-header">
+                <h2 class="h5 mb-0"><i class="bi bi-person-vcard me-2"></i>Step 1 — Client Registration</h2>
+                <small class="opacity-75">Fill in applicant details. Saving will advance to Step 2.</small>
+            </div>
+            <div class="p-4">
+                @if (!wizClientId.HasValue)
+                {
+                    <div class="mb-4 border rounded p-3 bg-light">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Search Existing Client by ID/Passport</label>
+                                <input id="existingSearchIdNumber" class="form-control" placeholder="Enter ID or passport number" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">or Business Registration No.</label>
+                                <input id="existingSearchBusinessRegNumber" class="form-control" placeholder="Enter business registration number" />
+                            </div>
+                            <div class="col-md-4">
+                                <button type="button" id="existingClientSearchBtn" class="btn btn-primary w-100">Find Existing Client</button>
+                            </div>
+                        </div>
+                        <div id="existingClientSearchMessage" class="mt-3"></div>
+                    </div>
+
+                    <!-- Identity Verification Section -->
+                    <div id="identityVerificationSection" class="mb-4 border rounded p-4 bg-white" style="border: 2px solid #002D72;">
+                        <h5 class="mb-3 text-primary"><i class="bi bi-shield-check me-2"></i>Identity Verification (IPRS)</h5>
+                        <p class="small text-muted mb-3">Before proceeding, verify the applicant's identity using the Kenya IPRS system. Enter their National ID number and full name exactly as they appear on their ID.</p>
+                        
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-5">
+                                <label class="form-label fw-bold">National ID Number *</label>
+                                <input type="text" id="iprsIdNumber" class="form-control form-control-lg" placeholder="e.g., 12345678" autocomplete="off" />
+                                <small class="text-muted">Numeric ID from the national identity card</small>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label fw-bold">Full Name (As per ID) *</label>
+                                <input type="text" id="iprsFullName" class="form-control form-control-lg" placeholder="e.g., John Doe" autocomplete="off" />
+                                <small class="text-muted">First, middle (if any), and surname</small>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="button" id="performIprsVerificationBtn" class="btn btn-primary w-100">
+                                    <i class="bi bi-check-circle me-1"></i>Verify
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="iprsVerificationStatus" class="alert" style="display: none;"></div>
+
+                        <!-- Verification Result Summary -->
+                        <div id="iprsResultSummary" class="card border-success" style="display: none;">
+                            <div class="card-body bg-light">
+                                <h6 class="text-success mb-3"><i class="bi bi-check-circle me-2"></i>Verification Successful</h6>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="small">
+                                            <strong>ID Number:</strong>
+                                            <div id="verifiedIdNumber" class="text-muted"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="small">
+                                            <strong>Full Name:</strong>
+                                            <div id="verifiedFullName" class="text-muted"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="small">
+                                            <strong>IPRS-linked Phone Numbers:</strong>
+                                            <ul id="verifiedPhoneList" class="text-muted small mb-0"></ul>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="small">
+                                            <strong>Reference:</strong>
+                                            <div id="verifiedReference" class="text-muted"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 d-flex gap-2">
+                            <button type="button" id="clearIprsVerificationBtn" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Clear Verification
+                            </button>
+                        </div>
+
+                        <input type="hidden" id="iprsVerifiedStatus" value="false" />
+                        <input type="hidden" id="iprsVerificationReference" value="" />
+                    </div>
+
+                    <!-- Business Verification Section (Corporate clients) -->
+                    <div id="businessVerificationSection" class="mb-4 border rounded p-4 bg-white" style="border: 2px solid #002D72; display:none;">
+                        <h5 class="mb-3 text-primary"><i class="bi bi-building-check me-2"></i>Business Verification</h5>
+                        <p class="small text-muted mb-3">Before proceeding, verify the company's registration. Enter the business registration number exactly as issued by the Registrar of Companies.</p>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-9">
+                                <label class="form-label fw-bold">Business Registration Number *</label>
+                                <input type="text" id="companyRegNumber" class="form-control form-control-lg" placeholder="e.g., PVT-A1B2C3D4" autocomplete="off" />
+                                <small class="text-muted">As shown on the Certificate of Incorporation</small>
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="button" id="performCompanyVerificationBtn" class="btn btn-primary w-100">
+                                    <i class="bi bi-check-circle me-1"></i>Verify
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="companyVerificationStatus" class="alert" style="display: none;"></div>
+
+                        <!-- Verification Result Summary -->
+                        <div id="companyResultSummary" class="card border-success" style="display: none;">
+                            <div class="card-body bg-light">
+                                <h6 class="text-success mb-3"><i class="bi bi-check-circle me-2"></i>Verification Successful</h6>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="small">
+                                            <strong>Registration No.:</strong>
+                                            <div id="verifiedRegNumber" class="text-muted"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="small">
+                                            <strong>Company Name:</strong>
+                                            <div id="verifiedCompanyName" class="text-muted"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="small">
+                                            <strong>Status:</strong>
+                                            <div id="verifiedCompanyStatus" class="text-muted"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="small">
+                                            <strong>Reference:</strong>
+                                            <div id="verifiedCompanyReference" class="text-muted"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 d-flex gap-2">
+                            <button type="button" id="clearCompanyVerificationBtn" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Clear Verification
+                            </button>
+                        </div>
+                    </div>
+                }
+                @if (wizClientId.HasValue)
+                {
+                    <form id="onboardStep1Form" asp-controller="Clients" asp-action="Edit" asp-route-id="@wizClientId" method="post" enctype="multipart/form-data" autocomplete="off">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="WizardSource" value="OnboardingWizard" />
+                        <input type="hidden" name="returnUrl" value="@Url.Action("OnboardingWizard","Forms",new{step=2, clientId = wizClientId, requestId = wizRequestId})" />
+                        @await Html.PartialAsync("_ValidationErrors")
+                        @await Html.PartialAsync("~/Views/Clients/_ClientForm.cshtml", Model.NewClient)
+                        <div class="border rounded p-3 mb-4 bg-info bg-opacity-10">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <h6 class="mb-2 text-info"><i class="bi bi-info-circle me-2"></i>Verification Status</h6>
+                                    <div id="iprsVerificationMessage" class="small"></div>
+                                </div>
+                            </div>
+                            <input type="hidden" name="IprsVerified" id="IprsVerifiedHidden" value="@(Model.NewClient.IprsVerified ? "true" : "false")" />
+                            <input type="hidden" name="IprsReference" id="IprsReferenceHidden" value="@Model.NewClient.IprsReference" />
+                            <input type="hidden" name="IprsPhoneVerified" id="IprsPhoneVerifiedHidden" value="false" />
+                        </div>
+                        <div class="mt-4 d-flex gap-2 justify-content-end">
+                            <a href="@Url.Action("Landing","Forms")" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="button" id="resetWizardStep1Btn" class="btn btn-outline-warning">Reset</button>
+                            <button type="submit" class="btn btn-primary px-4">
+                                Save &amp; Continue to Step 2 <i class="bi bi-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+                    </form>
+                }
+                else
+                {
+                    <form id="onboardStep1Form" asp-controller="Clients" asp-action="Create" method="post" enctype="multipart/form-data" autocomplete="off">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="WizardSource" value="OnboardingWizard" />
+                        <input type="hidden" name="returnUrl" value="@Url.Action("OnboardingWizard","Forms",new{step=2, requestId = wizRequestId})" />
+                        @await Html.PartialAsync("_ValidationErrors")
+                        @await Html.PartialAsync("~/Views/Clients/_ClientForm.cshtml", Model.NewClient)
+                        <div class="border rounded p-3 mb-4 bg-info bg-opacity-10">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <h6 class="mb-2 text-info"><i class="bi bi-info-circle me-2"></i>Verification Status</h6>
+                                    <div id="iprsVerificationMessage" class="small"></div>
+                                </div>
+                            </div>
+                            <input type="hidden" name="IprsVerified" id="IprsVerifiedHidden" value="@(Model.NewClient.IprsVerified ? "true" : "false")" />
+                            <input type="hidden" name="IprsReference" id="IprsReferenceHidden" value="@Model.NewClient.IprsReference" />
+                            <input type="hidden" name="IprsPhoneVerified" id="IprsPhoneVerifiedHidden" value="false" />
+                        </div>
+                        <div class="mt-4 d-flex gap-2 justify-content-end">
+                            <a href="@Url.Action("Landing","Forms")" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="button" id="resetWizardStep1Btn" class="btn btn-outline-warning">Reset</button>
+                            <button type="submit" class="btn btn-primary px-4">
+                                Save &amp; Continue to Step 2 <i class="bi bi-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+                    </form>
+                }
+            </div>
+        </div>
+    }
+
+    @* ── STEP 2: Cheque Encashment ──────────────────────────────────────────── *@
+    @if (currentStep == 2)
+    {
+        var cheque = Model.ChequeEncashment;
+        <div class="wiz-card">
+            <div class="wiz-card-header step2">
+                <h2 class="h5 mb-0"><i class="bi bi-receipt-cutoff me-2"></i>Step 2 — Cheque Encashment Request</h2>
+                <small class="opacity-75">Enter cheque details, attach documents, then submit to advance to Step 3.</small>
+            </div>
+            <div class="p-4">
+                <form id="onboardStep2Form" asp-action="ChequeEncashment" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="returnUrl" value="@Url.Action("OnboardingWizard","Forms",new{step=2, requestId = wizRequestId})" />
+                    <input type="hidden" name="WizardSource" value="OnboardingWizard" />
+                    <input type="hidden" name="ClientId" value="@cheque.ClientId" />
+                    @await Html.PartialAsync("_ValidationErrors")
+                    @if (wizRequestId.HasValue)
+                    {
+                        <input type="hidden" name="Id" value="@wizRequestId" />
+                    }
+
+                    <!-- Terms notice (open modal to read & accept) -->
+                    <div class="border rounded p-3 mb-4" style="background:#f8fbff">
+                        <div>
+                            <strong class="d-block">Terms and Conditions</strong>
+                            <small class="text-muted">Please read and accept before submitting.</small>
+                            <div class="mt-1 d-flex flex-column flex-md-row gap-2 align-items-start align-items-md-center">
+                                <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal" class="small">Read Terms and Accept</a>
+                                <span class="small text-muted">Check the box in the modal to enable Save & Continue.</span>
+                            </div>
+                        </div>
+                        @* Hidden field to track acceptance; modal will set this to true when accepted *@
+                        <input type="hidden" name="TermsAccepted" id="TermsAcceptedHidden" value="@(cheque.TermsAccepted ? "true" : "false")" />
+                    </div>
+
+                    <!-- Applicant -->
+                    <h6 class="mb-2">Applicant / Payee</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Name</label>
+                            <input name="ApplicantName" value="@cheque.ApplicantName" class="form-control" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">ID / Passport No.</label>
+                            <input name="IdNumber" value="@cheque.IdNumber" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Phone</label>
+                            <input name="Phone" value="@cheque.Phone" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Postal Address</label>
+                            <input name="PostalAddress" value="@cheque.PostalAddress" class="form-control" />
+                        </div>
+                    </div>
+
+                    <!-- Category & Payment Method -->
+                    <h6 class="mb-2">Applicant Category &amp; Payment Method</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Category</label>
+                            <select name="Category" id="chequeCategory" class="form-select">
+                                <option value="Individual" selected="@(cheque.Category != "Company")">Individual</option>
+                                <option value="Company" selected="@(cheque.Category == "Company")">Company</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Payment Method</label>
+                            <input type="text" id="chequePaymentMethodDisplay" class="form-control" disabled
+                                   value="@(cheque.Category == "Company" ? "Bank Transfer" : "M-Pesa")" />
+                            <small class="text-muted">Determined automatically by Category</small>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3" id="mpesaPaymentSection" style="@(cheque.Category == "Company" ? "display:none;" : "")">
+                        <div class="col-md-8">
+                            <small class="text-muted">Payout will be sent via M-Pesa to the phone number entered above.</small>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3" id="bankPaymentSection" style="@(cheque.Category == "Company" ? "" : "display:none;")">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Bank Name</label>
+                            <input name="DisburseBank" id="chequeDisburseBank" value="@cheque.DisburseBank" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Bank Account Number</label>
+                            <input name="DisburseAccount" id="chequeDisburseAccount" value="@cheque.DisburseAccount" class="form-control" />
+                        </div>
+                    </div>
+
+                    <!-- Cheques table -->
+                    <h6>Cheque(s) Details</h6>
+                    <div class="table-responsive mb-2">
+                        <table class="table table-sm align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:36px">No.</th>
+                                    <th>Cheque Number</th>
+                                    <th style="width:130px">Amount (KES)</th>
+                                    <th style="width:140px">Dated</th>
+                                    <th>Drawer</th>
+                                    <th>Bank</th>
+                                    <th>Branch</th>
+                                    <th>Payee</th>
+                                    <th style="width:80px"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="chequeTableBody">
+                                @{
+                                    // On edit, show existing cheques; on new, show 4 empty rows
+                                    int displayRows = Math.Max(4, cheque.Cheques?.Count ?? 0);
+                                    for (int i = 0; i < displayRows; i++)
+                                    {
+                                        var c = i < (cheque.Cheques?.Count ?? 0) ? cheque.Cheques[i] : null;
+                                        <tr>
+                                            <td>@(i + 1)</td>
+                                            <td><input name="Cheques[@i].Number" class="form-control form-control-sm" value="@(c?.Number ?? "")" /></td>
+                                            <td><input name="Cheques[@i].Amount" class="form-control form-control-sm text-end" placeholder="0.00" value="@(c?.Amount?.ToString() ?? "")" /></td>
+                                            <td><input name="Cheques[@i].Dated" class="form-control form-control-sm" placeholder="dd/mm/yyyy" value="@(c?.Dated ?? "")" /></td>
+                                            <td><input name="Cheques[@i].Drawer" class="form-control form-control-sm" value="@(c?.Drawer ?? "")" /></td>
+                                            <td><input name="Cheques[@i].Bank" class="form-control form-control-sm" value="@(c?.Bank ?? "")" /></td>
+                                            <td><input name="Cheques[@i].Branch" class="form-control form-control-sm" value="@(c?.Branch ?? "")" /></td>
+                                            <td><input name="Cheques[@i].Payee" class="form-control form-control-sm" value="@(c?.Payee ?? "")" /></td>
+                                            <td><button type="button" class="btn btn-sm btn-outline-danger remove-row">x</button></td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex justify-content-end mb-3">
+                        <button type="button" id="addRow" class="btn btn-sm btn-outline-primary">+ Add row</button>
+                    </div>
+
+                    <!-- Purpose -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Purpose</label>
+                        <textarea name="Purpose" class="form-control" rows="2">@cheque.Purpose</textarea>
+                    </div>
+
+                    <!-- Attachments -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Attachments</label>
+                            @if (cheque.ExistingAttachments != null && cheque.ExistingAttachments.Count > 0)
+                            {
+                                <div class="mb-3 p-3 border rounded" style="background:#f8f9fa">
+                                    <small class="text-muted d-block mb-2"><strong>Existing Files:</strong></small>
+                                    <div class="d-flex flex-column gap-1">
+                                        @foreach (var att in cheque.ExistingAttachments)
+                                        {
+                                            <a href="@att.FilePath" target="_blank" class="small text-decoration-none">
+                                                <i class="bi bi-file-earmark"></i> @att.FileName
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                            <label class="form-label text-muted small">Add New Attachments (optional)</label>
+                            <input type="file" id="Attachments" name="Attachments" accept="application/pdf,image/*" multiple class="form-control" />
+                            <small class="text-muted">PDF / JPG / PNG. You can pick multiple files or add files in batches.</small>
+                            <div id="attachmentList" class="mt-2"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Required Documents</label>
+                            <div class="border rounded p-2 small" style="background:#f8f9fa">
+                                <strong>Cheque Discounting</strong>
+                                <p class="mb-1 mt-2"><strong>Individual cheques from a reputable institution</strong></p>
+                                <ol class="mb-2 ps-3">
+                                    <li>Original copy of the cheque (the cheque must be current; no post-dated cheques).</li>
+                                    <li>An original identity card of the payee.</li>
+                                    <li>KRA PIN of the director.</li>
+                                    <li>Support document validating the payment.</li>
+                                </ol>
+                                <p class="mb-1"><strong>Company cheque from a reputable institution</strong></p>
+                                <ol class="mb-2 ps-3">
+                                    <li>Company KRA PIN certificate.</li>
+                                    <li>Certificate of registration/incorporation.</li>
+                                    <li>Directors PIN certificate.</li>
+                                    <li>Original directors’ identity card.</li>
+                                    <li>CR-12.</li>
+                                    <li>Board resolution on company letterhead signed by all directors agreeing on discounting their cheques at Fincorp and the mandate on each transaction.</li>
+                                    <li>Support document validating the payment.</li>
+                                </ol>
+                                <p class="mb-1"><strong>Charges</strong></p>
+                                <ol class="mb-2 ps-3">
+                                    <li>Charges 5% on the cheque amount.</li>
+                                    <li>Minimum charges are Ksh. 300.</li>
+                                </ol>
+                                <p class="mb-1"><strong>Bounced cheque</strong></p>
+                                <ul class="mb-0 ps-3">
+                                    <li>Charges – Ksh. 5,000.</li>
+                                    <li>Replacement of the cheque should be immediate.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Declaration -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-12"><h6>Declaration &amp; Signature</h6></div>
+                        <div class="col-md-4">
+                            <label class="form-label">Name</label>
+                            <input name="DeclarantName" value="@cheque.DeclarantName" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Role</label>
+                            <input name="DeclarantRole" value="@cheque.DeclarantRole" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Date</label>
+                            <input type="date" name="DeclarantDate" value="@cheque.DeclarantDate" class="form-control" />
+                        </div>
+                    </div>
+
+                    
+
+                    <div class="d-flex gap-2 justify-content-between">
+                        <a href="@Url.Action("OnboardingWizard","Forms",new{step=1, clientId=wizClientId, requestId = wizRequestId})" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Back to Step 1
+                        </a>
+                        <button type="submit" id="submitChequeBtn" class="btn btn-success px-4 ms-2" disabled title="Accept terms in the modal above to enable this button">
+                            <span id="submitBtnText">
+                                <i class="bi bi-arrow-right me-1"></i>Submit and proceed to Step 3
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+
+    @* ── STEP 3: Official Use ─────────────────────────────────────────────────── *@
+    @if (currentStep == 3)
+    {
+        <div class="wiz-card">
+            <div class="wiz-card-header step3">
+                <h2 class="h5 mb-0"><i class="bi bi-shield-check me-2"></i>Step 3 — Official Use (Internal Processing)</h2>
+                <small class="opacity-75">Complete internal checks and approval, then submit to Transactions.</small>
+            </div>
+            <div class="p-4">
+                <form id="onboardStep3Form" asp-action="OfficialUse" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="WizardSource" value="OnboardingWizard" />
+                    <input type="hidden" name="RequestId" value="@wizRequestId" />
+                    <input type="hidden" name="returnUrl" value='@Url.Action("Landing", "Forms")' />
+                    @await Html.PartialAsync("_ValidationErrors")
+
+                    <div class="row g-3">
+                        <div class="col-12"><h6 class="text-muted text-uppercase small mb-0">Checked By</h6></div>
+                        <div class="col-md-5">
+                            <label class="form-label">Name</label>
+                            <input name="CheckedBy" class="form-control" value="@Model.OfficialUse.CheckedBy" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Signature</label>
+                            <input type="file" name="CheckedSignatureFile" accept="image/*,application/pdf" class="form-control" />
+                            <div id="CheckedSignaturePreview" class="signature-preview">No signature selected</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Date</label>
+                            <input type="date" name="CheckedDate" class="form-control" value="@Model.OfficialUse.CheckedDate" />
+                        </div>
+
+                        <div class="col-12"><hr class="my-1" /><h6 class="text-muted text-uppercase small mb-0">Drawer Verification</h6></div>
+                        <div class="col-md-4">
+                            <label class="form-label">Confirmed With</label>
+                            <input name="ConfirmedWith" class="form-control" value="@Model.OfficialUse.ConfirmedWith" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Designation</label>
+                            <input name="Designation" class="form-control" value="@Model.OfficialUse.Designation" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Status</label>
+                            <input name="DrawerStatus" class="form-control" value="@Model.OfficialUse.DrawerStatus" />
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Building / Street</label>
+                            <input name="BuildingStreet" class="form-control" value="@Model.OfficialUse.BuildingStreet" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Reason for Payment</label>
+                            <input name="ReasonForPayment" class="form-control" value="@Model.OfficialUse.ReasonForPayment" />
+                        </div>
+
+                        <div class="col-12"><hr class="my-1" /><h6 class="text-muted text-uppercase small mb-0">Account Confirmation</h6></div>
+                        <div class="col-md-6">
+                            <label class="form-label">Confirmed By</label>
+                            <input name="AccountConfirmedBy" class="form-control" value="@Model.OfficialUse.AccountConfirmedBy" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <input name="AccountStatus" class="form-control" value="@Model.OfficialUse.AccountStatus" />
+                        </div>
+
+                        <div class="col-12"><hr class="my-1" /><h6 class="text-muted text-uppercase small mb-0">Approval Process <span class="badge bg-secondary">Optional</span></h6></div>
+                        <div class="col-md-4">
+                            <label class="form-label">Head of Trade Finance</label>
+                            <input name="HeadOfTradeFinance" class="form-control" value="@Model.OfficialUse.HeadOfTradeFinance" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Signature</label>
+                            <input type="file" name="HeadOfTradeSignatureFile" accept="image/*,application/pdf" class="form-control" />
+                            <div id="HeadOfTradeSignaturePreview" class="signature-preview">No signature selected</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Date</label>
+                            <input type="date" name="HeadOfTradeDate" class="form-control" value="@Model.OfficialUse.HeadOfTradeDate" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">In Charge Finance</label>
+                            <input name="InChargeFinance" class="form-control" value="@Model.OfficialUse.InChargeFinance" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Signature</label>
+                            <input type="file" name="InChargeFinanceSignatureFile" accept="image/*,application/pdf" class="form-control" />
+                            <div id="InChargeFinanceSignaturePreview" class="signature-preview">No signature selected</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Date</label>
+                            <input type="date" name="InChargeFinanceDate" class="form-control" value="@Model.OfficialUse.InChargeFinanceDate" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">CEO</label>
+                            <input name="CEO" class="form-control" value="@Model.OfficialUse.CEO" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Signature</label>
+                            <input type="file" name="CEOSignatureFile" accept="image/*,application/pdf" class="form-control" />
+                            <div id="CEOSignaturePreview" class="signature-preview">No signature selected</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Date</label>
+                            <input type="date" name="CEODate" class="form-control" value="@Model.OfficialUse.CEODate" />
+                        </div>
+
+                        <div class="col-12"><hr class="my-1" /><h6 class="text-muted text-uppercase small mb-0">Payment Process <span class="badge bg-secondary">Optional</span></h6></div>
+                        <div class="col-md-6">
+                            <label class="form-label">Paid By — Name</label>
+                            <input name="PaidByName" class="form-control" value="@Model.OfficialUse.PaidByName" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Signature</label>
+                            <input type="file" name="PaidBySignatureFile" accept="image/*,application/pdf" class="form-control" />
+                            <div id="PaidBySignaturePreview" class="signature-preview">No signature selected</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex gap-2 justify-content-between">
+                        <a href="@Url.Action("OnboardingWizard","Forms",new{step=2,clientId=wizClientId, requestId = wizRequestId})" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Back to Step 2
+                        </a>
+                        <div>
+                            <a href="@Url.Action("Landing","Forms")" class="btn btn-outline-warning">
+                                Complete Later <i class="bi bi-bookmark me-1"></i>
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4 ms-2">
+                                <i class="bi bi-check-circle me-1"></i>Submit &amp; View in Transactions
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+
+</div>
+<!-- Terms modal (contains the acceptance checkbox) -->
+<div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="termsModalLabel">Terms and Conditions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <iframe src="@Url.Action("TermsAndConditions","Forms", new { name = Model.ChequeEncashment.ApplicantName, idNumber = Model.ChequeEncashment.IdNumber })" style="width:100%;height:420px;border:0"></iframe>
+                <div class="form-check mt-3">
+                    <input type="checkbox" id="TermsModalCheckbox" class="form-check-input" @(Model.ChequeEncashment.TermsAccepted ? "checked" : "") />
+                    <label class="form-check-label" for="TermsModalCheckbox">I confirm I have read and accept the Terms and Conditions.</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" id="AcceptTermsBtn" class="btn btn-primary" disabled>Accept &amp; Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function(){
+    // ── Step 2 scripts ─────────────────────────────────────────────────────────
+    const tbody     = document.getElementById('chequeTableBody');
+    const addRowBtn = document.getElementById('addRow');
+    const termsHidden = document.getElementById('TermsAcceptedHidden');
+    const modalCheckbox = document.getElementById('TermsModalCheckbox');
+    const acceptBtn = document.getElementById('AcceptTermsBtn');
+    const submitBtn  = document.getElementById('submitChequeBtn');
+
+    if (tbody && addRowBtn) {
+        addRowBtn.addEventListener('click', () => {
+            const idx = tbody.rows.length;
+            const tr  = document.createElement('tr');
+            tr.innerHTML = `<td>${idx+1}</td>
+                <td><input name="Cheques[${idx}].Number" class="form-control form-control-sm"/></td>
+                <td><input name="Cheques[${idx}].Amount" class="form-control form-control-sm text-end" placeholder="0.00"/></td>
+                <td><input name="Cheques[${idx}].Dated" class="form-control form-control-sm" placeholder="dd/mm/yyyy"/></td>
+                <td><input name="Cheques[${idx}].Drawer" class="form-control form-control-sm"/></td>
+                <td><input name="Cheques[${idx}].Bank" class="form-control form-control-sm"/></td>
+                <td><input name="Cheques[${idx}].Branch" class="form-control form-control-sm"/></td>
+                <td><input name="Cheques[${idx}].Payee" class="form-control form-control-sm"/></td>
+                <td><button type="button" class="btn btn-sm btn-outline-danger remove-row">x</button></td>`;
+            tbody.appendChild(tr);
+        });
+        tbody.addEventListener('click', e => {
+            if (e.target.classList.contains('remove-row')) {
+                e.target.closest('tr').remove();
+                Array.from(tbody.rows).forEach((r, i) => r.cells[0].textContent = i + 1);
+            }
+        });
+    }
+
+    // ── Category -> Payment Method (Individual = M-Pesa, Company = Bank) ──
+    const chequeCategorySelect = document.getElementById('chequeCategory');
+    const chequePaymentMethodDisplay = document.getElementById('chequePaymentMethodDisplay');
+    const mpesaPaymentSection = document.getElementById('mpesaPaymentSection');
+    const bankPaymentSection = document.getElementById('bankPaymentSection');
+    const chequeDisburseBank = document.getElementById('chequeDisburseBank');
+    const chequeDisburseAccount = document.getElementById('chequeDisburseAccount');
+
+    function syncChequePaymentMethod() {
+        const isCompany = chequeCategorySelect?.value === 'Company';
+        if (chequePaymentMethodDisplay) chequePaymentMethodDisplay.value = isCompany ? 'Bank Transfer' : 'M-Pesa';
+        if (mpesaPaymentSection) mpesaPaymentSection.style.display = isCompany ? 'none' : '';
+        if (bankPaymentSection) bankPaymentSection.style.display = isCompany ? '' : 'none';
+        if (chequeDisburseBank) chequeDisburseBank.required = isCompany;
+        if (chequeDisburseAccount) chequeDisburseAccount.required = isCompany;
+    }
+
+    if (chequeCategorySelect) {
+        chequeCategorySelect.addEventListener('change', syncChequePaymentMethod);
+        syncChequePaymentMethod();
+    }
+
+    if (modalCheckbox && acceptBtn) {
+        const syncTermsGate = () => {
+            const accepted = modalCheckbox.checked;
+            if (termsHidden) termsHidden.value = accepted ? 'true' : 'false';
+            acceptBtn.disabled = !accepted;
+            if (submitBtn) submitBtn.disabled = !accepted;
+        };
+
+        modalCheckbox.addEventListener('change', syncTermsGate);
+        acceptBtn.addEventListener('click', () => {
+            if (modalCheckbox.checked) {
+                if (termsHidden) termsHidden.value = 'true';
+                if (submitBtn) submitBtn.disabled = false;
+                const modalEl = document.getElementById('termsModal');
+                if (window.bootstrap && modalEl) {
+                    const m = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                    m.hide();
+                }
+            }
+        });
+
+        if (termsHidden?.value === 'true') {
+            modalCheckbox.checked = true;
+        }
+        syncTermsGate();
+    }
+
+    // Accumulating file picker (no duplicates)
+    const attachInput = document.getElementById('Attachments');
+    const attachList  = document.getElementById('attachmentList');
+    let   dt          = new DataTransfer();
+
+    function renderFiles() {
+        if (!attachList) return;
+        attachList.innerHTML = '';
+        if (dt.files.length === 0) return;
+        const ul = document.createElement('ul');
+        ul.className = 'list-group';
+        Array.from(dt.files).forEach((f, i) => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center py-1';
+            const sp = document.createElement('span');
+            sp.className = 'small';
+            sp.textContent = f.name + ' (' + Math.round(f.size / 1024) + ' KB)';
+            const rm = document.createElement('button');
+            rm.type = 'button'; rm.className = 'btn btn-sm btn-outline-danger ms-2';
+            rm.textContent = 'x';
+            rm.addEventListener('click', () => {
+                const nd = new DataTransfer();
+                Array.from(dt.files).forEach((x, j) => { if (j !== i) nd.items.add(x); });
+                dt = nd;
+                if (attachInput) attachInput.files = dt.files;
+                renderFiles();
+            });
+            li.appendChild(sp); li.appendChild(rm);
+            ul.appendChild(li);
+        });
+        attachList.appendChild(ul);
+    }
+
+    if (attachInput) {
+        attachInput.addEventListener('change', () => {
+            Array.from(attachInput.files).forEach(nf => {
+                const dup = Array.from(dt.files).some(x => x.name === nf.name && x.size === nf.size);
+                if (!dup) dt.items.add(nf);
+            });
+            attachInput.files = dt.files;
+            renderFiles();
+        });
+    }
+
+    function bindSignaturePreview(name, previewId) {
+        const input = document.querySelector(`[name="${name}"]`);
+        const preview = document.getElementById(previewId);
+        let currentUrl = null;
+        if (!input || !preview) return;
+
+        const clearPreview = () => {
+            if (currentUrl) {
+                URL.revokeObjectURL(currentUrl);
+                currentUrl = null;
+            }
+            preview.innerHTML = '';
+        };
+
+        const render = () => {
+            clearPreview();
+            const file = input.files?.[0];
+            if (!file) {
+                preview.textContent = 'No signature selected';
+                return;
+            }
+
+            const meta = document.createElement('div');
+            meta.className = 'small text-muted mb-2';
+            meta.textContent = file.name;
+            preview.appendChild(meta);
+
+            if (file.type.startsWith('image/')) {
+                const img = document.createElement('img');
+                currentUrl = URL.createObjectURL(file);
+                img.src = currentUrl;
+                img.alt = 'Signature preview';
+                img.onload = () => {
+                    if (currentUrl) {
+                        URL.revokeObjectURL(currentUrl);
+                        currentUrl = null;
+                    }
+                };
+                preview.appendChild(img);
+            } else if (file.type === 'application/pdf') {
+                currentUrl = URL.createObjectURL(file);
+                const link = document.createElement('a');
+                link.href = currentUrl;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.className = 'd-inline-flex align-items-center gap-1';
+                link.innerHTML = '<i class="bi bi-file-earmark-text"></i>Open PDF signature';
+                preview.appendChild(link);
+                const note = document.createElement('div');
+                note.className = 'small text-muted mt-1';
+                note.textContent = 'PDF preview opens in a new tab.';
+                preview.appendChild(note);
+            } else {
+                preview.textContent = file.name;
+            }
+        };
+
+        input.addEventListener('change', render);
+        render();
+    }
+
+    ['CheckedSignatureFile', 'HeadOfTradeSignatureFile', 'InChargeFinanceSignatureFile', 'CEOSignatureFile', 'PaidBySignatureFile'].forEach(name => {
+        bindSignaturePreview(name, name + 'Preview');
+    });
+
+    // --- Draft save/restore support for onboarding wizard steps ---
+    const wizardKey = 'onboarding_wizard';
+    const curStep = String(@currentStep);
+    const currentClientId = '@(wizClientId.HasValue ? wizClientId.Value.ToString() : "")';
+    const currentRequestId = '@(wizRequestId.HasValue ? wizRequestId.Value.ToString() : "")';
+
+    function serializeForm(form) {
+        const data = {};
+        if(!form) return data;
+        Array.from(form.elements).forEach(el => {
+            if(!el.name) return;
+            if(el.type === 'file') return;
+            if(el.type === 'checkbox') data[el.name] = el.checked;
+            else data[el.name] = el.value;
+        });
+        return data;
+    }
+
+    function hydrateForm(form, data) {
+        if(!form || !data) return;
+        Object.keys(data).forEach(k => {
+            const el = form.elements.namedItem(k);
+            if(!el) return;
+            try{
+                if(el.type === 'checkbox') el.checked = data[k] === true || data[k] === 'true';
+                else el.value = data[k] ?? '';
+            }catch(e){}
+        });
+    }
+
+    function saveWizardStep(step){
+        const form = document.getElementById('onboardStep' + step + 'Form');
+        if(!form) return;
+        const obj = serializeForm(form);
+        localStorage.setItem(`${wizardKey}_step${step}`, JSON.stringify(obj));
+    }
+
+    function showExistingClientMessage(html, type) {
+        const msg = document.getElementById('existingClientSearchMessage');
+        if (!msg) return;
+        msg.innerHTML = `<div class="alert alert-${type} py-2 mb-0">${html}</div>`;
+    }
+
+    const existingClientSearchBtn = document.getElementById('existingClientSearchBtn');
+    const existingClientFindUrl = '@Url.Content("~/api/clients/find")';
+    const existingClientEditUrlTemplate = '@Url.Action("Edit","Clients", new { id = 0 })';
+    const existingClientCreateUrl = '@Url.Action("Create","Clients")';
+
+    function resetWizardStep1() {
+        const form = document.getElementById('onboardStep1Form');
+        if (!form) return;
+
+        Array.from(form.elements).forEach(el => {
+            if (!el.name) return;
+            if (el.type === 'file') return;
+            if (el.type === 'checkbox') {
+                el.checked = false;
+            } else {
+                el.value = '';
+            }
+        });
+
+        const categoryDefault = form.querySelector('input[name="Category"][value="1"]');
+        if (categoryDefault instanceof HTMLInputElement) {
+            categoryDefault.checked = true;
+            categoryDefault.dispatchEvent(new Event('change'));
+        }
+
+        const clientTypeSelect = form.elements['ClientType'];
+        if (clientTypeSelect) clientTypeSelect.value = '1';
+
+        if (form.action && existingClientCreateUrl) {
+            form.action = existingClientCreateUrl;
+        }
+
+        const searchId = document.getElementById('existingSearchIdNumber');
+        const searchReg = document.getElementById('existingSearchBusinessRegNumber');
+        if (searchId) searchId.value = '';
+        if (searchReg) searchReg.value = '';
+
+        localStorage.removeItem(`${wizardKey}_step1`);
+        showExistingClientMessage('Step 1 has been reset. You can search again or enter a new client manually.', 'info');
+    }
+
+    const resetWizardStep1Btn = document.getElementById('resetWizardStep1Btn');
+    if (resetWizardStep1Btn) {
+        resetWizardStep1Btn.addEventListener('click', resetWizardStep1);
+    }
+
+    if (existingClientSearchBtn) {
+        existingClientSearchBtn.addEventListener('click', async () => {
+            const idInput = document.getElementById('existingSearchIdNumber');
+            const regInput = document.getElementById('existingSearchBusinessRegNumber');
+            const idValue = idInput?.value.trim() ?? '';
+            const regValue = regInput?.value.trim() ?? '';
+
+            if (!idValue && !regValue) {
+                showExistingClientMessage('Enter an ID/passport number or business registration number to search.', 'warning');
+                return;
+            }
+
+            existingClientSearchBtn.disabled = true;
+            showExistingClientMessage('Searching for existing client...', 'info');
+
+            try {
+                let url = existingClientFindUrl + '?';
+                if (idValue) url += 'idNumber=' + encodeURIComponent(idValue);
+                if (regValue) url += (idValue ? '&' : '') + 'businessRegNumber=' + encodeURIComponent(regValue);
+                const response = await fetch(url, { credentials: 'include', redirect: 'manual' });
+
+                if (response.redirected || response.status === 401 || response.status === 302 || response.type === 'opaqueredirect') {
+                    showExistingClientMessage('Search failed: authentication required. Please log in again and retry.', 'danger');
+                } else if (response.ok) {
+                    const contentType = response.headers.get('content-type') || '';
+                    if (!contentType.includes('application/json')) {
+                        const text = await response.text();
+                        showExistingClientMessage('Search error: ' + text, 'danger');
+                    } else {
+                        const json = await response.json();
+                        const form = document.getElementById('onboardStep1Form');
+                        if (form) {
+                            const setField = (name, value) => {
+                                const field = form.elements[name];
+                                if (field) field.value = value ?? '';
+                            };
+
+                            setField('CompanyName', json.companyName);
+                            setField('KraPin', json.kraPin);
+                            setField('IdNumber', json.idNumber);
+                            setField('BusinessRegNumber', json.businessRegNumber);
+                            setField('ContactPerson', json.contactPerson);
+                            setField('Email', json.email);
+                            setField('Phone', json.phone);
+                            setField('PhoneAlt', json.phoneAlt);
+                            setField('PhysicalAddress', json.physicalAddress);
+                            setField('PostalAddress', json.postalAddress);
+                            setField('ClientType', json.clientType || '1');
+                            setField('Gender', json.gender ?? '');
+
+                            const categoryInput = form.querySelector(`input[name="Category"][value="${json.category}"]`);
+                            if (categoryInput instanceof HTMLInputElement) {
+                                categoryInput.checked = true;
+                                categoryInput.dispatchEvent(new Event('change'));
+                            }
+
+                            if (form.action && existingClientEditUrlTemplate) {
+                                form.action = existingClientEditUrlTemplate.replace(/\/0$/, '/' + json.id);
+                            }
+                        }
+                        showExistingClientMessage(`Existing client loaded: <strong>${json.companyName}</strong>. You can now save and continue.`, 'success');
+                    }
+                } else if (response.status === 404) {
+                    showExistingClientMessage('Client not found. Please complete the form below to register a new client.', 'warning');
+                } else {
+                    const text = await response.text();
+                    showExistingClientMessage('Search error: ' + text, 'danger');
+                }
+            } catch (err) {
+                showExistingClientMessage('Search failed: ' + err.message, 'danger');
+            } finally {
+                existingClientSearchBtn.disabled = false;
+            }
+        });
+    }
+
+    // ── Identity Verification (IPRS) ──────────────────────────
+    const iprsVerifyUrl = '@Url.Action("VerifyIprs", "Onboarding")';
+    const performVerificationBtn = document.getElementById('performIprsVerificationBtn');
+    const iprsIdNumberInput = document.getElementById('iprsIdNumber');
+    const iprsFullNameInput = document.getElementById('iprsFullName');
+    const iprsVerificationStatusDiv = document.getElementById('iprsVerificationStatus');
+    const iprsResultSummaryDiv = document.getElementById('iprsResultSummary');
+    const iprsVerifiedStatusInput = document.getElementById('iprsVerifiedStatus');
+    const iprsVerificationReferenceInput = document.getElementById('iprsVerificationReference');
+    const clearIprsVerificationBtn = document.getElementById('clearIprsVerificationBtn');
+    const iprsVerifiedHidden = document.getElementById('IprsVerifiedHidden');
+    const iprsReferenceHidden = document.getElementById('IprsReferenceHidden');
+    const iprsPhoneVerifiedHidden = document.getElementById('IprsPhoneVerifiedHidden');
+    const iprsMessage = document.getElementById('iprsVerificationMessage');
+    const phoneInput = document.querySelector('input[name="Phone"]');
+    let iprsPhoneNumbers = [];
+
+    function showIprsStatus(success, message, isLoading = false) {
+        if (!iprsVerificationStatusDiv) return;
+        iprsVerificationStatusDiv.className = `alert alert-${success ? 'success' : isLoading ? 'info' : 'danger'}`;
+        if (isLoading) {
+            iprsVerificationStatusDiv.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>${message}`;
+        } else {
+            iprsVerificationStatusDiv.textContent = message;
+        }
+        iprsVerificationStatusDiv.style.display = 'block';
+    }
+
+    function hideIprsStatus() {
+        if (iprsVerificationStatusDiv) iprsVerificationStatusDiv.style.display = 'none';
+    }
+
+    function displayIprsResult(idNumber, fullName, phoneNumbers, reference) {
+        if (!iprsResultSummaryDiv) return;
+        document.getElementById('verifiedIdNumber').textContent = idNumber;
+        document.getElementById('verifiedFullName').textContent = fullName;
+
+        const phoneList = document.getElementById('verifiedPhoneList');
+        if (phoneList) {
+            phoneList.innerHTML = '';
+            if (phoneNumbers && phoneNumbers.length > 0) {
+                phoneNumbers.forEach(number => {
+                    const li = document.createElement('li');
+                    li.textContent = number;
+                    phoneList.appendChild(li);
+                });
+            } else {
+                const li = document.createElement('li');
+                li.textContent = 'No phone numbers returned from IPRS.';
+                phoneList.appendChild(li);
+            }
+        }
+
+        document.getElementById('verifiedReference').textContent = reference;
+        iprsResultSummaryDiv.style.display = 'block';
+    }
+
+    function hideIprsResult() {
+        if (iprsResultSummaryDiv) iprsResultSummaryDiv.style.display = 'none';
+    }
+
+    function setFormFieldsFromIprs(idNumber, fullName, kraPin) {
+        const form = document.getElementById('onboardStep1Form');
+        if (!form) return;
+
+        const setField = (name, value) => {
+            const field = form.elements[name];
+            if (field) field.value = value || '';
+        };
+
+        setField('IdNumber', idNumber);
+        setField('CompanyName', fullName);
+        if (kraPin) setField('KraPin', kraPin);
+
+        if (iprsMessage) {
+            iprsMessage.textContent = 'Identity verified successfully. Verified data has been populated; please enter the phone number manually.';
+        }
+    }
+
+    function updateFormVerificationStatus(verified, reference) {
+        if (iprsVerifiedHidden) iprsVerifiedHidden.value = verified ? 'true' : 'false';
+        if (iprsReferenceHidden) iprsReferenceHidden.value = reference || '';
+    }
+
+    if (performVerificationBtn) {
+        performVerificationBtn.addEventListener('click', async () => {
+            const idNumber = iprsIdNumberInput ? iprsIdNumberInput.value.trim() : '';
+            const fullName = iprsFullNameInput ? iprsFullNameInput.value.trim() : '';
+
+            if (!idNumber) {
+                showIprsStatus(false, 'Please enter a National ID Number');
+                return;
+            }
+            if (!fullName) {
+                showIprsStatus(false, 'Please enter the full name as per ID');
+                return;
+            }
+
+            performVerificationBtn.disabled = true;
+            showIprsStatus(true, 'Verifying identity with IPRS...', true);
+            hideIprsResult();
+
+            try {
+                const response = await fetch(iprsVerifyUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idNumber, fullName })
+                });
+
+                let json = null;
+                let bodyText = '';
+                try {
+                    json = await response.json();
+                } catch (parseErr) {
+                    bodyText = await response.text();
+                    console.error('IPRS response parse failed:', parseErr, bodyText);
+                }
+
+                if (!response.ok) {
+                    const message = json?.message || bodyText || `Verification failed with status ${response.status} ${response.statusText}`;
+                    showIprsStatus(false, message);
+                    updateFormVerificationStatus(false, '');
+                    return;
+                }
+
+                if (!json || json.status !== 'Success') {
+                    const message = json?.message || 'Verification failed. Please check your details and try again.';
+                    showIprsStatus(false, message);
+                    updateFormVerificationStatus(false, '');
+                    return;
+                }
+
+                const rawPhone = json.phone || '';
+                iprsPhoneNumbers = rawPhone ? rawPhone.split(/[\s,;|]+/).filter(Boolean) : [];
+                showIprsStatus(true, 'Identity verified successfully. Please enter the phone number linked to this ID.');
+                displayIprsResult(json.idNumber || idNumber, json.fullName || fullName, iprsPhoneNumbers, json.reference);
+                setFormFieldsFromIprs(json.idNumber || idNumber, json.fullName || fullName, json.kraPin || '');
+                updateFormVerificationStatus(true, json.reference || '');
+
+                if (iprsVerifiedStatusInput) iprsVerifiedStatusInput.value = 'true';
+                if (iprsVerificationReferenceInput) iprsVerificationReferenceInput.value = json.reference || '';
+                if (iprsPhoneVerifiedHidden) iprsPhoneVerifiedHidden.value = 'false';
+            } catch (err) {
+                showIprsStatus(false, `Verification error: ${err.message}`);
+                console.error('IPRS verification exception:', err);
+                updateFormVerificationStatus(false, '');
+                if (iprsPhoneVerifiedHidden) iprsPhoneVerifiedHidden.value = 'false';
+            } finally {
+                performVerificationBtn.disabled = false;
+            }
+        });
+    }
+
+    if (clearIprsVerificationBtn) {
+        clearIprsVerificationBtn.addEventListener('click', () => {
+            if (iprsIdNumberInput) iprsIdNumberInput.value = '';
+            if (iprsFullNameInput) iprsFullNameInput.value = '';
+            hideIprsStatus();
+            hideIprsResult();
+            updateFormVerificationStatus(false, '');
+            if (iprsVerifiedStatusInput) iprsVerifiedStatusInput.value = 'false';
+            if (iprsVerificationReferenceInput) iprsVerificationReferenceInput.value = '';
+            if (iprsPhoneVerifiedHidden) iprsPhoneVerifiedHidden.value = 'false';
+            if (iprsMessage) iprsMessage.textContent = '';
+            iprsPhoneNumbers = [];
+        });
+    }
+
+    // ── Toggle Identity vs Business verification by Category ──
+    const identityVerificationSection = document.getElementById('identityVerificationSection');
+    const businessVerificationSection = document.getElementById('businessVerificationSection');
+
+    function toggleVerificationSections() {
+        const category = document.querySelector('input[name="Category"]:checked')?.value || '1';
+        const isCorp = category === '2';
+        if (identityVerificationSection) identityVerificationSection.style.display = isCorp ? 'none' : '';
+        if (businessVerificationSection) businessVerificationSection.style.display = isCorp ? '' : 'none';
+    }
+
+    document.querySelectorAll('input[name="Category"]').forEach(r => r.addEventListener('change', toggleVerificationSections));
+    toggleVerificationSections();
+
+    // ── Business Verification (Company Search) ──────────────
+    const companyVerifyUrl = '@Url.Action("VerifyCompany", "Onboarding")';
+    const performCompanyVerificationBtn = document.getElementById('performCompanyVerificationBtn');
+    const companyRegNumberInput = document.getElementById('companyRegNumber');
+    const companyVerificationStatusDiv = document.getElementById('companyVerificationStatus');
+    const companyResultSummaryDiv = document.getElementById('companyResultSummary');
+    const clearCompanyVerificationBtn = document.getElementById('clearCompanyVerificationBtn');
+
+    function showCompanyStatus(success, message, isLoading = false) {
+        if (!companyVerificationStatusDiv) return;
+        companyVerificationStatusDiv.className = `alert alert-${success ? 'success' : isLoading ? 'info' : 'danger'}`;
+        if (isLoading) {
+            companyVerificationStatusDiv.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>${message}`;
+        } else {
+            companyVerificationStatusDiv.textContent = message;
+        }
+        companyVerificationStatusDiv.style.display = 'block';
+    }
+
+    function hideCompanyStatus() {
+        if (companyVerificationStatusDiv) companyVerificationStatusDiv.style.display = 'none';
+    }
+
+    function displayCompanyResult(regNumber, companyName, companyStatus, reference) {
+        if (!companyResultSummaryDiv) return;
+        document.getElementById('verifiedRegNumber').textContent = regNumber;
+        document.getElementById('verifiedCompanyName').textContent = companyName;
+        document.getElementById('verifiedCompanyStatus').textContent = companyStatus || 'N/A';
+        document.getElementById('verifiedCompanyReference').textContent = reference;
+        companyResultSummaryDiv.style.display = 'block';
+    }
+
+    function hideCompanyResult() {
+        if (companyResultSummaryDiv) companyResultSummaryDiv.style.display = 'none';
+    }
+
+    function setFormFieldsFromCompany(regNumber, companyName, kraPin) {
+        const form = document.getElementById('onboardStep1Form');
+        if (!form) return;
+
+        const setField = (name, value) => {
+            const field = form.elements[name];
+            if (field && value) field.value = value;
+        };
+
+        setField('BusinessRegNumber', regNumber);
+        setField('CompanyName', companyName);
+        if (kraPin) setField('KraPin', kraPin);
+
+        if (iprsMessage) {
+            iprsMessage.textContent = 'Business verified successfully. Verified data has been populated.';
+        }
+    }
+
+    if (performCompanyVerificationBtn) {
+        performCompanyVerificationBtn.addEventListener('click', async () => {
+            const regNumber = companyRegNumberInput ? companyRegNumberInput.value.trim() : '';
+
+            if (!regNumber) {
+                showCompanyStatus(false, 'Please enter a business registration number');
+                return;
+            }
+
+            performCompanyVerificationBtn.disabled = true;
+            showCompanyStatus(true, 'Verifying business registration...', true);
+            hideCompanyResult();
+
+            try {
+                const response = await fetch(companyVerifyUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ registrationNumber: regNumber })
+                });
+
+                let json = null;
+                let bodyText = '';
+                try {
+                    json = await response.json();
+                } catch (parseErr) {
+                    bodyText = await response.text();
+                    console.error('Company verification response parse failed:', parseErr, bodyText);
+                }
+
+                if (!response.ok) {
+                    const message = json?.message || bodyText || `Verification failed with status ${response.status} ${response.statusText}`;
+                    showCompanyStatus(false, message);
+                    updateFormVerificationStatus(false, '');
+                    return;
+                }
+
+                if (!json || json.status !== 'Success') {
+                    const message = json?.message || 'Verification failed. Please check the registration number and try again.';
+                    showCompanyStatus(false, message);
+                    updateFormVerificationStatus(false, '');
+                    return;
+                }
+
+                showCompanyStatus(true, 'Business verified successfully.');
+                displayCompanyResult(json.registrationNumber || regNumber, json.companyName || '', json.companyStatus, json.reference);
+                setFormFieldsFromCompany(json.registrationNumber || regNumber, json.companyName || '', json.kraPin || '');
+                updateFormVerificationStatus(true, json.reference || '');
+            } catch (err) {
+                showCompanyStatus(false, `Verification error: ${err.message}`);
+                console.error('Company verification exception:', err);
+                updateFormVerificationStatus(false, '');
+            } finally {
+                performCompanyVerificationBtn.disabled = false;
+            }
+        });
+    }
+
+    if (clearCompanyVerificationBtn) {
+        clearCompanyVerificationBtn.addEventListener('click', () => {
+            if (companyRegNumberInput) companyRegNumberInput.value = '';
+            hideCompanyStatus();
+            hideCompanyResult();
+            updateFormVerificationStatus(false, '');
+            if (iprsMessage) iprsMessage.textContent = '';
+        });
+    }
+
+    function normalizePhone(value) {
+        if (!value) return '';
+        let digits = value.replace(/\D/g, '');
+        if (digits.startsWith('254') && digits.length > 9) {
+            digits = digits.slice(-9);
+        }
+        if (digits.length === 9) {
+            digits = '0' + digits;
+        }
+        return digits;
+    }
+
+    function isPhoneInIprsList(phone) {
+        const normalized = normalizePhone(phone);
+        return iprsPhoneNumbers.some(num => normalizePhone(num) === normalized);
+    }
+
+    function validatePhoneEntry() {
+        if (!phoneInput || !iprsVerifiedHidden || iprsVerifiedHidden.value !== 'true') return;
+        const phoneValue = phoneInput.value.trim();
+        if (!phoneValue) {
+            if (iprsPhoneVerifiedHidden) iprsPhoneVerifiedHidden.value = 'false';
+            return;
+        }
+
+        if (iprsPhoneNumbers.length === 0) {
+            if (iprsPhoneVerifiedHidden) iprsPhoneVerifiedHidden.value = 'true';
+            return;
+        }
+
+        if (isPhoneInIprsList(phoneValue)) {
+            if (iprsPhoneVerifiedHidden) iprsPhoneVerifiedHidden.value = 'true';
+            showIprsStatus(true, 'Phone number matches IPRS records.');
+        } else {
+            if (iprsPhoneVerifiedHidden) iprsPhoneVerifiedHidden.value = 'false';
+            showIprsStatus(false, 'Entered phone number is not linked to this ID. Please enter the correct number from the IPRS list.');
+        }
+    }
+
+    if (phoneInput) {
+        phoneInput.addEventListener('blur', validatePhoneEntry);
+        phoneInput.addEventListener('input', () => {
+            if (iprsPhoneVerifiedHidden) iprsPhoneVerifiedHidden.value = 'false';
+        });
+    }
+
+    const onboardStep1Form = document.getElementById('onboardStep1Form');
+    if (onboardStep1Form) {
+        onboardStep1Form.addEventListener('submit', (e) => {
+            const category = document.querySelector('input[name="Category"]:checked')?.value || '1';
+            const isCorp = category === '2';
+            const isVerified = iprsVerifiedHidden && iprsVerifiedHidden.value === 'true';
+
+            if (isCorp) {
+                if (!isVerified) {
+                    e.preventDefault();
+                    alert('Please complete business verification before continuing.');
+                    performCompanyVerificationBtn?.scrollIntoView({ behavior: 'smooth' });
+                    return false;
+                }
+                return;
+            }
+
+            const isPhoneVerified = iprsPhoneVerifiedHidden && iprsPhoneVerifiedHidden.value === 'true';
+            if (!isVerified) {
+                e.preventDefault();
+                alert('Please complete IPRS identity verification before continuing.');
+                performVerificationBtn?.scrollIntoView({ behavior: 'smooth' });
+                return false;
+            }
+            if (iprsPhoneNumbers.length > 0 && !isPhoneVerified) {
+                e.preventDefault();
+                alert('Please enter the phone number that matches the IPRS-linked list.');
+                phoneInput?.focus();
+                return false;
+            }
+        });
+    }
+
+
+    function restoreWizardStep(step){
+        const form = document.getElementById('onboardStep' + step + 'Form');
+        if(!form) return;
+
+        const hasServerBackedContext = !!currentClientId || !!currentRequestId;
+        // When editing/resuming an existing record, trust server-rendered DB values
+        // and do not let stale browser drafts overwrite them.
+        if (hasServerBackedContext) {
+            localStorage.removeItem(`${wizardKey}_step${step}`);
+            return;
+        }
+
+        // When starting a fresh transaction, do not restore old step drafts from a previous session.
+        if (step === '1' && !currentClientId && !currentRequestId) {
+            localStorage.removeItem(`${wizardKey}_step1`);
+            return;
+        }
+        if (step === '2' && !currentRequestId) {
+            localStorage.removeItem(`${wizardKey}_step2`);
+            localStorage.removeItem(`${wizardKey}_step3`);
+            return;
+        }
+        if (step === '3' && !currentRequestId) {
+            localStorage.removeItem(`${wizardKey}_step3`);
+            return;
+        }
+
+        const raw = localStorage.getItem(`${wizardKey}_step${step}`);
+        if(!raw) return;
+        const obj = JSON.parse(raw);
+        hydrateForm(form, obj);
+    }
+
+    // Restore current step draft on load
+    restoreWizardStep(curStep);
+
+    // Hook input changes and form submit to save/clear drafts
+    ['1','2','3'].forEach(s => {
+        const f = document.getElementById('onboardStep' + s + 'Form');
+        if(!f) return;
+        f.addEventListener('input', () => saveWizardStep(s));
+        // Keep drafts on step submit so users can navigate back and still see entered values.
+        if (s === '3') {
+            f.addEventListener('submit', () => {
+                localStorage.removeItem(`${wizardKey}_step1`);
+                localStorage.removeItem(`${wizardKey}_step2`);
+                localStorage.removeItem(`${wizardKey}_step3`);
+            });
+        }
+    });
+})();
+</script>
+}

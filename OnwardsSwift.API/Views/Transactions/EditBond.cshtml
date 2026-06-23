@@ -1,0 +1,207 @@
+@model OnwardsSwift.Core.DTOs.BondApplicationViewModel
+@{
+    ViewData["Title"] = "Edit Bond Application";
+
+    string ResolveUrl(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return "#";
+        if (path.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            return path;
+        var trimmed = path.TrimStart('/');
+        if (!trimmed.StartsWith("uploads/", StringComparison.OrdinalIgnoreCase))
+            trimmed = "uploads/" + trimmed;
+        return Url.Content("~/" + trimmed) ?? ("/" + trimmed);
+    }
+}
+
+<div class="container-fluid py-3">
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+            <div>
+                <h1 class="h4 mb-1">Edit Bond Application</h1>
+                <p class="text-muted mb-0">Update bond request details and upload supporting attachments.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a class="btn btn-outline-secondary" href="@Url.Action("BondDetails", "Transactions", new { id = Model.Id })">Back to Profile</a>
+                <a class="btn btn-outline-primary" href="@Url.Action("Index", "Transactions")">All Transactions</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <form asp-action="EditBond" asp-controller="Transactions" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Id" />
+
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="ApplicantName" class="form-label"></label>
+                        <input asp-for="ApplicantName" class="form-control" />
+                        <span asp-validation-for="ApplicantName" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ApplicantTown" class="form-label"></label>
+                        <input asp-for="ApplicantTown" class="form-control" />
+                        <span asp-validation-for="ApplicantTown" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ApplicantAddress" class="form-label"></label>
+                        <input asp-for="ApplicantAddress" class="form-control" />
+                        <span asp-validation-for="ApplicantAddress" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ApplicantCode" class="form-label"></label>
+                        <input asp-for="ApplicantCode" class="form-control" />
+                        <span asp-validation-for="ApplicantCode" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Procuring" class="form-label"></label>
+                        <input asp-for="Procuring" class="form-control" />
+                        <span asp-validation-for="Procuring" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ProcTown" class="form-label"></label>
+                        <input asp-for="ProcTown" class="form-control" />
+                        <span asp-validation-for="ProcTown" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ProcAddress" class="form-label"></label>
+                        <input asp-for="ProcAddress" class="form-control" />
+                        <span asp-validation-for="ProcAddress" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ProcCode" class="form-label"></label>
+                        <input asp-for="ProcCode" class="form-control" />
+                        <span asp-validation-for="ProcCode" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="GuaranteeFigures" class="form-label"></label>
+                        <input asp-for="GuaranteeFigures" class="form-control" />
+                        <span asp-validation-for="GuaranteeFigures" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="GuaranteeWords" class="form-label"></label>
+                        <input asp-for="GuaranteeWords" class="form-control" />
+                        <span asp-validation-for="GuaranteeWords" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="TenderRef" class="form-label"></label>
+                        <input asp-for="TenderRef" class="form-control" />
+                        <span asp-validation-for="TenderRef" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="TypeOther" class="form-label"></label>
+                        <input asp-for="TypeOther" class="form-control" />
+                        <span asp-validation-for="TypeOther" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header bg-light">Bond Types</div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 form-check">
+                                <input asp-for="TypeBid" class="form-check-input" />
+                                <label asp-for="TypeBid" class="form-check-label"></label>
+                            </div>
+                            <div class="col-md-3 form-check">
+                                <input asp-for="TypePerformance" class="form-check-input" />
+                                <label asp-for="TypePerformance" class="form-check-label"></label>
+                            </div>
+                            <div class="col-md-3 form-check">
+                                <input asp-for="TypeAdvance" class="form-check-input" />
+                                <label asp-for="TypeAdvance" class="form-check-label"></label>
+                            </div>
+                            <div class="col-md-3 form-check">
+                                <input asp-for="TypeRetention" class="form-check-input" />
+                                <label asp-for="TypeRetention" class="form-check-label"></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="GuaranteeFrom" class="form-label"></label>
+                        <input asp-for="GuaranteeFrom" class="form-control" type="date" />
+                        <span asp-validation-for="GuaranteeFrom" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="GuaranteeTo" class="form-label"></label>
+                        <input asp-for="GuaranteeTo" class="form-control" type="date" />
+                        <span asp-validation-for="GuaranteeTo" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header bg-light">Counter Guarantee / Indemnity</div>
+                    <div class="card-body row g-3">
+                        <div class="col-md-3">
+                            <label asp-for="IndemnityDateDay" class="form-label"></label>
+                            <input asp-for="IndemnityDateDay" class="form-control" />
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="IndemnityDateMonth" class="form-label"></label>
+                            <input asp-for="IndemnityDateMonth" class="form-control" />
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="IndemnityDateYear" class="form-label"></label>
+                            <input asp-for="IndemnityDateYear" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="IndemnityName1" class="form-label"></label>
+                            <input asp-for="IndemnityName1" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="IndemnitySignature1" class="form-label"></label>
+                            <input asp-for="IndemnitySignature1" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="IndemnityName2" class="form-label"></label>
+                            <input asp-for="IndemnityName2" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="IndemnitySignature2" class="form-label"></label>
+                            <input asp-for="IndemnitySignature2" class="form-control" />
+                        </div>
+                        <div class="col-md-12">
+                            <label asp-for="CompanySealStamp" class="form-label"></label>
+                            <input asp-for="CompanySealStamp" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header bg-light">Attachments</div>
+                    <div class="card-body">
+                        @if (Model.ExistingAttachments.Any())
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Existing attachments</label>
+                                <ul class="list-group">
+                                    @foreach (var att in Model.ExistingAttachments)
+                                    {
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span><a href="@ResolveUrl(att)" target="_blank">@System.IO.Path.GetFileName(att)</a></span>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                        <div class="mb-3">
+                            <label asp-for="Attachments" class="form-label">Upload new attachments</label>
+                            <input asp-for="Attachments" type="file" class="form-control" multiple />
+                            <span asp-validation-for="Attachments" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Save Bond Application</button>
+            </form>
+        </div>
+    </div>
+</div>

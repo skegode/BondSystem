@@ -1,8 +1,8 @@
 ﻿@{
     ViewData["Title"] = "Client Statements";
     var selectedClientId = ViewBag.SelectedClientId?.ToString();
-    var defaultFrom = ViewBag.DefaultFrom?.ToString() ?? DateTime.Now.AddMonths(-1).ToString("yyyy-MM-dd");
-    var defaultTo = ViewBag.DefaultTo?.ToString() ?? DateTime.Now.ToString("yyyy-MM-dd");
+    var defaultFrom = ViewBag.DefaultFrom?.ToString() ?? string.Empty;
+    var defaultTo = ViewBag.DefaultTo?.ToString() ?? string.Empty;
     var selectedBondTypeIds = new HashSet<string>(((ViewBag.SelectedBondTypeIds as int[]) ?? Array.Empty<int>()).Select(x => x.ToString()));
 }
 
@@ -67,8 +67,8 @@
                         <button type="submit" name="format" value="pdf" class="btn btn-danger w-100 py-2">
                             <i class="bi bi-file-earmark-pdf me-2"></i>Export PDF with Selected Dates
                         </button>
-                        <button type="submit" formaction="@Url.Action("GenerateInvoicePdf", "Finance")" class="btn btn-outline-dark w-100 py-2">
-                            <i class="bi bi-receipt me-2"></i>Export Invoice PDF with Selected Dates
+                        <button type="submit" formaction="@Url.Action("GenerateInvoice", "Finance")" class="btn btn-outline-dark w-100 py-2">
+                            <i class="bi bi-receipt me-2"></i>Preview Invoice with Selected Dates
                         </button>
                     </div>
                 </form>

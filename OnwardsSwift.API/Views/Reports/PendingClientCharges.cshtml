@@ -1,0 +1,187 @@
+@model OnwardsSwift.Core.DTOs.PendingClientChargesViewModel
+@{
+    ViewData["Title"] = "Pending Client Charges";
+}
+
+<div class="page-header d-flex align-items-center justify-content-between mb-4">
+    <div class="d-flex align-items-start">
+        <img src="@Url.Content("~/images/onwards-logo.jpg")" alt="Onwards Swift" style="height:84px; width:auto; object-fit:contain; margin-right:12px;" />
+        <div>
+            <h1 class="h3 fw-bold mb-1 text-navy">Pending Client Charges</h1>
+            <p class="text-muted mb-0">All bonds in the system with outstanding client charges after partial payments.</p>
+        </div>
+    </div>
+    <button onclick="exportToPdf()" class="btn btn-outline-danger btn-sm px-3 fw-bold">
+        <i class="bi bi-file-earmark-pdf me-1"></i> Export PDF
+    </button>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted text-uppercase fw-bold">Clients</small>
+                <h3 class="fw-bold text-navy mb-0">@Model.TotalClients</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted text-uppercase fw-bold">Total Bonds</small>
+                <h3 class="fw-bold text-navy mb-0">@Model.TotalBonds</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted text-uppercase fw-bold">Outstanding Client Charges</small>
+                <h3 class="fw-bold text-primary mb-0">KES @Model.TotalClientCharges.ToString("N2")</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <small class="text-muted text-uppercase fw-bold">Total Net Profit</small>
+                <h3 class="fw-bold text-success mb-0">KES @Model.TotalNetProfit.ToString("N2")</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (!Model.Bonds.Any())
+{
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5 text-muted">
+            <i class="bi bi-check-circle display-4 d-block mb-3 opacity-25"></i>
+            <p>No bonds found.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 small">
+                <thead class="bg-light text-uppercase text-muted" style="font-size:11px;">
+                    <tr>
+                        <th class="ps-4">Date</th>
+                        <th>Client</th>
+                        <th class="text-end">Bond Amount</th>
+                        <th class="text-end">Tenor Days</th>
+                        <th>Issuing Bank</th>
+                        <th class="text-end">Client Charges (Outstanding)</th>
+                        <th class="text-end">Bank Charges</th>
+                        <th class="text-end">Tax</th>
+                        <th class="text-end pe-4">Net Profit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var bond in Model.Bonds)
+                    {
+                        <tr>
+                            <td class="ps-4">@bond.ApplicationDate.ToString("dd MMM yyyy")</td>
+                            <td>@bond.ClientName</td>
+                            <td class="text-end">KES @bond.BondAmount.ToString("N2")</td>
+                            <td class="text-end">@bond.TenorDays</td>
+                            <td>@bond.IssuingBank</td>
+                            <td class="text-end fw-semibold text-primary">KES @bond.ClientCharges.ToString("N2")</td>
+                            <td class="text-end">KES @bond.BankCharges.ToString("N2")</td>
+                            <td class="text-end">KES @bond.TaxCalculation.ToString("N2")</td>
+                            <td class="text-end pe-4 fw-bold @(bond.NetProfit >= 0 ? "text-success" : "text-danger")">
+                                KES @bond.NetProfit.ToString("N2")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot class="bg-light fw-bold border-top">
+                    <tr>
+                        <td colspan="5" class="ps-4 py-2 text-end text-muted small text-uppercase">Totals</td>
+                        <td class="text-end text-primary">KES @Model.TotalClientCharges.ToString("N2")</td>
+                        <td class="text-end">KES @Model.TotalBankCharges.ToString("N2")</td>
+                        <td class="text-end">KES @Model.TotalTaxCalculation.ToString("N2")</td>
+                        <td class="text-end pe-4 @(Model.TotalNetProfit >= 0 ? "text-success" : "text-danger")">KES @Model.TotalNetProfit.ToString("N2")</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script>
+        async function exportToPdf() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+
+            const logoSrc = '@Url.Content("~/images/onwards-logo.jpg")';
+            const loadImageDataUrl = (src) => new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const maxW = 120;
+                    const scale = Math.min(1, maxW / img.width);
+                    canvas.width = img.width * scale;
+                    canvas.height = img.height * scale;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    resolve(canvas.toDataURL('image/jpeg'));
+                };
+                img.onerror = () => resolve(null);
+                img.src = src;
+            });
+
+            const imgData = await loadImageDataUrl(logoSrc);
+            if (imgData) {
+                doc.addImage(imgData, 'JPEG', 40, 20, 100, 40);
+            }
+
+            // Right-side company details (top-right) — keep above the report
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const rightX = pageWidth - 40;
+            doc.setFontSize(9);
+            doc.setTextColor(0);
+            doc.text('IPS Building, 4th Floor', rightX, 24, { align: 'right' });
+            doc.text('Kimathi Street, Nairobi CBD', rightX, 36, { align: 'right' });
+            doc.text('P.O Box 104322-00100 NRB', rightX, 48, { align: 'right' });
+            doc.text('Website: onwardsswi.com', rightX, 60, { align: 'right' });
+
+            // Title and meta below the header block
+            doc.setFontSize(14);
+            doc.setTextColor(0, 45, 114);
+            doc.text('Outstanding Client Charges Report - All Bonds', 40, 84);
+            doc.setFontSize(9);
+            doc.setTextColor(100);
+            doc.text('Generated: ' + new Date().toLocaleDateString('en-KE', { day:'2-digit', month:'short', year:'numeric' }), 40, 100);
+            doc.text('Total Clients: @Model.TotalClients   |   Total Bonds: @Model.TotalBonds   |   Outstanding Client Charges: KES @Model.TotalClientCharges.ToString("N2")   |   Net Profit: KES @Model.TotalNetProfit.ToString("N2")', 40, 116);
+
+            doc.autoTable({
+                head: [['Date', 'Client', 'Bond Amount', 'Tenor Days', 'Issuing Bank', 'Client Charges (Outstanding)', 'Bank Charges', 'Tax', 'Net Profit']],
+                body: [
+                    @foreach (var bond in Model.Bonds)
+                    {
+                        <text>['@bond.ApplicationDate.ToString("dd MMM yyyy")', '@Html.Raw(bond.ClientName.Replace("'", "\\'"))', 'KES @bond.BondAmount.ToString("N2")', '@bond.TenorDays', '@Html.Raw(bond.IssuingBank.Replace("'", "\\'"))', 'KES @bond.ClientCharges.ToString("N2")', 'KES @bond.BankCharges.ToString("N2")', 'KES @bond.TaxCalculation.ToString("N2")', 'KES @bond.NetProfit.ToString("N2")'],</text>
+                    }
+                ],
+                // start below the header/details block so table doesn't overlap
+                startY: 132,
+                styles: { fontSize: 7.5, cellPadding: 3 },
+                headStyles: { fillColor: [0, 45, 114], textColor: 255, fontStyle: 'bold' },
+                alternateRowStyles: { fillColor: [245, 247, 250] },
+                columnStyles: { 2:{halign:'right'}, 3:{halign:'right'}, 5:{halign:'right'}, 6:{halign:'right'}, 7:{halign:'right'}, 8:{halign:'right'} },
+                didDrawPage: (data) => {
+                    const pc = doc.internal.getNumberOfPages();
+                    doc.setFontSize(8); doc.setTextColor(150);
+                    doc.text(`Page ${data.pageNumber} of ${pc}`, doc.internal.pageSize.getWidth() - 80, doc.internal.pageSize.getHeight() - 20);
+                }
+            });
+
+            doc.save('PendingClientCharges_' + new Date().toISOString().slice(0,10) + '.pdf');
+        }
+    </script>
+}

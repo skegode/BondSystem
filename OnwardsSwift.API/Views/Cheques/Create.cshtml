@@ -27,6 +27,8 @@
         </div>
     </div>
 
+    @await Html.PartialAsync("_ValidationErrors")
+
     @if (TempData["Error"] != null)
     {
         <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-3">

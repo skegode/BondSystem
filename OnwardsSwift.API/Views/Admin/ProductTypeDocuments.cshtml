@@ -1,0 +1,85 @@
+@{
+    ViewData["Title"] = "Product Type Documents";
+    var productType = (dynamic)ViewBag.ProductType;
+}
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div>
+        <h1>@productType.ProductName</h1>
+        <div class="subtitle">Documents the mobile app will require a client to upload when they select this bond type</div>
+    </div>
+    <a asp-action="ProductTypes" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back to Product Types</a>
+</div>
+
+<div class="content-body">
+<div class="card mb-3">
+    <div class="card-header"><strong>Required Documents</strong></div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead><tr><th>Order</th><th>Key</th><th>Label</th><th>Description</th><th>Required</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var d in (List<dynamic>)Model)
+                {
+                    <tr>
+                        <td class="small text-muted">@d.SortOrder</td>
+                        <td class="small"><code>@d.DocumentKey</code></td>
+                        <td>@d.Label</td>
+                        <td class="small text-muted">@d.Description</td>
+                        <td>
+                            @if (d.Required != null && (bool)d.Required)
+                            { <span class="badge bg-success-subtle text-success">Required</span> }
+                            else
+                            { <span class="badge bg-secondary-subtle text-secondary">Optional</span> }
+                        </td>
+                        <td>
+                            <form asp-action="DeleteProductTypeDocument" method="post" class="d-inline" onsubmit="return confirm('Remove this document requirement?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@d.Id" />
+                                <input type="hidden" name="productTypeId" value="@productType.Id" />
+                                <button class="btn btn-sm btn-outline-danger">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                @if (!((List<dynamic>)Model).Any())
+                { <tr><td colspan="6" class="text-center text-muted py-4">No documents configured yet for this bond type</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><strong>Add Document Requirement</strong></div>
+    <div class="card-body">
+        <form asp-action="AddProductTypeDocument" method="post" class="row g-2">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="productTypeId" value="@productType.Id" />
+            <div class="col-md-3">
+                <label class="form-label small">Document Key</label>
+                <input name="documentKey" class="form-control form-control-sm" placeholder="e.g. kra-pin" required />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small">Label</label>
+                <input name="label" class="form-control form-control-sm" placeholder="e.g. KRA PIN Certificate" required />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small">Description</label>
+                <input name="description" class="form-control form-control-sm" placeholder="Shown to the client in the app" />
+            </div>
+            <div class="col-md-1">
+                <label class="form-label small">Order</label>
+                <input name="sortOrder" type="number" value="0" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+                <div class="form-check">
+                    <input type="checkbox" name="required" value="true" class="form-check-input" checked />
+                    <label class="form-check-label small">Required</label>
+                </div>
+            </div>
+            <div class="col-12">
+                <button class="btn btn-sm btn-navy mt-2">Add Document</button>
+            </div>
+        </form>
+    </div>
+</div>
+</div>

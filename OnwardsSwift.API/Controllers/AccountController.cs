@@ -9,6 +9,8 @@ using OnwardsSwift.Infrastructure.Data;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Net;
+using Microsoft.Extensions.Logging;
 
 namespace OnwardsSwift.API.Controllers
 {
@@ -16,10 +18,12 @@ namespace OnwardsSwift.API.Controllers
     {
         private readonly DapperContext _ctx;
         private readonly OnwardsSwift.Core.Interfaces.INotificationService _notifier;
-        public AccountController(DapperContext ctx, OnwardsSwift.Core.Interfaces.INotificationService notifier)
+        private readonly ILogger<AccountController> _logger;
+        public AccountController(DapperContext ctx, OnwardsSwift.Core.Interfaces.INotificationService notifier, ILogger<AccountController> logger)
         {
             _ctx = ctx;
             _notifier = notifier;
+            _logger = logger;
         }
 
         // ── Login ─────────────────────────────────────────────
@@ -101,6 +105,7 @@ namespace OnwardsSwift.API.Controllers
             if (!ModelState.IsValid) return View(model);
 
             using var conn = _ctx.Create();
+            await EnsurePasswordResetTableAsync(conn);
             var u = await conn.QueryFirstOrDefaultAsync<dynamic>(
                 "SELECT Id, Email FROM SystemUsers WHERE Email=@E AND IsActive=1 AND IsDeleted=0",
                 new { E = model.Email });
@@ -114,6 +119,18 @@ namespace OnwardsSwift.API.Controllers
                 var tokenBytes = RandomNumberGenerator.GetBytes(32);
                 var token = Convert.ToBase64String(tokenBytes);
                 var encoded = System.Net.WebUtility.UrlEncode(token);
+                var tokenHash = HashResetToken(token);
+
+                // Invalidate previous active reset tokens for this email, then persist new token.
+                await conn.ExecuteAsync(@"
+                    UPDATE PasswordResetTokens
+                    SET UsedAt = GETUTCDATE()
+                    WHERE Email = @Email AND UsedAt IS NULL AND ExpiresAt > GETUTCDATE();
+
+                    INSERT INTO PasswordResetTokens (Email, TokenHash, ExpiresAt, CreatedAt)
+                    VALUES (@Email, @TokenHash, DATEADD(MINUTE, 30, GETUTCDATE()), GETUTCDATE());",
+                    new { Email = (string)u.Email, TokenHash = tokenHash });
+
                 var resetUrl = Url.Action("ResetPassword", "Account", new { email = model.Email, token = encoded }, Request.Scheme ?? "https");
 
                 var subject = "Reset your Onwards Swift password";
@@ -121,7 +138,20 @@ namespace OnwardsSwift.API.Controllers
                 var plainBody = $"Hello,\n\nWe received a request to reset your password. Use this link to reset it: {resetUrl}\n\nIf you didn't request this, you can ignore this message.\n\n— Onwards Swift";
 
                 var sendResult = await _notifier.SendEmailAsync((string)u.Email, subject, htmlBody, plainBody);
-                // Optionally: you can inspect sendResult and act (log, surface error). We keep flow generic for security.
+                if (!sendResult.Accepted)
+                {
+                    _logger.LogWarning("ForgotPassword email send failed for {Email}. Attempts={Attempts}. Reason={Reason}",
+                        (string)u.Email,
+                        sendResult.Attempts,
+                        sendResult.FailureReason ?? "unknown");
+                }
+                else
+                {
+                    _logger.LogInformation("ForgotPassword email accepted for {Email}. Attempts={Attempts}. ProviderMessageId={MessageId}",
+                        (string)u.Email,
+                        sendResult.Attempts,
+                        sendResult.ProviderMessageId ?? "n/a");
+                }
             }
 
             return RedirectToAction("ForgotPasswordConfirmation");
@@ -129,6 +159,79 @@ namespace OnwardsSwift.API.Controllers
 
         [HttpGet]
         public IActionResult ForgotPasswordConfirmation() => View();
+
+        // ── Reset Password via Token ─────────────────────────
+        [HttpGet]
+        public IActionResult ResetPassword(string email, string token)
+        {
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(token))
+            {
+                TempData["Error"] = "Invalid password reset link.";
+                return RedirectToAction(nameof(Login));
+            }
+
+            var model = new ResetPasswordViaTokenRequest
+            {
+                Email = email,
+                ResetToken = token
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(ResetPasswordViaTokenRequest model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            using var conn = _ctx.Create();
+            await EnsurePasswordResetTableAsync(conn);
+
+            var u = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                "SELECT Id, Email FROM SystemUsers WHERE Email=@E AND IsActive=1 AND IsDeleted=0",
+                new { E = model.Email });
+
+            if (u == null)
+            {
+                ModelState.AddModelError("", "Invalid or expired reset link.");
+                return View(model);
+            }
+
+            var decoded = WebUtility.UrlDecode(model.ResetToken);
+            var tokenHash = HashResetToken(decoded);
+
+            var tokenRow = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
+                SELECT TOP 1 Id
+                FROM PasswordResetTokens
+                WHERE Email = @Email
+                  AND TokenHash = @TokenHash
+                  AND UsedAt IS NULL
+                  AND ExpiresAt > GETUTCDATE()
+                ORDER BY CreatedAt DESC",
+                new { Email = model.Email, TokenHash = tokenHash });
+
+            if (tokenRow == null)
+            {
+                ModelState.AddModelError("", "Invalid or expired reset link.");
+                return View(model);
+            }
+
+            await conn.ExecuteAsync(@"
+                UPDATE SystemUsers
+                SET PasswordHash = @H, UpdatedAt = GETUTCDATE()
+                WHERE Email = @Email AND IsActive = 1 AND IsDeleted = 0;",
+                new { H = Hash(model.NewPassword), Email = model.Email });
+
+            await conn.ExecuteAsync(
+                "UPDATE PasswordResetTokens SET UsedAt = GETUTCDATE() WHERE Id = @Id",
+                new { Id = (int)tokenRow.Id });
+
+            return RedirectToAction(nameof(ResetPasswordConfirmation));
+        }
+
+        [HttpGet]
+        public IActionResult ResetPasswordConfirmation() => View();
 
         // ── Change Password ───────────────────────────────────
         [Authorize]
@@ -178,6 +281,31 @@ namespace OnwardsSwift.API.Controllers
         {
             using var sha = SHA256.Create();
             return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(pw + "OnwardsSwiftSalt2026")));
+        }
+
+        private static string HashResetToken(string token)
+        {
+            using var sha = SHA256.Create();
+            return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(token)));
+        }
+
+        private static async Task EnsurePasswordResetTableAsync(System.Data.IDbConnection conn)
+        {
+            await conn.ExecuteAsync(@"
+                IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='PasswordResetTokens' AND xtype='U')
+                BEGIN
+                    CREATE TABLE PasswordResetTokens (
+                        Id INT IDENTITY(1,1) PRIMARY KEY,
+                        Email NVARCHAR(255) NOT NULL,
+                        TokenHash NVARCHAR(88) NOT NULL,
+                        ExpiresAt DATETIME2 NOT NULL,
+                        UsedAt DATETIME2 NULL,
+                        CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+                    );
+
+                    CREATE INDEX IX_PasswordResetTokens_Email ON PasswordResetTokens (Email);
+                    CREATE INDEX IX_PasswordResetTokens_ExpiresAt ON PasswordResetTokens (ExpiresAt);
+                END");
         }
     }
 }

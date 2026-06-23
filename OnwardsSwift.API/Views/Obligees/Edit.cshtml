@@ -21,7 +21,12 @@
                     <label class="form-label">Category</label>
                     <select name="category" class="form-select">
                         @foreach (var cat in new[]{"Government","County","Parastatal","Private","NGO"})
-                        { <option value="@cat" @@(cat == (string?)Model.Category ? "selected" : "")>@cat</option> }
+                        {
+                            @if (cat == (string?)Model.Category)
+                            { <option value="@cat" selected>@cat</option> }
+                            else
+                            { <option value="@cat">@cat</option> }
+                        }
                     </select>
                 </div>
                 <div class="col-md-6">

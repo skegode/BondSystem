@@ -1,0 +1,284 @@
+@model OnwardsSwift.Core.DTOs.CommissionPaymentListViewModel
+@{
+    ViewData["Title"] = "Commission Payments";
+    var selectedUserId = ViewBag.SelectedUserId?.ToString() ?? string.Empty;
+    var selectedStatus = ViewBag.SelectedStatus?.ToString() ?? string.Empty;
+    var selectedYear = Model.SelectedYear;
+    var selectedMonth = Model.SelectedMonth;
+}
+
+<div class="page-header d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 fw-bold mb-1 text-navy">Commission Payments</h1>
+        <p class="text-muted mb-0">Filter by user, status, month and year, then update payment status for that specific period.</p>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <small class="text-muted text-uppercase fw-bold">Commission Due</small>
+                <h2 class="fw-bold text-primary mb-0">KES @Model.TotalCommissionDue.ToString("N2")</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <small class="text-muted text-uppercase fw-bold">Commission Base</small>
+                <h2 class="fw-bold text-navy mb-0">KES @Model.TotalCommissionBase.ToString("N2")</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <small class="text-muted text-uppercase fw-bold">Users In Period</small>
+                <h2 class="fw-bold text-navy mb-0">@Model.TotalUsers</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-light border-0 py-3">
+        <h6 class="mb-0 fw-bold text-navy">Filter Commission Period</h6>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">User</label>
+                <select name="userId" class="form-select form-select-sm">
+                    @if (string.IsNullOrWhiteSpace(selectedUserId))
+                    {
+                        <option value="" selected>Select a user</option>
+                    }
+                    else
+                    {
+                        <option value="">Select a user</option>
+                    }
+                    @foreach (var user in Model.Users)
+                    {
+                        if (selectedUserId == user.Id)
+                        {
+                            <option value="@user.Id" selected>@user.FullName</option>
+                        }
+                        else
+                        {
+                            <option value="@user.Id">@user.FullName</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">Status</label>
+                <select name="paymentStatus" class="form-select form-select-sm">
+                    @if (string.IsNullOrWhiteSpace(selectedStatus))
+                    {
+                        <option value="" selected>All payment statuses</option>
+                    }
+                    else
+                    {
+                        <option value="">All payment statuses</option>
+                    }
+
+                    @if (selectedStatus == "Pending")
+                    {
+                        <option value="Pending" selected>Pending</option>
+                    }
+                    else
+                    {
+                        <option value="Pending">Pending</option>
+                    }
+
+                    @if (selectedStatus == "Partial")
+                    {
+                        <option value="Partial" selected>Partial</option>
+                    }
+                    else
+                    {
+                        <option value="Partial">Partial</option>
+                    }
+
+                    @if (selectedStatus == "Settled")
+                    {
+                        <option value="Settled" selected>Settled</option>
+                    }
+                    else
+                    {
+                        <option value="Settled">Settled</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold text-muted">Month</label>
+                <select name="month" class="form-select form-select-sm" required>
+                    <option value="">Select month</option>
+                    @for (var i = 1; i <= 12; i++)
+                    {
+                        if (selectedMonth == i)
+                        {
+                            <option value="@i" selected>@System.Globalization.DateTimeFormatInfo.CurrentInfo.GetMonthName(i)</option>
+                        }
+                        else
+                        {
+                            <option value="@i">@System.Globalization.DateTimeFormatInfo.CurrentInfo.GetMonthName(i)</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold text-muted">Year</label>
+                <input type="number" name="year" min="2020" max="2100" value="@selectedYear" class="form-control form-control-sm" placeholder="YYYY" required />
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-navy btn-sm w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-0 py-3">
+        <h6 class="mb-0 fw-bold text-navy">Commission Due for Selected Period</h6>
+        <small class="text-muted">@(System.Globalization.DateTimeFormatInfo.CurrentInfo.GetMonthName(selectedMonth)) @selectedYear</small>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light text-uppercase small text-muted">
+                <tr>
+                    <th class="ps-4">User</th>
+                    <th class="text-end">Commission %</th>
+                    <th class="text-end">Business Base</th>
+                    <th class="text-end">Commission Due</th>
+                    <th class="text-end">Paid</th>
+                    <th class="text-end">Outstanding</th>
+                    <th>Status</th>
+                    <th class="text-end pe-4">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.CalculatedSummaries)
+                {
+                    <tr>
+                        <td class="ps-4 fw-semibold">@row.UserName</td>
+                        <td class="text-end">@row.CommissionPercent.ToString("N2")%</td>
+                        <td class="text-end">KES @row.CommissionBase.ToString("N2")</td>
+                        <td class="text-end fw-bold">KES @row.CommissionAmount.ToString("N2")</td>
+                        <td class="text-end text-success">KES @row.PaidAmount.ToString("N2")</td>
+                        <td class="text-end text-warning">KES @row.OutstandingAmount.ToString("N2")</td>
+                        <td>
+                            @if (row.PaymentStatus == "Pending")
+                            {
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            }
+                            else if (row.PaymentStatus == "Partial")
+                            {
+                                <span class="badge bg-info text-white">Partial</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success text-white">Settled</span>
+                            }
+                        </td>
+                        <td class="text-end pe-4">
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-primary"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#statusModal"
+                                    onclick="setPeriodData('@row.UserId', '@row.UserName', '@row.CommissionBase', '@row.CommissionPercent', '@row.CommissionAmount', '@row.PaidAmount', '@row.PaymentStatus')">
+                                Update Status
+                            </button>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.CalculatedSummaries.Any())
+                {
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">
+                            No commission activity found for the selected filters.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-navy text-white">
+                <h5 class="modal-title">Update Commission Status</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="statusForm" method="post" action="@Url.Action("UpsertPeriodStatus", "Commissions")">
+                    <input type="hidden" id="userId" name="userId" />
+                    <input type="hidden" name="month" value="@selectedMonth" />
+                    <input type="hidden" name="year" value="@selectedYear" />
+                    <input type="hidden" name="returnUserId" value="@selectedUserId" />
+                    <input type="hidden" name="returnPaymentStatus" value="@selectedStatus" />
+                    <input type="hidden" id="commissionBase" name="commissionBase" />
+                    <input type="hidden" id="commissionPercent" name="commissionPercent" />
+                    <input type="hidden" id="commissionAmountRaw" name="commissionAmount" />
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">User</label>
+                        <input type="text" id="userName" class="form-control" disabled />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Commission Amount</label>
+                        <input type="text" id="commissionAmount" class="form-control" disabled />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Amount Paid</label>
+                        <input type="number" id="paidAmount" name="paidAmount" class="form-control" step="0.01" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Status</label>
+                        <select name="paymentStatus" class="form-select" required>
+                            <option value="Pending">Pending</option>
+                            <option value="Partial">Partial</option>
+                            <option value="Settled">Settled</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Payment Reference</label>
+                        <input type="text" name="paymentReference" class="form-control" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Notes</label>
+                        <textarea name="notes" class="form-control" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-navy" form="statusForm">Save Status</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function setPeriodData(userId, userName, base, percent, amount, paid, status) {
+        document.getElementById('userId').value = userId;
+        document.getElementById('commissionBase').value = base;
+        document.getElementById('commissionPercent').value = percent;
+        document.getElementById('commissionAmountRaw').value = amount;
+        document.getElementById('paidAmount').value = parseFloat(paid).toFixed(2);
+        document.getElementById('commissionAmount').value = 'KES ' + parseFloat(amount).toFixed(2);
+        document.getElementById('userName').value = userName;
+        const statusSelect = document.querySelector('#statusForm select[name="paymentStatus"]');
+        if (statusSelect) {
+            statusSelect.value = status;
+        }
+    }
+</script>

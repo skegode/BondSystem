@@ -16,6 +16,7 @@ namespace OnwardsSwift.Core.DTOs
         public string IssuingBank { get; set; } = string.Empty;
         public DateTime TenderClosingDate { get; set; }
         public string Status { get; set; }
+        public string ApplicationStatus { get; set; } = string.Empty;
         public string? BondNumber { get; set; }
         public DateTime CreatedAt { get; set; }
 
@@ -25,6 +26,12 @@ namespace OnwardsSwift.Core.DTOs
         public decimal CommissionFee { get; set; }     // The calculated commission
         public decimal ApplicationFee { get; set; }    // The processing fee charged to client
         public decimal BankCharge { get; set; }       // What the bank charges us (for net profit)
+        public decimal ClientCharge { get; set; }
+        public decimal AmendmentFee { get; set; }
+        public decimal TaxPercentage { get; set; }
+        public decimal TaxCalculation { get; set; }
+        public decimal TotalBankCharge { get; set; }
+        public decimal NetProfit { get; set; }
 
         // 2. Tender & Project Info
         public string TenderName { get; set; } = string.Empty;
@@ -42,6 +49,9 @@ namespace OnwardsSwift.Core.DTOs
         // 4. Payment & Deferred Logic
         public bool IsDeferredPayment { get; set; }    // The "Pay Later" indicator
         public string? PaymentReference { get; set; }  // M-Pesa/Bank Ref
+        public string? PaymentMethod { get; set; }     // Mpesa, Bank, or Cheque
+        public decimal PaidAmount { get; set; }
+        public decimal OutstandingAmount { get; set; }
         public string? PaymentReceiptPath { get; set; } // Path to fee receipt
         public int? PaymentBankId { get; set; }        // ID of the internal collection bank
 
@@ -49,6 +59,7 @@ namespace OnwardsSwift.Core.DTOs
         public string? CreatedBy { get; set; }
         public string? ApprovedBy { get; set; }
         public DateTime? ApprovedAt { get; set; }
+        public DateTime? ProcessingDate { get; set; }
 
         // --- RESALE & LEGACY SUPPORT ---
         public bool IsResold { get; set; }

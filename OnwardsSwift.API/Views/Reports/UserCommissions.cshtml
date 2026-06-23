@@ -1,0 +1,237 @@
+@model OnwardsSwift.Core.DTOs.UserCommissionReportViewModel
+@using OnwardsSwift.Core.Enums
+@{
+    ViewData["Title"] = "User Commissions";
+    var selectedUserId = ViewBag.UserId?.ToString() ?? string.Empty;
+    var selectedFacilityType = ViewBag.FacilityType?.ToString() ?? string.Empty;
+    var fromDateValue = ViewBag.From?.ToString() ?? string.Empty;
+    var toDateValue = ViewBag.To?.ToString() ?? string.Empty;
+}
+
+<div class="page-header d-flex align-items-center justify-content-between mb-4">
+    <div class="d-flex align-items-start">
+        <img src="@Url.Content("~/images/onwards-logo.jpg")" alt="Onwards Swift" style="height:84px; width:auto; object-fit:contain; margin-right:12px;" />
+        <div>
+            <h1 class="h3 fw-bold mb-1 text-navy">User Commissions Preview</h1>
+            <p class="text-muted mb-0">Commission is calculated as max(0, client charges - bank charges) multiplied by the user's commission percent.</p>
+        </div>
+    </div>
+    <a href="@Url.Action("UserCommissionsPdf", "Reports", new { from = fromDateValue, to = toDateValue, userId = selectedUserId, facilityType = selectedFacilityType })"
+       class="btn btn-danger btn-sm">
+        <i class="bi bi-file-earmark-pdf me-1"></i> Export PDF
+    </a>
+</div>
+
+<!-- Enhanced Filters -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-light border-0 py-3">
+        <h6 class="mb-0 fw-bold text-navy">Apply Filters</h6>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">User</label>
+                <select name="userId" class="form-select form-select-sm">
+                    @if (string.IsNullOrWhiteSpace(selectedUserId))
+                    {
+                        <option value="" selected>Select a user</option>
+                    }
+                    else
+                    {
+                        <option value="">Select a user</option>
+                    }
+                    @foreach (var user in Model.Users)
+                    {
+                        if (selectedUserId == user.Id)
+                        {
+                            <option value="@user.Id" selected>@user.FullName</option>
+                        }
+                        else
+                        {
+                            <option value="@user.Id">@user.FullName</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">Product Type</label>
+                <select name="facilityType" class="form-select form-select-sm">
+                    @if (string.IsNullOrWhiteSpace(selectedFacilityType))
+                    {
+                        <option value="" selected>Select product type</option>
+                    }
+                    else
+                    {
+                        <option value="">Select product type</option>
+                    }
+
+                    @if (selectedFacilityType == "1")
+                    {
+                        <option value="1" selected>Bid Bond</option>
+                    }
+                    else
+                    {
+                        <option value="1">Bid Bond</option>
+                    }
+
+                    @if (selectedFacilityType == "2")
+                    {
+                        <option value="2" selected>Performance Bond</option>
+                    }
+                    else
+                    {
+                        <option value="2">Performance Bond</option>
+                    }
+
+                    @if (selectedFacilityType == "3")
+                    {
+                        <option value="3" selected>Advance Payment</option>
+                    }
+                    else
+                    {
+                        <option value="3">Advance Payment</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold text-muted">From Date</label>
+                <input type="date" name="from" value="@fromDateValue" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold text-muted">To Date</label>
+                <input type="date" name="to" value="@toDateValue" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-navy btn-sm w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <small class="text-muted text-uppercase fw-bold">Total Commission</small>
+                <h2 class="fw-bold text-navy mb-0">KES @Model.TotalCommission.ToString("N2")</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <small class="text-muted text-uppercase fw-bold">Commission Base</small>
+                <h2 class="fw-bold text-navy mb-0">KES @Model.TotalCommissionBase.ToString("N2")</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <small class="text-muted text-uppercase fw-bold">Applications</small>
+                <h2 class="fw-bold text-navy mb-0">@Model.TotalApplications</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-0 py-3">
+        <h6 class="mb-0 fw-bold text-navy">Totals by User</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light text-uppercase small text-muted">
+                <tr>
+                    <th class="ps-4">User</th>
+                    <th>Commission %</th>
+                    <th class="text-end">Applications</th>
+                    <th class="text-end">Base</th>
+                    <th class="text-end">Commission</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Summary)
+                {
+                    <tr>
+                        <td class="ps-4 fw-semibold">@row.UserName</td>
+                        <td>@row.CommissionPercent.ToString("N2")%</td>
+                        <td class="text-end">@row.Applications</td>
+                        <td class="text-end">KES @row.CommissionBase.ToString("N2")</td>
+                        <td class="text-end fw-bold text-success">KES @row.CommissionAmount.ToString("N2")</td>
+                    </tr>
+                }
+                @if (!Model.Summary.Any())
+                {
+                    <tr><td colspan="5" class="text-center text-muted py-4">No commissions found for the selected period.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-0 py-3">
+        <h6 class="mb-0 fw-bold text-navy">Application Detail</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light text-uppercase small text-muted">
+                <tr>
+                    <th class="ps-4">Date</th>
+                    <th>Reference</th>
+                    <th>Client</th>
+                    <th>Procuring Entity</th>
+                    <th>Product Type</th>
+                    <th>User</th>
+                    <th class="text-end">Client Charges</th>
+                    <th class="text-end">Bank Charges</th>
+                    <th class="text-end">Base</th>
+                    <th class="text-end pe-4">Commission</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Details)
+                {
+                    <tr>
+                        <td class="ps-4">@row.ApplicationDate.ToString("dd MMM yyyy")</td>
+                        <td>@row.Reference</td>
+                        <td>@row.ClientName</td>
+                        <td>@row.ProcuringEntity</td>
+                        <td>
+                            @if (row.FacilityType == 1)
+                            {
+                                <span class="badge bg-info text-dark">Bid Bond</span>
+                            }
+                            else if (row.FacilityType == 2)
+                            {
+                                <span class="badge bg-warning text-dark">Performance Bond</span>
+                            }
+                            else if (row.FacilityType == 3)
+                            {
+                                <span class="badge bg-success text-white">Advance Payment</span>
+                            }
+                            else if (row.FacilityType > 0)
+                            {
+                                <span class="badge bg-info text-dark">Bid Bond</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Unknown</span>
+                            }
+                        </td>
+                        <td>@row.UserName</td>
+                        <td class="text-end">KES @row.ClientCharges.ToString("N2")</td>
+                        <td class="text-end">KES @row.BankCharges.ToString("N2")</td>
+                        <td class="text-end">KES @row.CommissionBase.ToString("N2")</td>
+                        <td class="text-end pe-4 fw-bold text-success">KES @row.CommissionAmount.ToString("N2")</td>
+                    </tr>
+                }
+                @if (!Model.Details.Any())
+                {
+                    <tr><td colspan="10" class="text-center text-muted py-4">No application rows available.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

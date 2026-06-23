@@ -188,7 +188,7 @@
     <div class="row g-3 mb-4">
         <div class="col-lg-8">
             <div class="chart-card h-100">
-                <div class="chart-title">Bond Applications — Last 6 Months</div>
+                <div class="chart-title">Applied Bonds — Last 6 Months</div>
                 <canvas id="chartMonthly" height="110"></canvas>
             </div>
         </div>
@@ -221,7 +221,7 @@
     @* ── Recent bonds table ── *@
     <div class="chart-card">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="chart-title mb-0">Recent Bond Applications</div>
+            <div class="chart-title mb-0">Recent Applied Bonds</div>
             <a asp-controller="BidBonds" asp-action="Index" class="small fw-bold text-decoration-none" style="color:var(--navy);">
                 View all <i class="bi bi-arrow-right ms-1"></i>
             </a>
@@ -270,7 +270,7 @@
                     }
                     @if (!Model.RecentBonds.Any())
                     {
-                        <tr><td colspan="6" class="text-center text-muted py-4 fst-italic">No bond applications yet.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted py-4 fst-italic">No applied bonds yet.</td></tr>
                     }
                 </tbody>
             </table>

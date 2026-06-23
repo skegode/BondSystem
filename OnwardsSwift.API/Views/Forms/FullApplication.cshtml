@@ -1,0 +1,871 @@
+@model OnwardsSwift.Core.DTOs.BondApplicationViewModel
+@{
+    ViewData["Title"] = "Bond Application — Step 1";
+
+    string ResolveUrl(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return "#";
+        if (path.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            return path;
+        var trimmed = path.TrimStart('/');
+        if (!trimmed.StartsWith("uploads/", StringComparison.OrdinalIgnoreCase))
+            trimmed = "uploads/" + trimmed;
+        return Url.Content("~/" + trimmed) ?? ("/" + trimmed);
+    }
+}
+
+<style>
+    .portal-nav {
+        border: 1px solid #e7ebf0;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 8px 20px rgba(15, 28, 46, 0.06);
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .portal-nav .nav-link {
+        border-radius: 10px;
+        font-weight: 600;
+        color: #27466f;
+        padding: 0.55rem 0.8rem;
+    }
+
+    .portal-nav .nav-link.active {
+        background: #0b4da2;
+        color: #fff;
+    }
+
+    .portal-header {
+        border: 1px solid #e7ebf0;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 26px rgba(15, 28, 46, 0.06);
+        padding: 1rem 1.25rem;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+
+    .portal-header img {
+        height: 54px;
+        width: auto;
+        object-fit: contain;
+    }
+
+    .portal-header h1 {
+        margin: 0.65rem 0 0.25rem;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #0f1c2e;
+    }
+
+    .portal-header p {
+        margin: 0;
+        color: #64748b;
+        font-size: 0.92rem;
+    }
+
+    .wizard-strip {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 0.9rem;
+    }
+
+    .wizard-step-card {
+        border: 1px solid #d9e4f2;
+        border-radius: 10px;
+        background: #f7fbff;
+        padding: 0.85rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .wizard-step-card.active {
+        border-color: #0b5bd7;
+        background: #eef5ff;
+        box-shadow: 0 6px 16px rgba(11, 91, 215, 0.14);
+    }
+
+    .wizard-step-meta {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #5b6b84;
+        margin-bottom: 0.35rem;
+    }
+
+    .wizard-controls {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.7rem;
+    }
+
+    .cycle-board {
+        border: 1px solid #dfe7f2;
+        border-radius: 10px;
+        background: #fbfdff;
+        padding: 0.8rem;
+        margin-bottom: 1rem;
+    }
+
+    .cycle-item {
+        border: 1px solid #e3ebf6;
+        border-radius: 10px;
+        background: #fff;
+        padding: 0.75rem;
+        height: 100%;
+    }
+
+    .step-panel {
+        display: none;
+    }
+
+    .step-panel.active {
+        display: block;
+    }
+
+    .bond-form-shell {
+        max-width: 1100px;
+        margin: 1rem auto;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 10px 26px rgba(15, 28, 46, 0.08);
+    }
+
+    .bond-form-header {
+        background: #123a70;
+        color: #fff;
+        padding: 0.8rem 1rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }
+
+    .bond-form-body {
+        background: #fff;
+        padding: 1rem;
+    }
+
+    .field-input {
+        width: 100%;
+        border: 1px solid #d8e0ea;
+        background: #fff;
+        border-radius: 8px;
+        padding: 0.55rem 0.7rem;
+        font-size: 0.94rem;
+        outline: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .field-input:focus {
+        border-color: #0b5bd7;
+        box-shadow: 0 0 0 3px rgba(11, 91, 215, 0.12);
+    }
+
+    .section-title {
+        margin: 0.95rem 0 0.4rem;
+        color: #123a70;
+        font-size: 0.86rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .checkbox-row {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .sig-line {
+        height: 28px;
+        border-bottom: 1px dotted #111827;
+    }
+
+    .info-card {
+        background: #f8fafc;
+        border: 1px solid #e6eef6;
+        padding: 0.9rem;
+        border-radius: 8px;
+        color: #0f172a;
+        font-size: 0.88rem;
+        line-height: 1.4;
+    }
+
+    .step-divider {
+        margin: 1.5rem 0 0.9rem;
+        border-top: 2px dashed #d8e0ea;
+        padding-top: 0.9rem;
+    }
+
+    .indemnity-card {
+        background: #fbfcfe;
+        border: 1px solid #dfe7f2;
+        border-radius: 10px;
+        padding: 1rem;
+    }
+
+    .inline-field {
+        display: inline-block;
+        width: 140px;
+        margin: 0 0.25rem;
+        vertical-align: middle;
+    }
+
+    .inline-field.sm {
+        width: 95px;
+    }
+
+    .signature-preview {
+        min-height: 4rem;
+        border: 1px dashed #d1d5db;
+        border-radius: 0.6rem;
+        padding: 0.75rem;
+        margin-top: 0.6rem;
+        background: #f8fafc;
+    }
+    .signature-preview img {
+        max-width: 100%;
+        max-height: 180px;
+        display: block;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 6px rgba(15,23,42,.08);
+    }
+    .signature-preview a {
+        color: #0b4da2;
+        text-decoration: none;
+    }
+    .signature-preview a:hover {
+        text-decoration: underline;
+    }
+
+    @@media (max-width: 576px) {
+        .portal-nav {
+            position: sticky;
+            top: 0.5rem;
+            z-index: 20;
+        }
+
+        .wizard-strip {
+            grid-template-columns: 1fr;
+        }
+
+        .inline-field,
+        .inline-field.sm {
+            width: 100%;
+            margin: 0.35rem 0;
+        }
+
+        .step-divider .d-flex {
+            flex-direction: column;
+            align-items: stretch;
+        }
+    }
+</style>
+
+<div class="container py-3 py-md-4">
+    <div class="portal-header">
+        <img src="@Url.Content("~/images/onwards-logo.jpg")" alt="Onwards Swift" />
+        <h1>Bond Request Wizard</h1>
+        <p>Submit a request for a bank guarantee or bond with a clear two-step flow.</p>
+    </div>
+
+    <nav class="portal-nav" aria-label="Onboarding navigation">
+        <ul class="nav nav-pills flex-column flex-md-row gap-2">
+            <li class="nav-item"><a class="nav-link" href="@Url.Action("Landing", "Forms")"><i class="bi bi-house-door me-1"></i> Portal Home</a></li>
+            <li class="nav-item"><a class="nav-link" href="@Url.Action("OnboardingWizard", "Forms")"><i class="bi bi-diagram-3 me-1"></i> Client Onboarding</a></li>
+            <li class="nav-item"><a class="nav-link active" aria-current="page" href="@Url.Action("FullApplication", "Forms")"><i class="bi bi-file-earmark-text me-1"></i> Bond Request Wizard</a></li>
+        </ul>
+    </nav>
+
+<div class="bond-form-shell">
+    <div class="bond-form-header">Request for a Bank Guarantee/Bond on our behalf</div>
+    <div class="bond-form-body">
+        <div class="wizard-strip" id="wizardStrip">
+            <div class="wizard-step-card active" data-step-card="1">
+                <div class="wizard-step-meta">Step 1</div>
+                <strong>Application Details</strong>
+                <div class="small text-muted">Capture applicant, beneficiary, bond type, amount and attachments.</div>
+                <div class="wizard-controls">
+                    <button type="button" class="btn btn-sm btn-primary" data-step-go="1">Open Step 1</button>
+                </div>
+            </div>
+            <div class="wizard-step-card" data-step-card="2">
+                <div class="wizard-step-meta">Step 2</div>
+                <strong>Counter Guarantee / Indemnity</strong>
+                <div class="small text-muted">Complete the indemnity wording, date, authorized signatories and stamp.</div>
+                <div class="wizard-controls">
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-step-go="2">Open Step 2</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="cycle-board">
+            <h4 class="h6 mb-2">Cycle of Events</h4>
+            <div class="row g-2">
+                <div class="col-md-6">
+                    <div class="cycle-item">
+                        <strong>1. Request Setup</strong>
+                        <p class="small text-muted mb-0">Enter all bank guarantee/bond request details and upload supporting files for processing.</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="cycle-item">
+                        <strong>2. Indemnity Confirmation</strong>
+                        <p class="small text-muted mb-0">Confirm the legal counter guarantee terms, then submit with authorized signatories and company stamp.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger small">
+                @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <div>@err.ErrorMessage</div>
+                }
+            </div>
+        }
+
+        <form asp-action="FullApplication" method="post" enctype="multipart/form-data" id="bondForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+
+            <div class="step-panel active" id="step1Panel" data-step-panel="1">
+            <p class="small mb-3">
+                I/we hereby request Onwards Swift Company Limited to apply for a bank guarantee/bond on our behalf through Onwards partner bank/s,
+                against our counter guarantee/indemnity, in accordance with the following details.
+            </p>
+
+            <div class="section-title">Principal/Applicant</div>
+            <div class="mb-2">
+                <label>Name</label>
+                <input asp-for="ApplicantName" class="field-input" />
+            </div>
+            <div class="row g-2 mb-2">
+                <div class="col-md-6">
+                    <label>Postal Address</label>
+                    <input asp-for="ApplicantAddress" class="field-input" />
+                </div>
+                <div class="col-md-2">
+                    <label>Code</label>
+                    <input asp-for="ApplicantCode" class="field-input" />
+                </div>
+                <div class="col-md-4">
+                    <label>Town/City</label>
+                    <input asp-for="ApplicantTown" class="field-input" />
+                </div>
+            </div>
+
+            <div class="section-title">Beneficiary / Procuring Entity</div>
+            <div class="mb-2">
+                <label>Name</label>
+                <input asp-for="Procuring" class="field-input" />
+            </div>
+            <div class="row g-2 mb-2">
+                <div class="col-md-6">
+                    <label>Postal Address</label>
+                    <input asp-for="ProcAddress" class="field-input" />
+                </div>
+                <div class="col-md-2">
+                    <label>Code</label>
+                    <input asp-for="ProcCode" class="field-input" />
+                </div>
+                <div class="col-md-4">
+                    <label>Town/County</label>
+                    <input asp-for="ProcTown" class="field-input" />
+                </div>
+            </div>
+
+            <div class="section-title">Guarantee Amount</div>
+            <div class="mb-2">
+                <label>(In Figures)</label>
+                <input asp-for="GuaranteeFigures" class="field-input" />
+            </div>
+            <div class="mb-2">
+                <label>(In Words)</label>
+                <input asp-for="GuaranteeWords" class="field-input" />
+            </div>
+
+            <div class="section-title">Type of Bond / Guarantee (Tick as appropriate)</div>
+            <div class="checkbox-row mb-2">
+                <label><input asp-for="TypeBid" /> Bid/Tender bond</label>
+                <label><input asp-for="TypePerformance" /> Performance bond</label>
+                <label><input asp-for="TypeAdvance" /> Advance Payment Guarantee (APG)</label>
+                <label><input asp-for="TypeRetention" /> Retention bond</label>
+                <label style="min-width:360px">Other (specify): <input asp-for="TypeOther" class="field-input d-inline-block" style="width:60%" /></label>
+            </div>
+
+            <div class="section-title">Tender / Contract Details (Attach invitation to bid or award letter)</div>
+            <div class="row g-2 mb-2 align-items-end">
+                <div class="col-md-5">
+                    <label>Tender Reference No</label>
+                    <input asp-for="TenderRef" class="field-input" />
+                </div>
+                <div class="col-md-3">
+                    <label>Guarantee Effective date</label>
+                    <input asp-for="GuaranteeFrom" type="date" class="field-input" />
+                </div>
+                <div class="col-md-4">
+                    <label>Guarantee expiry date</label>
+                    <input asp-for="GuaranteeTo" type="date" class="field-input" />
+                </div>
+            </div>
+
+            <p class="small mt-3">
+                I/We are fully mandated to enter into contract on the bank guarantee sought. I/We shall remain fully liable and abide by the terms and
+                conditions that govern this product as per the guarantee indemnity terms and conditions at the back of this application form.
+                This letter is governed by Kenya laws and any dispute relating to its validity, construction or performance shall be brought before the Kenya courts.
+            </p>
+
+            <div class="row g-3 mt-1">
+                <div class="col-md-6">
+                    <label>Name</label>
+                    <input asp-for="SigName1" class="field-input" />
+                </div>
+                <div class="col-md-6">
+                    <label>Signature</label>
+                    <input asp-for="SigSignature1File" type="file" accept="image/*,application/pdf" class="field-input" />
+                    <div id="SigSignature1FilePreview" class="signature-preview">
+                        @if (!string.IsNullOrEmpty(Model.SigSignature1))
+                        {
+                            <div class="small text-muted mb-2">Saved signature:</div>
+                            <a href="@ResolveUrl(Model.SigSignature1)" target="_blank" class="d-inline-flex align-items-center gap-1">
+                                <i class="bi bi-file-earmark-text"></i>View Signature
+                            </a>
+                        }
+                        else
+                        {
+                            <span>No signature selected</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+                <div class="col-md-6">
+                    <label>Name</label>
+                    <input asp-for="SigName2" class="field-input" />
+                </div>
+                <div class="col-md-6">
+                    <label>Signature</label>
+                    <input asp-for="SigSignature2File" type="file" accept="image/*,application/pdf" class="field-input" />
+                    <div id="SigSignature2FilePreview" class="signature-preview">
+                        @if (!string.IsNullOrEmpty(Model.SigSignature2))
+                        {
+                            <div class="small text-muted mb-2">Saved signature:</div>
+                            <a href="@ResolveUrl(Model.SigSignature2)" target="_blank" class="d-inline-flex align-items-center gap-1">
+                                <i class="bi bi-file-earmark-text"></i>View Signature
+                            </a>
+                        }
+                        else
+                        {
+                            <span>No signature selected</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+                <div class="col-lg-12">
+                    <label>Attachments</label>
+                    <input asp-for="Attachments" type="file" id="Attachments" class="form-control" multiple accept="application/pdf,image/*" />
+                    <div id="attachmentList" class="mt-2 small text-muted">No files selected</div>
+
+                    @if (Model.ExistingAttachments != null && Model.ExistingAttachments.Count > 0)
+                    {
+                        <div class="mt-3">
+                            <small class="text-muted d-block mb-2"><strong>Existing Files:</strong></small>
+                            @foreach (var att in Model.ExistingAttachments)
+                            {
+                                <div class="mb-1">
+                                    <a href="@ResolveUrl(att)" target="_blank" class="small text-decoration-none">
+                                        <i class="bi bi-file-earmark"></i>
+                                        @System.IO.Path.GetFileName(att)
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="col-lg-5">
+                    <div class="info-card">
+                        <strong>Bid Bond</strong>
+                        <p class="mb-2">The documents required for the processing of a bid bond include:</p>
+                        <ol class="mb-2">
+                            <li>The procuring entity/beneficiary/the employer and their address</li>
+                            <li>The bidder/the tenderer name and address</li>
+                            <li>The tender number</li>
+                            <li>The tender name — the description of the tender</li>
+                            <li>The amount</li>
+                            <li>The closing date</li>
+                            <li>The tender validity</li>
+                            <li>The format to be used</li>
+                        </ol>
+                        <strong>Performance bonds and advance payment guarantee</strong>
+                        <p class="mb-2">The documents required for PB and APG to be processed include:</p>
+                        <ol class="mb-0">
+                            <li>The award letter</li>
+                            <li>The certificate of incorporation</li>
+                            <li>Copy of company KRA PIN</li>
+                            <li>Directors’ national identity card and KRA PIN</li>
+                            <li>6-months recent bank statements</li>
+                            <li>On-going and completed certificates of previous jobs done</li>
+                            <li>CR-12</li>
+                            <li>Company profile</li>
+                            <li>Duly filled application form</li>
+                            <li>Board resolution</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-3">
+                <button type="button" class="btn btn-outline-primary" data-step-go="2">Continue to Step 2</button>
+                <button type="button" class="btn btn-outline-secondary" id="preview">Preview</button>
+                <button type="button" class="btn btn-light" id="resetBtn">Reset</button>
+            </div>
+            </div>
+
+            <div class="step-divider step-panel" id="step2Panel" data-step-panel="2">
+                <h4 class="mb-3">Step 2: Counter Guarantee / Indemnity</h4>
+                <div class="indemnity-card">
+                    <p class="mb-1">The Chief Executive Officer,</p>
+                    <p class="mb-1">Onwards Swift Company Limited,</p>
+                    <p class="mb-1">P.O.BOX 104322-00100</p>
+                    <p class="mb-4">Nairobi - Kenya</p>
+
+                    <p>Dear Sir,</p>
+                    <p><strong><u>RE: COUNTER GUARANTEE /INDEMNITY</u></strong></p>
+                    <p>
+                        In consideration of Onwards Swift Company Limited of P.O.BOX 104322-00100 Nairobi-Kenya
+                        (hereinafter referred to as the “Guarantor” which expression shall include its successors and assigns)
+                        agreeing at my/our request to guarantee me/us obtain the applied bank guarantee through your partner bank.
+                    </p>
+
+                    <p>
+                        I/we irrevocably authorize you to make any payments and comply with any demands, which may be claimed from
+                        or made upon you under the said counter indemnity without any reference or further authority from me/us. I/
+                        we agree to deposit with you at any time until the said indemnity/guarantee/bond shall have been released such
+                        or other securities as may be acceptable to you in full to cover of your liability under the said indemnity/guarantee/
+                        bond. I/we also agree to pay you remuneration for your services and I/we further agree to pay you on demand any
+                        further charges and interest, which may arise in the event of any claim being made upon you under the Guarantee
+                        applied by you on my/our behalf.
+                    </p>
+
+                    <p>
+                        I/we further agree that our liability under this indemnity shall be a continuing liability not withstanding any settle-
+                        ment of account or other matter whatsoever and this indemnity shall apply to any extension or extensions of the
+                        period of the Guarantee guaranteed by you.
+                    </p>
+
+                    <p class="mt-4">
+                        Dated this:
+                        <input asp-for="IndemnityDateDay" class="field-input inline-field sm" />
+                        day of
+                        <input asp-for="IndemnityDateMonth" class="field-input inline-field" />
+                        20
+                        <input asp-for="IndemnityDateYear" class="field-input inline-field sm" />
+                    </p>
+
+                    <p><strong>Signed by duly authorized signatories:</strong></p>
+
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-6">
+                            <label>Name</label>
+                            <input asp-for="IndemnityName1" class="field-input" />
+                        </div>
+                        <div class="col-md-6">
+                            <label>Signature</label>
+                            <input asp-for="IndemnitySignature1File" type="file" accept="image/*,application/pdf" class="field-input" />
+                            <div id="IndemnitySignature1FilePreview" class="signature-preview">
+                                @if (!string.IsNullOrEmpty(Model.IndemnitySignature1))
+                                {
+                                    <div class="small text-muted mb-2">Saved signature:</div>
+                                    <a href="@ResolveUrl(Model.IndemnitySignature1)" target="_blank" class="d-inline-flex align-items-center gap-1">
+                                        <i class="bi bi-file-earmark-text"></i>View Signature
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span>No signature selected</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-6">
+                            <label>Name</label>
+                            <input asp-for="IndemnityName2" class="field-input" />
+                        </div>
+                        <div class="col-md-6">
+                            <label>Signature</label>
+                            <input asp-for="IndemnitySignature2File" type="file" accept="image/*,application/pdf" class="field-input" />
+                            <div id="IndemnitySignature2FilePreview" class="signature-preview">
+                                @if (!string.IsNullOrEmpty(Model.IndemnitySignature2))
+                                {
+                                    <div class="small text-muted mb-2">Saved signature:</div>
+                                    <a href="@ResolveUrl(Model.IndemnitySignature2)" target="_blank" class="d-inline-flex align-items-center gap-1">
+                                        <i class="bi bi-file-earmark-text"></i>View Signature
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span>No signature selected</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mt-1">
+                        <div class="col-md-6">
+                            <label>Company Seal / Stamp</label>
+                            <input asp-for="CompanySealStamp" class="field-input" />
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-3">
+                        <button type="button" class="btn btn-outline-secondary" data-step-go="1">Back to Step 1</button>
+                        <button type="button" class="btn btn-outline-secondary" id="previewStep2">Preview</button>
+                        <button type="submit" class="btn btn-primary">Submit Application</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+
+@section Scripts {
+    <script>
+        (function(){
+            const form = document.getElementById('bondForm');
+            const input = document.getElementById('Attachments');
+            const list = document.getElementById('attachmentList');
+            const stepCards = document.querySelectorAll('[data-step-card]');
+            const stepPanels = document.querySelectorAll('[data-step-panel]');
+            const stepButtons = document.querySelectorAll('[data-step-go]');
+            let store = [];
+
+            function bindSignaturePreview(name, previewId) {
+                const inputEl = form?.querySelector(`[name="${name}"]`);
+                const preview = document.getElementById(previewId);
+                let currentUrl = null;
+                if (!inputEl || !preview) return;
+
+                const clearPreview = () => {
+                    if (currentUrl) {
+                        URL.revokeObjectURL(currentUrl);
+                        currentUrl = null;
+                    }
+                    preview.innerHTML = '';
+                };
+
+                const render = () => {
+                    clearPreview();
+                    const file = inputEl.files?.[0];
+                    if (!file) {
+                        preview.textContent = 'No signature selected';
+                        return;
+                    }
+
+                    const meta = document.createElement('div');
+                    meta.className = 'small text-muted mb-2';
+                    meta.textContent = file.name;
+                    preview.appendChild(meta);
+
+                    if (file.type.startsWith('image/')) {
+                        const img = document.createElement('img');
+                        currentUrl = URL.createObjectURL(file);
+                        img.src = currentUrl;
+                        img.alt = 'Signature preview';
+                        img.onload = () => {
+                            if (currentUrl) {
+                                URL.revokeObjectURL(currentUrl);
+                                currentUrl = null;
+                            }
+                        };
+                        preview.appendChild(img);
+                    } else if (file.type === 'application/pdf') {
+                        currentUrl = URL.createObjectURL(file);
+                        const link = document.createElement('a');
+                        link.href = currentUrl;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        link.className = 'd-inline-flex align-items-center gap-1';
+                        link.innerHTML = '<i class="bi bi-file-earmark-text"></i>Open PDF signature';
+                        preview.appendChild(link);
+                        const note = document.createElement('div');
+                        note.className = 'small text-muted mt-1';
+                        note.textContent = 'PDF preview opens in a new tab.';
+                        preview.appendChild(note);
+                    } else {
+                        preview.textContent = file.name;
+                    }
+                };
+
+                inputEl.addEventListener('change', render);
+                render();
+            }
+
+            bindSignaturePreview('SigSignature1File', 'SigSignature1FilePreview');
+            bindSignaturePreview('SigSignature2File', 'SigSignature2FilePreview');
+            bindSignaturePreview('IndemnitySignature1File', 'IndemnitySignature1FilePreview');
+            bindSignaturePreview('IndemnitySignature2File', 'IndemnitySignature2FilePreview');
+
+            function setStep(step){
+                const activeStep = String(step);
+
+                stepCards.forEach(card => {
+                    const cardStep = card.getAttribute('data-step-card');
+                    const isActive = cardStep === activeStep;
+                    card.classList.toggle('active', isActive);
+
+                    const btn = card.querySelector('[data-step-go]');
+                    if(btn){
+                        btn.classList.toggle('btn-primary', isActive);
+                        btn.classList.toggle('btn-outline-primary', !isActive);
+                    }
+                });
+
+                stepPanels.forEach(panel => {
+                    panel.classList.toggle('active', panel.getAttribute('data-step-panel') === activeStep);
+                });
+            }
+
+            function syncInputFiles(){
+                try{
+                    const dt = new DataTransfer();
+                    store.forEach(f => dt.items.add(f));
+                    input.files = dt.files;
+                } catch(e) {}
+            }
+
+            function renderFiles(){
+                if(!list) return;
+                if(store.length === 0){
+                    list.textContent = 'No files selected';
+                    return;
+                }
+
+                list.innerHTML = '';
+                store.forEach((f, i) => {
+                    const row = document.createElement('div');
+                    row.className = 'd-flex justify-content-between align-items-center py-1 border-bottom';
+                    row.innerHTML = `<span>${i + 1}. ${f.name} (${Math.round(f.size / 1024)} KB)</span><button type="button" class="btn btn-sm btn-outline-danger" data-idx="${i}">Remove</button>`;
+                    list.appendChild(row);
+                });
+            }
+
+            if(input){
+                input.addEventListener('change', function(e){
+                    const files = Array.from(e.target.files || []);
+                    files.forEach(f => store.push(f));
+                    syncInputFiles();
+                    renderFiles();
+                });
+            }
+
+            if(list){
+                list.addEventListener('click', function(e){
+                    const btn = e.target.closest('button[data-idx]');
+                    if(!btn) return;
+                    const idx = Number(btn.getAttribute('data-idx'));
+                    if(Number.isFinite(idx)){
+                        store.splice(idx, 1);
+                        syncInputFiles();
+                        renderFiles();
+                    }
+                });
+            }
+
+            // --- Draft save/restore for Bond Application wizard ---
+            const bondKey = 'bond_wizard';
+            const bondStepKey = `${bondKey}_currentStep`;
+
+            function serializeForm(form){
+                const data = {};
+                if(!form) return data;
+                Array.from(form.elements).forEach(el => {
+                    if(!el.name) return;
+                    if(el.type === 'file') return;
+                    if(el.type === 'checkbox') data[el.name] = el.checked;
+                    else data[el.name] = el.value;
+                });
+                return data;
+            }
+
+            function hydrateForm(form, data){
+                if(!form || !data) return;
+                Object.keys(data).forEach(k => {
+                    const el = form.elements.namedItem(k);
+                    if(!el) return;
+                    try{
+                        if(el.type === 'checkbox') el.checked = data[k] === true || data[k] === 'true';
+                        else el.value = data[k] ?? '';
+                    }catch(e){}
+                });
+            }
+
+            // restore saved inputs and last active panel
+            const saved1 = localStorage.getItem(`${bondKey}_step1`);
+            if(saved1) hydrateForm(form, JSON.parse(saved1));
+            const savedStep = localStorage.getItem(bondStepKey) || '1';
+            setStep(savedStep);
+
+            function saveBondDraft(){
+                if(!form) return;
+                const obj = serializeForm(form);
+                localStorage.setItem(`${bondKey}_step1`, JSON.stringify(obj));
+            }
+
+            function saveBondStep(step) {
+                localStorage.setItem(bondStepKey, String(step));
+            }
+
+            // Save on input and preserve until the application is successfully submitted.
+            form?.addEventListener('input', saveBondDraft);
+
+            document.getElementById('resetBtn')?.addEventListener('click', function(){
+                form.reset();
+                store = [];
+                syncInputFiles();
+                renderFiles();
+                localStorage.removeItem(`${bondKey}_step1`);
+                localStorage.removeItem(bondStepKey);
+            });
+
+            stepButtons.forEach(btn => {
+                btn.addEventListener('click', function(){
+                    const step = this.getAttribute('data-step-go');
+                    if(step){
+                        setStep(step);
+                        saveBondStep(step);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                });
+            });
+
+            function openPreview(){
+                const fd = new FormData(form);
+                const rows = [];
+                fd.forEach((v, k) => {
+                    if(v instanceof File) return;
+                    rows.push(`<tr><th style="text-align:left;padding:6px;vertical-align:top">${k}</th><td style="padding:6px">${v || ''}</td></tr>`);
+                });
+                const att = store.length ? store.map(f => `${f.name} (${Math.round(f.size/1024)} KB)`).join('<br/>') : 'No attachments';
+                rows.push(`<tr><th style="text-align:left;padding:6px">Attachments</th><td style="padding:6px">${att}</td></tr>`);
+                const html = `<!doctype html><html><head><meta charset="utf-8"><title>Bond Application Preview</title></head><body style="font-family:Arial,Helvetica,sans-serif"><h2>Bond Application Preview</h2><table style="border-collapse:collapse;border:1px solid #ddd">${rows.join('')}</table></body></html>`;
+                const w = window.open('', '_blank');
+                if(w){ w.document.write(html); w.document.close(); }
+            }
+
+            document.getElementById('preview')?.addEventListener('click', openPreview);
+            document.getElementById('previewStep2')?.addEventListener('click', openPreview);
+
+            renderFiles();
+        })();
+    </script>
+}

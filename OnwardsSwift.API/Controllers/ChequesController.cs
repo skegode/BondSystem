@@ -15,14 +15,19 @@ namespace OnwardsSwift.API.Controllers
         private readonly IClientService         _clients;
         private readonly DapperContext          _ctx;
         private readonly WorkflowService        _workflow;
+        private readonly IConfiguration         _configuration;
+        private readonly IWebHostEnvironment    _env;
 
         public ChequesController(IChequeDiscountService chq, IClientService clients,
-                                  DapperContext ctx, WorkflowService workflow)
+                                  DapperContext ctx, WorkflowService workflow,
+                                  IConfiguration configuration, IWebHostEnvironment env)
         {
             _chq      = chq;
             _clients  = clients;
             _ctx      = ctx;
             _workflow = workflow;
+            _configuration = configuration;
+            _env = env;
         }
 
         public async Task<IActionResult> Index()
@@ -80,9 +85,19 @@ namespace OnwardsSwift.API.Controllers
             string accountNo,
             string branchName)
         {
-            using var conn = _ctx.Create();
-            conn.Open();
-            using var trans = conn.BeginTransaction();
+            // Validate form input
+            if (!ModelState.IsValid)
+            {
+                // Repopulate dropdowns and return to form with errors
+                using var conn = _ctx.Create();
+                ViewBag.Clients = await conn.QueryAsync<dynamic>("SELECT Id, CompanyName FROM Clients ORDER BY CompanyName");
+                ViewBag.Banks = new List<string> { "KCB Bank", "Equity Bank", "Co-operative Bank", "ABSA Kenya", "Stanbic Bank", "NCBA Bank", "I&M Bank", "DTB" };
+                return View();
+            }
+
+            using var conn2 = _ctx.Create();
+            conn2.Open();
+            using var trans = conn2.BeginTransaction();
 
             int newChequeId = 0;
             try
@@ -108,7 +123,7 @@ namespace OnwardsSwift.API.Controllers
             );
             SELECT CAST(SCOPE_IDENTITY() as int);";
 
-                newChequeId = await conn.ExecuteScalarAsync<int>(chequeSql, new
+                newChequeId = await conn2.ExecuteScalarAsync<int>(chequeSql, new
                 {
                     clientId,
                     chequeNumber,
@@ -134,7 +149,7 @@ namespace OnwardsSwift.API.Controllers
                 GETDATE(), 'Awaiting Authorization', @notes
             )";
 
-                await conn.ExecuteAsync(queueSql, new
+                await conn2.ExecuteAsync(queueSql, new
                 {
                     newChequeId,
                     netAdvance,
@@ -150,8 +165,13 @@ namespace OnwardsSwift.API.Controllers
             catch (Exception ex)
             {
                 trans.Rollback();
-                TempData["Error"] = "Submission Error: " + ex.Message;
-                return RedirectToAction(nameof(Create));
+                ModelState.AddModelError("", $"Submission Error: {ex.Message}");
+                
+                // Repopulate dropdowns and return to form with error
+                using var connErr = _ctx.Create();
+                ViewBag.Clients = await connErr.QueryAsync<dynamic>("SELECT Id, CompanyName FROM Clients ORDER BY CompanyName");
+                ViewBag.Banks = new List<string> { "KCB Bank", "Equity Bank", "Co-operative Bank", "ABSA Kenya", "Stanbic Bank", "NCBA Bank", "I&M Bank", "DTB" };
+                return View();
             }
 
             // Start approval workflow AFTER the transaction is fully committed
@@ -359,8 +379,7 @@ namespace OnwardsSwift.API.Controllers
         {
             if (file == null || file.Length == 0) return null;
 
-            // Consistency: saving to cheques folder
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "cheques");
+            var uploadsFolder = GetUploadsFolder("cheques");
             if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
             var fileName = $"{prefix}_{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
@@ -372,6 +391,16 @@ namespace OnwardsSwift.API.Controllers
             }
 
             return $"/uploads/cheques/{fileName}"; // Relative path for DB
+        }
+
+        private string GetUploadsFolder(string category)
+        {
+            var uploadsRootSetting = _configuration["FileStorage:UploadsRoot"] ?? Path.Combine("wwwroot", "uploads");
+            var uploadsRootPath = Path.IsPathRooted(uploadsRootSetting)
+                ? uploadsRootSetting
+                : Path.Combine(_env.ContentRootPath, uploadsRootSetting);
+
+            return Path.Combine(uploadsRootPath, category);
         }
     }
 }

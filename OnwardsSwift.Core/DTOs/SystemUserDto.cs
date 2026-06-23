@@ -13,6 +13,7 @@ namespace OnwardsSwift.Core.DTOs
         public string Email { get; set; }
         public string Phone { get; set; }
         public string Role { get; set; }
+        public decimal CommissionPercent { get; set; }
         public bool IsActive { get; set; }
         public bool IsDeleted { get; set; }
     }

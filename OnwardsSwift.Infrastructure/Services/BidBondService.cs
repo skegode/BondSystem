@@ -56,33 +56,115 @@ namespace OnwardsSwift.Infrastructure.Services
 
             try
             {
-                // 1. We use the values already present in 'req' 
-                // These were calculated by the JS Wizard/Professional View
-                    var bondSql = @"
+                var allowedMethods = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "MPESA", "BANK", "CHEQUE" };
+                var normalizedPaymentMethod = string.IsNullOrWhiteSpace(req.PaymentMethod)
+                    ? null
+                    : req.PaymentMethod.Trim().ToUpperInvariant();
+
+                if (normalizedPaymentMethod != null && !allowedMethods.Contains(normalizedPaymentMethod))
+                    throw new InvalidOperationException("Invalid payment method selected.");
+
+                var hasBondPayments = await conn.ExecuteScalarAsync<int>(@"
+                    SELECT COUNT(1)
+                    FROM INFORMATION_SCHEMA.TABLES
+                    WHERE TABLE_NAME = 'BondPayments'", transaction: trans) > 0;
+
+                var hasPaymentMethodColumn = await conn.ExecuteScalarAsync<int>(@"
+                    SELECT COUNT(1)
+                    FROM sys.columns c
+                    INNER JOIN sys.objects o ON c.object_id = o.object_id
+                    WHERE o.name = 'Bonds' AND o.type = 'U' AND c.name = 'PaymentMethod'", transaction: trans) > 0;
+
+                var hasApplicationStatusColumn = await conn.ExecuteScalarAsync<int>(@"
+                    SELECT COUNT(1)
+                    FROM sys.columns c
+                    INNER JOIN sys.objects o ON c.object_id = o.object_id
+                    WHERE o.name = 'Bonds' AND o.type = 'U' AND c.name = 'ApplicationStatus'", transaction: trans) > 0;
+
+                var hasAmendmentFeeColumn = await conn.ExecuteScalarAsync<int>(@"
+                    SELECT COUNT(1)
+                    FROM sys.columns c
+                    INNER JOIN sys.objects o ON c.object_id = o.object_id
+                    WHERE o.name = 'Bonds' AND o.type = 'U' AND c.name = 'AmendmentFee'", transaction: trans) > 0;
+
+                // 1. We use the values already present in 'req'.
+                // These were calculated by the create form pricing section.
+                // Pricing summary computations are enforced server-side for consistency.
+                var normalizedAppStatus = string.IsNullOrWhiteSpace(req.ApplicationStatus)
+                    ? "New Application"
+                    : req.ApplicationStatus.Trim();
+                var amendmentFee = Math.Max(req.AmendmentFee, 0);
+                var isAmendment = string.Equals(normalizedAppStatus, "Amendment", StringComparison.OrdinalIgnoreCase);
+                var clientCharges = isAmendment ? amendmentFee : req.ClientCharges;
+                var bankCharge = req.BankCharges;
+                const decimal taxPercentage = 20m;
+                var taxCalculation = Math.Round(bankCharge * (taxPercentage / 100m), 2);
+                var totalBankCharge = bankCharge + taxCalculation;
+                var netProfit = clientCharges - totalBankCharge;
+
+                var insertColumns = new List<string>
+                {
+                    "BondTypeId", "TenderNumber", "ProcuringEntity", "IssuingBank", "TenderClosingDate",
+                    "Amount", "BankRate", "TenderName", "TenderDocPath", "CR12Path",
+                    "ApplicationFee", "CommissionAmount", "BankCharge",
+                    "TaxPercentage", "TaxCalculation", "TotalBankCharge",
+                    "isApproved", "CreatedAt", "CreatedBy",
+                    "ClientId", "AgentId", "TenorDays", "IsDeferredPayment",
+                    "PaymentBankId", "PaymentReference", "PaymentReceiptPath",
+                    "CompanyProfilePath", "IndemnityDocPath", "DisbursementAccount", "DisbursementBank", "Notes",
+                    "ProcessingDate"
+                };
+
+                var insertValues = new List<string>
+                {
+                    "@BTid", "@TenNo", "@Entity", "@Bank", "@Close",
+                    "@Amt", "@BRate", "@TName", "@TDoc", "@CR12",
+                    "@AFee", "@CAmt", "@BCharge",
+                    "@TaxPct", "@TaxCalc", "@TotalBank",
+                    "0", "GETDATE()", "@CreatedBy",
+                    "@Cid", "@AgentId", "@Tenor", "@IsDef",
+                    "@PayBank", "@PayRef", "@PayPath",
+                    "@Profile", "@Indemnity", "@DAccount", "@DBank", "@Notes",
+                    "@ProcDate"
+                };
+
+                if (hasPaymentMethodColumn)
+                {
+                    insertColumns.Add("PaymentMethod");
+                    insertValues.Add("@PayMethod");
+                }
+
+                if (hasApplicationStatusColumn)
+                {
+                    insertColumns.Add("ApplicationStatus");
+                    insertValues.Add("@AppStatus");
+                }
+
+                if (hasAmendmentFeeColumn)
+                {
+                    insertColumns.Add("AmendmentFee");
+                    insertValues.Add("@AmendFee");
+                }
+
+                var bondSql = $@"
             INSERT INTO Bonds (
-                BondTypeId, TenderNumber, ProcuringEntity, IssuingBank, TenderClosingDate, 
-                Amount, BankRate, TenderName, TenderDocPath, CR12Path, 
-                ApplicationFee, CommissionAmount, BankCharge, -- Value passed from UI
-                isApproved, CreatedAt, CreatedBy, 
-                ClientId, AgentId, TenorDays, IsDeferredPayment, 
-                PaymentBankId, PaymentReference, PaymentReceiptPath,
-                CompanyProfilePath, IndemnityDocPath, DisbursementAccount, DisbursementBank, Notes
+                {string.Join(", ", insertColumns)}
             )
             VALUES (
-                @BTid, @TenNo, @Entity, @Bank, @Close, 
-                @Amt, @BRate, @TName, @TDoc, @CR12, 
-                @AFee, @CAmt, @BCharge,
-                0, GETDATE(), @CreatedBy, 
-                @Cid, @AgentId, @Tenor, @IsDef, 
-                @PayBank, @PayRef, @PayPath,
-                @Profile, @Indemnity, @DAccount, @DBank, @Notes
+                {string.Join(", ", insertValues)}
             );
             SELECT CAST(SCOPE_IDENTITY() as int);";
 
-                // compute net profit = client charges - bank charges
-                var clientCharges = req.ClientCharges;
-                var bankCharges = req.BankCharges;
-                var netProfit = clientCharges - bankCharges;
+                var totalCharged = Math.Max(clientCharges, 0);
+                var requestedAmountPaid = Math.Max(req.AmountPaid ?? 0, 0);
+                if (req.IsPaid && requestedAmountPaid == 0 && totalCharged > 0)
+                    requestedAmountPaid = totalCharged;
+
+                var captureAmount = Math.Min(requestedAmountPaid, totalCharged);
+                var isDeferredPayment = totalCharged > 0 && captureAmount < totalCharged;
+
+                if (captureAmount > 0 && !hasBondPayments)
+                    throw new InvalidOperationException("Partial-payment table is missing. Run the BondPayments migration script.");
 
                 int newBondId = await conn.QuerySingleAsync<int>(bondSql, new
                 {
@@ -96,23 +178,49 @@ namespace OnwardsSwift.Infrastructure.Services
                     TName = req.TenderName,
                     TDoc = req.TenderDocPath,
                     CR12 = req.CR12Path,
-                    AFee = netProfit,     // store net profit as application fee
-                    CAmt = clientCharges,   // client charges
-                    BCharge = bankCharges, 
+                    AFee = netProfit,
+                    CAmt = clientCharges,
+                    BCharge = bankCharge,
+                    TaxPct = taxPercentage,
+                    TaxCalc = taxCalculation,
+                    TotalBank = totalBankCharge,
                     CreatedBy = currentUserId.ToString(),
                     Cid = req.ClientId,
                     AgentId = req.AgentId == 0 ? (int?)null : req.AgentId,
                     Tenor = req.TenorDays,
-                    IsDef = req.IsDeferredPayment,
+                    IsDef = isDeferredPayment,
                     PayBank = req.PaymentBankId,
-                    PayRef = req.PaymentReference,
+                    PayRef = string.IsNullOrWhiteSpace(req.PaymentReference) ? null : req.PaymentReference.Trim(),
+                    PayMethod = normalizedPaymentMethod,
                     PayPath = req.PaymentReceiptPath,
+                    AppStatus = normalizedAppStatus,
+                    AmendFee = amendmentFee,
                     Profile = req.CompanyProfilePath,
                     Indemnity = req.IndemnityDocPath,
                     DAccount = req.DisbursementAccount,
                     DBank = req.DisbursementBank,
-                    Notes = req.Notes
+                    Notes = req.Notes,
+                    ProcDate = req.ProcessingDate
                 }, trans);
+
+                if (captureAmount > 0)
+                {
+                    await conn.ExecuteAsync(@"
+                        INSERT INTO BondPayments
+                            (BondId, ClientId, AmountPaid, PaymentMethod, PaymentReference, Notes, PaymentDate, CreatedAt, CreatedBy)
+                        VALUES
+                            (@BondId, @ClientId, @AmountPaid, @PaymentMethod, @PaymentReference, @Notes, GETDATE(), GETDATE(), @CreatedBy)",
+                        new
+                        {
+                            BondId = newBondId,
+                            ClientId = req.ClientId,
+                            AmountPaid = captureAmount,
+                            PaymentMethod = normalizedPaymentMethod,
+                            PaymentReference = string.IsNullOrWhiteSpace(req.PaymentReference) ? null : req.PaymentReference.Trim(),
+                            Notes = string.IsNullOrWhiteSpace(req.PaymentNotes) ? null : req.PaymentNotes.Trim(),
+                            CreatedBy = currentUserId.ToString()
+                        }, trans);
+                }
 
                 // 2. Insert Cash Cover (unchanged)
                 if (req.HasCashCover && req.CashCoverAmount > 0)
@@ -195,7 +303,45 @@ ORDER BY b.CreatedAt DESC";
         {
             using var conn = _ctx.Create();
 
-            const string sql = @"
+            var hasBondPayments = await conn.ExecuteScalarAsync<int>(@"
+                SELECT COUNT(1)
+                FROM INFORMATION_SCHEMA.TABLES
+                WHERE TABLE_NAME = 'BondPayments'") > 0;
+
+            var hasPaymentMethodColumn = await conn.ExecuteScalarAsync<int>(@"
+                SELECT COUNT(1)
+                FROM sys.columns c
+                INNER JOIN sys.objects o ON c.object_id = o.object_id
+                WHERE o.name = 'Bonds' AND o.type = 'U' AND c.name = 'PaymentMethod'") > 0;
+
+            var paidAmountExpr = hasBondPayments
+                ? "ISNULL((SELECT SUM(bp.AmountPaid) FROM BondPayments bp WHERE bp.BondId = b.Id), 0)"
+                : "0";
+            var paymentMethodSelect = hasPaymentMethodColumn
+                ? "b.PaymentMethod,"
+                : string.Empty;
+
+            var hasApplicationStatusColumn = await conn.ExecuteScalarAsync<int>(@"
+                SELECT COUNT(1)
+                FROM sys.columns c
+                INNER JOIN sys.objects o ON c.object_id = o.object_id
+                WHERE o.name = 'Bonds' AND o.type = 'U' AND c.name = 'ApplicationStatus'") > 0;
+
+            var hasAmendmentFeeColumn = await conn.ExecuteScalarAsync<int>(@"
+                SELECT COUNT(1)
+                FROM sys.columns c
+                INNER JOIN sys.objects o ON c.object_id = o.object_id
+                WHERE o.name = 'Bonds' AND o.type = 'U' AND c.name = 'AmendmentFee'") > 0;
+
+            var applicationStatusSelect = hasApplicationStatusColumn
+                ? "ISNULL(b.ApplicationStatus, 'New Application') AS ApplicationStatus,"
+                : "'New Application' AS ApplicationStatus,";
+
+            var amendmentFeeSelect = hasAmendmentFeeColumn
+                ? "ISNULL(b.AmendmentFee, 0) AS AmendmentFee,"
+                : "0 AS AmendmentFee,";
+
+            var sql = @"
                 SELECT
                     b.Id,
                     b.TenderNumber,
@@ -204,8 +350,10 @@ ORDER BY b.CreatedAt DESC";
                     b.BankRate        AS Rate,
                     b.TenorDays,
                     b.TenderClosingDate,
+                    b.ProcessingDate,
                     b.IsDeferredPayment,
                     b.PaymentReference,
+                    " + paidAmountExpr + @" AS PaidAmount,
                     b.PaymentReceiptPath,
                     b.TenderDocPath,
                     b.CR12Path,
@@ -215,9 +363,16 @@ ORDER BY b.CreatedAt DESC";
                     b.StatusNotes,
                     b.CreatedAt,
                     b.isApproved,
+                    " + paymentMethodSelect + @"
+                    " + applicationStatusSelect + @"
+                    " + amendmentFeeSelect + @"
                     ISNULL(b.ApplicationFee, 0)    AS ApplicationFee,
                     ISNULL(b.CommissionAmount, 0)   AS CommissionAmount,
                     ISNULL(b.BankCharge, 0)         AS BankCharge,
+                    ISNULL(b.TaxPercentage, 0)      AS TaxPercentage,
+                    ISNULL(b.TaxCalculation, 0)     AS TaxCalculation,
+                    ISNULL(b.TotalBankCharge, ISNULL(b.BankCharge, 0)) AS TotalBankCharge,
+                    ISNULL(b.ApplicationFee, ISNULL(b.CommissionAmount, 0) - ISNULL(b.TotalBankCharge, ISNULL(b.BankCharge, 0))) AS NetProfit,
                     c.CompanyName                   AS ClientName,
                     bt.ProductName                  AS BondTypeName,
                     b.ProcuringEntity               AS ProcuringEntityName,
@@ -259,12 +414,22 @@ ORDER BY b.CreatedAt DESC";
                 Amount                = (decimal)r.Amount,
                 Rate                  = r.Rate != null ? (decimal)r.Rate : 0m,
                 CommissionFee         = (decimal)r.CommissionAmount,
-                ApplicationFee        = (decimal)r.ApplicationFee,
+                ClientCharge          = (decimal)r.CommissionAmount,
+                ApplicationFee        = (decimal)r.NetProfit,
+                NetProfit             = (decimal)r.NetProfit,
                 BankCharge            = (decimal)r.BankCharge,
+                TaxPercentage         = (decimal)r.TaxPercentage,
+                TaxCalculation        = (decimal)r.TaxCalculation,
+                TotalBankCharge       = (decimal)r.TotalBankCharge,
+                PaidAmount            = (decimal)(r.PaidAmount ?? 0),
+                OutstandingAmount     = Math.Max((decimal)r.CommissionAmount - (decimal)(r.PaidAmount ?? 0), 0),
+                PayableCharge         = (decimal)r.CommissionAmount,
                 TenorDays             = (int)r.TenorDays,
                 TenderClosingDate     = (DateTime)r.TenderClosingDate,
+                ProcessingDate        = r.ProcessingDate != null ? (DateTime?)r.ProcessingDate : null,
                 IsDeferredPayment     = r.IsDeferredPayment != null && (bool)r.IsDeferredPayment,
                 PaymentReference      = r.PaymentReference?.ToString(),
+                PaymentMethod         = hasPaymentMethodColumn ? r.PaymentMethod?.ToString() : null,
                 PaymentReceiptPath    = r.PaymentReceiptPath?.ToString(),
                 TenderDocPath         = r.TenderDocPath?.ToString(),
                 CR12Path              = r.CR12Path?.ToString(),
@@ -273,6 +438,8 @@ ORDER BY b.CreatedAt DESC";
                 Notes                 = r.Notes?.ToString(),
                 StatusNotes           = r.StatusNotes?.ToString(),
                 Status                = status,
+                ApplicationStatus     = r.ApplicationStatus?.ToString() ?? "New Application",
+                AmendmentFee          = (decimal)(r.AmendmentFee ?? 0),
                 ApprovedBy            = r.ApprovedByName?.ToString(),
                 ApprovedAt            = r.ApprovedAt,
                 CreatedAt             = (DateTime)r.CreatedAt,

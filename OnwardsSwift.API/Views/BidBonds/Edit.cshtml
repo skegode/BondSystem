@@ -3,6 +3,10 @@
 @{
     ViewData["Title"] = "Edit Bond Application";
     var appliedRateValue = Model.AppliedRate.ToString("0.000");
+    decimal totalCharged = ViewBag.TotalCharged != null ? (decimal)ViewBag.TotalCharged : Model.ClientCharges;
+    decimal totalPaid = ViewBag.TotalPaid != null ? (decimal)ViewBag.TotalPaid : 0m;
+    decimal outstanding = ViewBag.Outstanding != null ? (decimal)ViewBag.Outstanding : Math.Max(totalCharged - totalPaid, 0m);
+    bool currentIsPaid = ViewBag.CurrentIsPaid != null ? (bool)ViewBag.CurrentIsPaid : !Model.IsDeferredPayment;
 }
 
 <style>
@@ -42,19 +46,16 @@
 
 <div class="container-fluid py-4 px-lg-5">
     <form id="bondForm" method="post" asp-action="Edit" enctype="multipart/form-data">
-        @if (!ViewData.ModelState.IsValid)
-        {
-            <div class="alert alert-danger mx-3 mt-3">
-                <strong>Update failed:</strong>
-                <div asp-validation-summary="All"></div>
-            </div>
-        }
+        @await Html.PartialAsync("_ValidationErrors")
         @Html.AntiForgeryToken()
         <input type="hidden" name="id" value="@ViewContext.RouteData.Values["id"]" />
 
         <input type="hidden" id="hCommissionAmount" asp-for="CommissionAmount" />
         <input type="hidden" id="hApplicationFee" asp-for="ApplicationFee" />
         <input type="hidden" id="hAppliedRate" asp-for="AppliedRate" />
+        <input type="hidden" id="hTaxCalculation" asp-for="TaxCalculation" />
+        <input type="hidden" id="hTotalBankCharge" asp-for="TotalBankCharge" />
+        <input type="hidden" id="hNetProfit" asp-for="NetProfit" />
         <input type="hidden" asp-for="TenderDocPath" />
         <input type="hidden" asp-for="CR12Path" />
         <input type="hidden" asp-for="PaymentReceiptPath" />
@@ -105,6 +106,14 @@
                                     <option value="">-- Select Product --</option>
                                 </select>
                             </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-dark">Application Status</label>
+                                <select asp-for="ApplicationStatus" id="ApplicationStatus" class="form-select" required>
+                                    <option value="New Application">New Application</option>
+                                    <option value="Amendment">Amendment</option>
+                                    <option value="Extension">Extension</option>
+                                </select>
+                            </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-semibold text-dark">Bond Amount (KSh)</label>
                                 <div class="input-group">
@@ -119,6 +128,10 @@
                             <div class="col-md-4">
                                 <label class="form-label fw-semibold text-dark">Closing Date</label>
                                 <input type="date" asp-for="TenderClosingDate" class="form-control text-muted" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold text-dark">Processing Date</label>
+                                <input type="date" asp-for="ProcessingDate" class="form-control text-muted" />
                             </div>
                         </div>
 
@@ -232,8 +245,8 @@
                                         </select>
                                     </div>
                                     <div class="col-12">
-                                        <label class="form-label small fw-bold text-muted">Reference</label>
-                                        <input type="text" asp-for="PaymentReference" class="form-control form-control-sm" />
+                                        <label class="form-label small fw-bold text-muted">Current Reference</label>
+                                        <div class="form-control form-control-sm bg-light">@(string.IsNullOrWhiteSpace(Model.PaymentReference) ? "—" : Model.PaymentReference)</div>
                                     </div>
                                 </div>
                                 <div id="deferredFields" class="mt-3" style="display:none;">
@@ -260,17 +273,8 @@
                         <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-receipt me-2"></i>Pricing Summary</h6>
                     </div>
                     <div class="card-body p-4">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="text-muted small">Bank Portion</span>
-                            <span id="sideBankCharge" class="fw-semibold">KES 0.00</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-4">
-                            <span class="text-success small fw-bold">Profit (Application Fee)</span>
-                            <span id="sideProfit" class="text-success fw-bold">KES 0.00</span>
-                        </div>
-                        
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">Client Charges (KES)</label>
+                            <label class="form-label small fw-bold">Client Charge (KES)</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light">KES</span>
                                 <input type="number" asp-for="ClientCharges" id="ClientCharges" class="form-control" step="0.01" />
@@ -278,22 +282,132 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">Bank Charges (KES)</label>
+                            <label class="form-label small fw-bold">Amendment Fee (KES)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">KES</span>
+                                <input type="number" asp-for="AmendmentFee" id="AmendmentFee" class="form-control" step="0.01" min="0" />
+                            </div>
+                            <small class="text-muted">When status is Amendment, this value is used as the client charge.</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Bank Charge (KES)</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light">KES</span>
                                 <input type="number" asp-for="BankCharges" id="BankCharges" class="form-control" step="0.01" />
                             </div>
                         </div>
 
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Tax Percentage (%)</label>
+                            <div class="input-group">
+                                <input type="number" asp-for="TaxPercentage" id="TaxPercentage" class="form-control" step="0.01" value="20.00" readonly />
+                                <span class="input-group-text bg-light">%</span>
+                            </div>
+                            <small class="text-muted">Fixed tax rate: 20%</small>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted small">Tax Calculation</span>
+                            <span id="sideTaxCalculation" class="fw-semibold">KES 0.00</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted small">Total Bank Charge</span>
+                            <span id="sideBankCharge" class="fw-semibold">KES 0.00</span>
+                        </div>
+
                         <div class="d-flex justify-content-between mb-3">
                             <span class="text-muted small">Net Profit</span>
-                            <span id="sideNetProfit" class="fw-semibold">KES 0.00</span>
+                            <span id="sideNetProfit" class="text-success fw-bold">KES 0.00</span>
                         </div>
 
                         <div class="bg-white p-4 rounded-4 border text-center mb-4 shadow-sm">
                             <label class="text-muted small text-uppercase fw-bold mb-1 d-block" style="letter-spacing: 1px;">Estimated Premium</label>
                             <h2 class="mb-0 text-dark fw-bold" id="sideTotalDisplay">0.00</h2>
                             <small class="text-muted">Total including bank commission</small>
+                        </div>
+
+                        <div class="border rounded-4 p-3 mb-4 bg-light-subtle">
+                            <div class="small text-uppercase fw-bold text-muted mb-3" style="letter-spacing:.08em;">Payment Status</div>
+
+                            <div class="mb-2 d-flex justify-content-between small">
+                                <span class="text-muted">Total Charged</span>
+                                <span class="fw-bold">KES @totalCharged.ToString("N2")</span>
+                            </div>
+                            <div class="mb-2 d-flex justify-content-between small">
+                                <span class="text-muted">Total Paid</span>
+                                <span class="fw-bold text-success">KES @totalPaid.ToString("N2")</span>
+                            </div>
+                            <div class="mb-3 d-flex justify-content-between small">
+                                <span class="text-muted">Outstanding</span>
+                                <span class="fw-bold text-primary">KES @outstanding.ToString("N2")</span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted">Set Status</label>
+                                <select id="paymentStatusSelect" name="IsPaid" class="form-select form-select-sm">
+                                    @if (currentIsPaid)
+                                    {
+                                        <option value="true" selected>Paid</option>
+                                        <option value="false">Unpaid</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="true">Paid</option>
+                                        <option value="false" selected>Unpaid</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted">Amount paid (optional)</label>
+                                <input type="number" asp-for="AmountPaid" class="form-control form-control-sm" step="0.01" min="0.01" max="@outstanding" placeholder="Amount paid (optional)" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted">Payment reference</label>
+                                <input type="text" asp-for="PaymentReference" class="form-control form-control-sm" placeholder="Payment reference" maxlength="100" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted">Select payment method</label>
+                                <select asp-for="PaymentMethod" class="form-select form-select-sm">
+                                    @if (string.Equals(Model.PaymentMethod, "MPESA", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <option value="">Select payment method</option>
+                                        <option value="MPESA" selected>Mpesa</option>
+                                        <option value="BANK">Bank</option>
+                                        <option value="CHEQUE">Cheque</option>
+                                    }
+                                    else if (string.Equals(Model.PaymentMethod, "BANK", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <option value="">Select payment method</option>
+                                        <option value="MPESA">Mpesa</option>
+                                        <option value="BANK" selected>Bank</option>
+                                        <option value="CHEQUE">Cheque</option>
+                                    }
+                                    else if (string.Equals(Model.PaymentMethod, "CHEQUE", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <option value="">Select payment method</option>
+                                        <option value="MPESA">Mpesa</option>
+                                        <option value="BANK">Bank</option>
+                                        <option value="CHEQUE" selected>Cheque</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="" selected>Select payment method</option>
+                                        <option value="MPESA">Mpesa</option>
+                                        <option value="BANK">Bank</option>
+                                        <option value="CHEQUE">Cheque</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="mb-0">
+                                <label class="form-label small fw-bold text-muted">Notes (optional)</label>
+                                <textarea asp-for="PaymentNotes" class="form-control form-control-sm" rows="2" maxlength="300" placeholder="Notes (optional)"></textarea>
+                            </div>
                         </div>
 
                         <div class="mb-4">
@@ -321,6 +435,48 @@
             const el = id => document.getElementById(id);
             const fmt = val => new Intl.NumberFormat('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
 
+            function isAmendment() {
+                return (el("ApplicationStatus")?.value || "").trim() === "Amendment";
+            }
+
+            function syncApplicationStatusPricing() {
+                const clientChargesInput = el("ClientCharges");
+                const amendmentFeeInput = el("AmendmentFee");
+                if (!clientChargesInput || !amendmentFeeInput) return;
+
+                if (isAmendment()) {
+                    const amendmentFee = parseFloat(amendmentFeeInput.value) || 0;
+                    clientChargesInput.value = amendmentFee.toFixed(2);
+                    clientChargesInput.readOnly = true;
+                    clientChargesInput.classList.add("bg-light");
+                } else {
+                    clientChargesInput.readOnly = false;
+                    clientChargesInput.classList.remove("bg-light");
+                }
+            }
+
+            function updatePricingSummary() {
+                syncApplicationStatusPricing();
+
+                const clientCharge = parseFloat(el("ClientCharges")?.value) || 0;
+                const bankCharge = parseFloat(el("BankCharges")?.value) || 0;
+                const taxPercentage = parseFloat(el("TaxPercentage")?.value) || 0;
+
+                const taxCalculation = bankCharge * (taxPercentage / 100);
+                const totalBankCharge = bankCharge + taxCalculation;
+                const netProfit = clientCharge - totalBankCharge;
+
+                el("sideTaxCalculation").textContent = "KES " + fmt(taxCalculation);
+                el("sideBankCharge").textContent = "KES " + fmt(totalBankCharge);
+                el("sideNetProfit").textContent = "KES " + fmt(netProfit);
+
+                el("hTaxCalculation").value = taxCalculation.toFixed(2);
+                el("hTotalBankCharge").value = totalBankCharge.toFixed(2);
+                el("hNetProfit").value = netProfit.toFixed(2);
+                el("hApplicationFee").value = netProfit.toFixed(2);
+                el("hCommissionAmount").value = clientCharge.toFixed(2);
+            }
+
             function runCalc(triggerId) {
                 const principal = parseFloat(el("Amount").value) || 0;
                 const days = parseInt(el("Tenor").value) || 0;
@@ -335,29 +491,18 @@
                 const profitAmount = principal * (profitRate / 100) * (days / 365);
                 const total = bankCharge + profitAmount;
 
-                el("hCommissionAmount").value = bankCharge.toFixed(2);
-                el("hApplicationFee").value = profitAmount.toFixed(2);
                 el("hAppliedRate").value = combined.toFixed(3);
+                if (!el("ClientCharges").value && !isAmendment()) el("ClientCharges").value = total.toFixed(2);
+                if (!el("BankCharges").value) el("BankCharges").value = bankCharge.toFixed(2);
 
-                el("sideBankCharge").textContent = "KES " + fmt(bankCharge);
-                el("sideProfit").textContent = "KES " + fmt(profitAmount);
                 el("sideTotalDisplay").textContent = fmt(total);
 
                 if (triggerId !== 'sideTotal2') el("sideTotal2").value = total.toFixed(2);
+                updatePricingSummary();
 
                 const isLoss = combined < bankFloorRate && combined > 0;
                 el("rateWarning").classList.toggle("d-none", !isLoss);
                 el("submitBtn").disabled = isLoss;
-            }
-
-            function updateNetProfit() {
-                const client = parseFloat(el("ClientCharges")?.value) || 0;
-                const bank = parseFloat(el("BankCharges")?.value) || 0;
-                const net = client - bank;
-                const fmt = val => new Intl.NumberFormat('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
-                el("sideNetProfit").textContent = "KES " + fmt(net);
-                // persist net profit into hidden application fee field
-                if (el("hApplicationFee")) el("hApplicationFee").value = net.toFixed(2);
             }
 
             function backCalculate() {
@@ -389,15 +534,27 @@
             }
 
             document.addEventListener("DOMContentLoaded", function() {
+                el("TaxPercentage").value = "20.00";
                 ["Amount", "Tenor", "uiCombinedRate"].forEach(id => {
                     el(id).addEventListener("input", () => runCalc(id));
                 });
+                ["ClientCharges", "BankCharges"].forEach(id => {
+                    const input = el(id);
+                    if (input) input.addEventListener("input", updatePricingSummary);
+                });
+                if (el("AmendmentFee")) {
+                    el("AmendmentFee").addEventListener("input", updatePricingSummary);
+                }
+                if (el("ApplicationStatus")) {
+                    el("ApplicationStatus").addEventListener("change", updatePricingSummary);
+                }
                 el("sideTotal2").addEventListener("input", backCalculate);
                 el("BankId").addEventListener("change", loadRates);
                 el("ProductType").addEventListener("change", loadRates);
 
                 const cashCoverToggle = el("hasCashCoverToggle");
                 const deferredToggle = el("deferredToggle");
+                const paymentStatusSelect = el("paymentStatusSelect");
 
                 function syncToggles() {
                     el("cashCoverFields").style.display = cashCoverToggle.checked ? "flex" : "none";
@@ -405,18 +562,30 @@
                     el("deferredFields").style.display = deferredToggle.checked ? "block" : "none";
                 }
 
+                function syncStatusToDeferred() {
+                    if (!paymentStatusSelect) return;
+                    deferredToggle.checked = paymentStatusSelect.value !== "true";
+                    syncToggles();
+                }
+
+                function syncDeferredToStatus() {
+                    if (!paymentStatusSelect) return;
+                    paymentStatusSelect.value = deferredToggle.checked ? "false" : "true";
+                }
+
                 cashCoverToggle.addEventListener("change", syncToggles);
-                deferredToggle.addEventListener("change", syncToggles);
+                deferredToggle.addEventListener("change", function () {
+                    syncDeferredToStatus();
+                    syncToggles();
+                });
+                if (paymentStatusSelect) {
+                    paymentStatusSelect.addEventListener("change", syncStatusToDeferred);
+                    syncStatusToDeferred();
+                }
                 syncToggles();
 
-                // Wire client/bank charge inputs to recalc net profit and initialize values
-                ["ClientCharges","BankCharges"].forEach(id => {
-                    const eln = el(id);
-                    if (eln) eln.addEventListener("input", updateNetProfit);
-                });
-
                 // Initialize displays
-                try { updateNetProfit(); } catch(e){}
+                updatePricingSummary();
                 runCalc();
             });
         })();

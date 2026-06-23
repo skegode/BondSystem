@@ -1,0 +1,95 @@
+@model OnwardsSwift.Core.DTOs.OfficialUseViewModel
+@{
+    ViewData["Title"] = "Official Use — Step 3";
+}
+
+<div class="modal fade" id="officialUseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-fullscreen-sm-down">
+        <div class="modal-content shadow">
+            <div class="modal-header border-0 pb-0">
+                <div class="w-100 text-center position-relative">
+                    <img src="@Url.Content("~/images/onwards-logo.jpg")" alt="Onwards" class="d-block mx-auto mb-2" style="height:54px;width:auto;object-fit:contain;" />
+                    <div>
+                        <h5 class="modal-title mb-0">Official Use</h5>
+                        <small class="text-muted">Internal processing and approvals</small>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal" aria-label="Close" style="position:absolute;right:0;top:0;"><i class="bi bi-x-lg"></i></button>
+                </div>
+            </div>
+            <div class="modal-body pt-2">
+                <form asp-action="OfficialUse" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="RequestId" />
+
+                    <div class="mb-3">
+                        <h6>Checked By (Official use only)</h6>
+                        <div class="row">
+                            <div class="col-md-6"><label class="form-label">Name</label><input asp-for="CheckedBy" class="form-control" /></div>
+                            <div class="col-md-3"><label class="form-label">Signature</label><input asp-for="CheckedSignatureFile" type="file" accept="image/*,application/pdf" class="form-control" /></div>
+                            <div class="col-md-3"><label class="form-label">Date</label><input asp-for="CheckedDate" type="date" class="form-control" /></div>
+                        </div>
+                    </div>
+
+                    <hr />
+                    <div class="mb-3">
+                        <h6>Drawer's Verification</h6>
+                        <div class="row">
+                            <div class="col-md-6"><label class="form-label">Confirmed with</label><input asp-for="ConfirmedWith" class="form-control" /></div>
+                            <div class="col-md-3"><label class="form-label">Designation</label><input asp-for="Designation" class="form-control" /></div>
+                            <div class="col-md-3"><label class="form-label">Status</label><input asp-for="DrawerStatus" class="form-control" /></div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-8"><label class="form-label">Building / Street</label><input asp-for="BuildingStreet" class="form-control" /></div>
+                            <div class="col-md-4"><label class="form-label">Reason for payment</label><input asp-for="ReasonForPayment" class="form-control" /></div>
+                        </div>
+                    </div>
+
+                    <hr />
+                    <div class="mb-3">
+                        <h6>Account Confirmation</h6>
+                        <div class="row">
+                            <div class="col-md-6"><label class="form-label">Confirmed by</label><input asp-for="AccountConfirmedBy" class="form-control" /></div>
+                            <div class="col-md-6"><label class="form-label">Status</label><input asp-for="AccountStatus" class="form-control" /></div>
+                        </div>
+                    </div>
+
+                    <hr />
+                    <div class="mb-3">
+                        <h6>Approval Process</h6>
+                        <div class="row">
+                            <div class="col-md-4"><label class="form-label">Head of Trade Finance</label><input asp-for="HeadOfTradeFinance" class="form-control" /></div>
+                            <div class="col-md-4"><label class="form-label">Signature</label><input asp-for="HeadOfTradeSignatureFile" type="file" accept="image/*,application/pdf" class="form-control" /></div>
+                            <div class="col-md-4"><label class="form-label">Date</label><input asp-for="HeadOfTradeDate" type="date" class="form-control" /></div>
+                        </div>
+
+                        <div class="row mt-2">
+                            <div class="col-md-4"><label class="form-label">In Charge Finance</label><input asp-for="InChargeFinance" class="form-control" /></div>
+                            <div class="col-md-4"><label class="form-label">Signature</label><input asp-for="InChargeFinanceSignatureFile" type="file" accept="image/*,application/pdf" class="form-control" /></div>
+                            <div class="col-md-4"><label class="form-label">Date</label><input asp-for="InChargeFinanceDate" type="date" class="form-control" /></div>
+                        </div>
+
+                        <div class="row mt-2">
+                            <div class="col-md-4"><label class="form-label">CEO</label><input asp-for="CEO" class="form-control" /></div>
+                            <div class="col-md-4"><label class="form-label">Signature</label><input asp-for="CEOSignatureFile" type="file" accept="image/*,application/pdf" class="form-control" /></div>
+                            <div class="col-md-4"><label class="form-label">Date</label><input asp-for="CEODate" type="date" class="form-control" /></div>
+                        </div>
+                    </div>
+
+                    <hr />
+                    <div class="mb-3">
+                        <h6>Payment Process</h6>
+                        <div class="row">
+                            <div class="col-md-6"><label class="form-label">Paid by: Name</label><input asp-for="PaidByName" class="form-control" /></div>
+                            <div class="col-md-6"><label class="form-label">Signature</label><input asp-for="PaidBySignatureFile" type="file" accept="image/*,application/pdf" class="form-control" /></div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="submit" class="btn btn-primary">Save Official Use</button>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

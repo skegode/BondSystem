@@ -1,0 +1,441 @@
+@model OnwardsSwift.Core.DTOs.OnboardingWizardProfileViewModel
+@{
+    ViewData["Title"] = "Onboarding Wizard Profile — " + Model.ChequeData.ApplicantName;
+    var cheque = Model.ChequeData;
+    var ou = Model.OfficialUse;
+
+    string ResolveUrl(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return "#";
+        if (path.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            return path;
+        var trimmed = path.TrimStart('/');
+        if (!trimmed.StartsWith("uploads/", StringComparison.OrdinalIgnoreCase))
+            trimmed = "uploads/" + trimmed;
+        return Url.Content("~/" + trimmed) ?? ("/" + trimmed);
+    }
+}
+
+<style>
+    .section-card {
+        border-radius: 1rem;
+        border: 1px solid #e7edf5;
+        overflow: hidden;
+    }
+    .section-card .card-header {
+        background: #f8fbff;
+        border-bottom: 1px solid #e9eff8;
+    }
+    .detail-label {
+        font-size: 0.75rem;
+        color: #6c757d;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.15rem;
+    }
+    .detail-value {
+        font-size: 0.93rem;
+        color: #111827;
+        font-weight: 500;
+    }
+    .detail-group {
+        margin-bottom: 1rem;
+    }
+    .attachment-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: #0b4da2;
+        text-decoration: none;
+    }
+    .attachment-link:hover {
+        text-decoration: underline;
+    }
+    .status-pill {
+        border-radius: 999px;
+        padding: 0.35rem 0.85rem;
+        font-size: 0.78rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+</style>
+
+<div class="container-fluid py-2">
+
+    @{
+        var notice = ViewContext.HttpContext.Request.Query["notice"].ToString();
+        var hasSuccessNotice = TempData["Success"] != null || string.Equals(notice, "submitted", StringComparison.OrdinalIgnoreCase);
+        var successMessage = TempData["Success"]?.ToString() ?? (hasSuccessNotice ? "Your onboarding request has been submitted successfully." : null);
+    }
+    @if (hasSuccessNotice)
+    {
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @successMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="d-flex flex-column flex-md-row align-items-start gap-2 mb-3">
+        <a href="@Url.Action("Index","Transactions")" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>All Submissions
+        </a>
+        <span class="text-muted small">›</span>
+        <div class="bg-primary bg-opacity-10 border border-primary rounded-3 px-3 py-2">
+            <span class="text-primary small fw-semibold"><i class="bi bi-person-badge me-1"></i>Onboarding Portal › Client Onboarding Wizard</span>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4 rounded-4 overflow-hidden">
+        <div class="card-body d-flex flex-column flex-lg-row align-items-start align-items-lg-center gap-3"
+             style="background:linear-gradient(135deg,#002d72 0%,#0b4da2 100%);">
+            <div class="rounded-circle bg-white d-flex align-items-center justify-content-center"
+                 style="width:56px;height:56px;flex-shrink:0;">
+                <i class="bi bi-person-fill text-primary fs-4"></i>
+            </div>
+            <div class="flex-grow-1 text-white">
+                <h1 class="h5 mb-1">@cheque.ApplicantName</h1>
+                <div class="d-flex flex-column flex-sm-row flex-wrap gap-2 small opacity-75">
+                    <span>ID: @cheque.IdNumber</span>
+                    <span>Submitted by: @cheque.CreatedBy</span>
+                    <span>@cheque.CreatedAt.ToString("dd MMM yyyy HH:mm")</span>
+                </div>
+            </div>
+            <div class="d-flex gap-2 ms-auto">
+                <a href="@Url.Action("OnboardingWizard","Forms", new { step = 2, requestId = cheque.Id, clientId = Model.ClientId })" class="btn btn-sm btn-outline-light">
+                    <i class="bi bi-pencil-square me-1"></i>Edit in Wizard
+                </a>
+                <form asp-action="DeleteCheque" asp-controller="Transactions" method="post" onsubmit="return confirm('Permanently delete this submission?');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@cheque.Id" />
+                    <button type="submit" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-trash me-1"></i>Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-2">
+        <div class="col-xl-8">
+            <div class="card section-card border-0 shadow-sm">
+                <div class="card-header px-3 py-2">
+                    <div class="d-flex align-items-center justify-content-between flex-column flex-md-row gap-3">
+                        <div>
+                            <span class="badge bg-primary rounded-pill text-uppercase small">Step 1</span>
+                            <h2 class="h6 mb-0 mt-2">Client Registration</h2>
+                        </div>
+                        @if (Model.ClientId.HasValue)
+                        {
+                            <a href="@Url.Action("Edit","Clients",new{id=Model.ClientId})" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-box-arrow-up-right me-1"></i>Open Client
+                            </a>
+                        }
+                    </div>
+                </div>
+                <div class="card-body px-3 py-2">
+                    @if (Model.ClientId.HasValue)
+                    {
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <div class="mb-3"><div class="detail-label">Company / Name</div><div class="detail-value">@Model.ClientName</div></div>
+                                <div class="mb-3"><div class="detail-label">Type</div><div class="detail-value">@Model.ClientType</div></div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3"><div class="detail-label">Email</div><div class="detail-value">@Model.ClientEmail</div></div>
+                                <div class="mb-3"><div class="detail-label">Phone</div><div class="detail-value">@Model.ClientPhone</div></div>
+                                <div class="mb-3"><div class="detail-label">KRA PIN</div><div class="detail-value">@Model.ClientKraPin</div></div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-light border rounded-3 p-3 mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            No linked client record. The wizard's Step 1 data is stored in the Clients module.
+                            <a href="@Url.Action("Index","Clients")" class="ms-1">View Clients</a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card section-card border-0 shadow-sm h-100">
+                <div class="card-header px-4 py-3">
+                    <span class="badge bg-secondary rounded-pill text-uppercase small">Request Summary</span>
+                    <h2 class="h6 mb-0 mt-2">Quick Details</h2>
+                </div>
+                <div class="card-body px-3 py-2">
+                    <div class="detail-group"><div class="detail-label">Request ID</div><div class="detail-value">#@cheque.Id</div></div>
+                    <div class="detail-group"><div class="detail-label">Status</div><div class="detail-value"><span class="status-pill @((ou == null) ? "bg-warning text-dark" : "bg-success text-white")">@((ou == null) ? "Pending" : "Submitted")</span></div></div>
+                    <div class="detail-group"><div class="detail-label">Terms Accepted</div><div class="detail-value"><span class="status-pill @(cheque.TermsAccepted ? "bg-success text-white" : "bg-secondary text-white")">@(cheque.TermsAccepted ? "Yes" : "No")</span></div></div>
+                    <div class="detail-group"><div class="detail-label">Cheques / Total</div><div class="detail-value">@cheque.Cheques.Count / KSh @cheque.Cheques.Sum(c => c.Amount ?? 0m).ToString("N2")</div></div>
+                    <div class="detail-group" style="margin-bottom:0"><div class="detail-label">Attachments</div><div class="detail-value">@cheque.Attachments.Count files</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-8">
+            <div class="card section-card border-0 shadow-sm">
+                <div class="card-header px-4 py-3">
+                    <div class="d-flex align-items-center justify-content-between gap-3 flex-column flex-md-row">
+                        <div>
+                            <span class="badge bg-primary rounded-pill text-uppercase small">Step 2</span>
+                            <h2 class="h6 mb-0 mt-2">Cheque Encashment Request</h2>
+                        </div>
+                        <span class="status-pill bg-info text-dark">@cheque.Purpose</span>
+                    </div>
+                </div>
+                <div class="card-body px-3 py-2">
+                    <div class="row g-2">
+                        <div class="col-md-6"><div class="detail-group"><div class="detail-label">Applicant Name</div><div class="detail-value">@cheque.ApplicantName</div></div></div>
+                        <div class="col-md-6"><div class="detail-group"><div class="detail-label">ID Number</div><div class="detail-value">@cheque.IdNumber</div></div></div>
+                        <div class="col-md-6"><div class="detail-group"><div class="detail-label">Phone</div><div class="detail-value">@cheque.Phone</div></div></div>
+                        <div class="col-md-6"><div class="detail-group"><div class="detail-label">Postal Address</div><div class="detail-value">@cheque.PostalAddress</div></div></div>
+                        <div class="col-md-6"><div class="detail-group"><div class="detail-label">Category</div><div class="detail-value">@cheque.Category</div></div></div>
+                        <div class="col-md-6"><div class="detail-group"><div class="detail-label">Payment Method</div><div class="detail-value">@(cheque.PaymentMethod == "BANK" ? "Bank Transfer" : "M-Pesa")</div></div></div>
+                        @if (cheque.PaymentMethod == "BANK")
+                        {
+                            <div class="col-md-6"><div class="detail-group"><div class="detail-label">Disbursing Bank</div><div class="detail-value">@cheque.DisburseBank</div></div></div>
+                            <div class="col-md-6"><div class="detail-group"><div class="detail-label">Bank Account No.</div><div class="detail-value">@cheque.DisburseAccount</div></div></div>
+                        }
+                    </div>
+
+                    @if (cheque.Cheques.Any())
+                    {
+                        <div class="mt-3">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h3 class="h6 mb-0">Cheques</h3>
+                                <span class="badge bg-secondary rounded-pill text-uppercase small">@cheque.Cheques.Count</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Cheque No.</th>
+                                            <th class="text-end">Amount</th>
+                                            <th>Dated</th>
+                                            <th>Drawer</th>
+                                            <th>Bank</th>
+                                            <th>Branch</th>
+                                            <th>Payee</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    @foreach (var c in cheque.Cheques)
+                                    {
+                                        <tr>
+                                            <td>@c.Number</td>
+                                            <td class="text-end">@(c.Amount.HasValue ? c.Amount.Value.ToString("N2") : "—")</td>
+                                            <td>@c.Dated</td>
+                                            <td>@c.Drawer</td>
+                                            <td>@c.Bank</td>
+                                            <td>@c.Branch</td>
+                                            <td>@c.Payee</td>
+                                        </tr>
+                                    }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card section-card border-0 shadow-sm h-100">
+                <div class="card-header px-4 py-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="badge bg-secondary rounded-pill text-uppercase small">Documents</span>
+                            <h2 class="h6 mb-0 mt-2">Uploaded Files</h2>
+                        </div>
+                        @if (cheque.Attachments.Any())
+                        {
+                            <span class="badge bg-primary rounded-pill">@cheque.Attachments.Count</span>
+                        }
+                    </div>
+                </div>
+                <div class="card-body px-3 py-3">
+                    @if (!cheque.Attachments.Any())
+                    {
+                        <div class="text-muted small">No documents were uploaded for this request.</div>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column gap-2">
+                        @foreach (var a in cheque.Attachments)
+                        {
+                            var aUrl = ResolveUrl(a.FilePath);
+                            var aCt  = (a.ContentType ?? "").ToLowerInvariant();
+                            var aExt = System.IO.Path.GetExtension(a.FileName ?? "").TrimStart('.').ToLowerInvariant();
+                            var aIsImg = aCt.StartsWith("image/") || new[]{"jpg","jpeg","png","gif","webp","bmp"}.Contains(aExt);
+                            var aIsPdf = aCt == "application/pdf" || aExt == "pdf";
+                            <div class="d-flex align-items-center gap-2 p-2 border rounded-3" style="background:#f8fbff">
+                                <div class="flex-shrink-0 d-flex align-items-center justify-content-center rounded-2 overflow-hidden"
+                                     style="width:44px;height:44px;background:#e9ecef;">
+                                    @if (aIsImg)
+                                    {
+                                        <img src="@aUrl" alt="" style="width:100%;height:100%;object-fit:cover;" />
+                                    }
+                                    else if (aIsPdf)
+                                    {
+                                        <i class="bi bi-file-earmark-pdf fs-5 text-danger"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-file-earmark fs-5 text-secondary"></i>
+                                    }
+                                </div>
+                                <div class="flex-grow-1 text-truncate" style="min-width:0">
+                                    <div class="small fw-semibold text-truncate">@a.FileName</div>
+                                    <div class="text-muted" style="font-size:0.68rem">@(a.ContentType ?? "file")</div>
+                                </div>
+                                <div class="d-flex gap-1 flex-shrink-0">
+                                    <button type="button" class="btn btn-sm btn-outline-primary"
+                                            data-doc-preview
+                                            data-url="@aUrl"
+                                            data-type="@(a.ContentType ?? "")"
+                                            data-name="@a.FileName"
+                                            title="Preview">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <a href="@aUrl" target="_blank" class="btn btn-sm btn-outline-secondary" title="Open in new tab">
+                                        <i class="bi bi-box-arrow-up-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card section-card border-0 shadow-sm">
+                <div class="card-header px-3 py-2 d-flex align-items-center justify-content-between flex-column flex-md-row gap-2">
+                    <div>
+                        <span class="badge bg-primary rounded-pill text-uppercase small">Step 3</span>
+                        <h2 class="h6 mb-0 mt-2">Official Use (Internal Processing)</h2>
+                    </div>
+                    @if (ou != null)
+                    {
+                        <div class="text-end">
+                            <span class="status-pill bg-success text-white">Submitted @ou.CreatedAt.ToString("dd MMM yyyy HH:mm")</span>
+                            <a href="@Url.Action("OnboardingWizard","Forms", new { step = 3, requestId = cheque.Id, clientId = Model.ClientId })" class="btn btn-sm btn-outline-primary ms-2">
+                                <i class="bi bi-pencil-square me-1"></i>Edit Official Use
+                            </a>
+                        </div>
+                    }
+                </div>
+                <div class="card-body px-4 py-4">
+                    @if (ou == null)
+                    {
+                        <div class="alert alert-light border rounded-3 p-4 mb-0">
+                            <i class="bi bi-hourglass-split me-2"></i>
+                            Official Use has not been submitted for this onboarding request yet.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row g-2">
+                            <div class="col-md-3"><div class="detail-label">Checked By</div><div class="detail-value">@ou.CheckedBy</div></div>
+                            <div class="col-md-3"><div class="detail-label">Signature</div><div class="detail-value">@if (!string.IsNullOrEmpty(ou.CheckedSignature)) { <a class="attachment-link" href="@ResolveUrl(ou.CheckedSignature)" target="_blank"><i class="bi bi-file-earmark-text"></i>@System.IO.Path.GetFileName(ou.CheckedSignature)</a> } else { <span class="text-muted">—</span> }</div></div>
+                            <div class="col-md-3"><div class="detail-label">Date</div><div class="detail-value">@ou.CheckedDate</div></div>
+
+                            <div class="col-12"><hr class="my-2" /></div>
+                            <div class="col-12"><div class="text-uppercase text-muted small mb-1">Drawer Verification</div></div>
+                            <div class="col-md-3"><div class="detail-label">Confirmed With</div><div class="detail-value">@ou.ConfirmedWith</div></div>
+                            <div class="col-md-3"><div class="detail-label">Designation</div><div class="detail-value">@ou.Designation</div></div>
+                            <div class="col-md-3"><div class="detail-label">Status</div><div class="detail-value">@ou.DrawerStatus</div></div>
+                            <div class="col-md-3"><div class="detail-label">Building/Street</div><div class="detail-value">@ou.BuildingStreet</div></div>
+                            <div class="col-md-12"><div class="detail-label">Reason</div><div class="detail-value">@ou.ReasonForPayment</div></div>
+
+                            <div class="col-12"><hr class="my-2" /></div>
+                            <div class="col-12"><div class="text-uppercase text-muted small mb-1">Account Confirmation</div></div>
+                            <div class="col-md-4"><div class="detail-label">Account By</div><div class="detail-value">@ou.AccountConfirmedBy</div></div>
+                            <div class="col-md-4"><div class="detail-label">Status</div><div class="detail-value">@ou.AccountStatus</div></div>
+
+                            <div class="col-12"><hr class="my-2" /></div>
+                            <div class="col-12"><div class="text-uppercase text-muted small mb-1">Approval Process</div></div>
+                            <div class="col-md-4"><div class="detail-label">Head Trade Finance</div><div class="detail-value">@ou.HeadOfTradeFinance</div></div>
+                            <div class="col-md-4"><div class="detail-label">Signature</div><div class="detail-value">@if (!string.IsNullOrEmpty(ou.HeadOfTradeSignature)) { <a class="attachment-link" href="@ResolveUrl(ou.HeadOfTradeSignature)" target="_blank"><i class="bi bi-file-earmark-text"></i>@System.IO.Path.GetFileName(ou.HeadOfTradeSignature)</a> } else { <span class="text-muted">—</span> }</div></div>
+                            <div class="col-md-4"><div class="detail-label">Date</div><div class="detail-value">@ou.HeadOfTradeDate</div></div>
+                            <div class="col-md-4"><div class="detail-label">In Charge Finance</div><div class="detail-value">@ou.InChargeFinance</div></div>
+                            <div class="col-md-4"><div class="detail-label">Signature</div><div class="detail-value">@if (!string.IsNullOrEmpty(ou.InChargeFinanceSignature)) { <a class="attachment-link" href="@ResolveUrl(ou.InChargeFinanceSignature)" target="_blank"><i class="bi bi-file-earmark-text"></i>@System.IO.Path.GetFileName(ou.InChargeFinanceSignature)</a> } else { <span class="text-muted">—</span> }</div></div>
+                            <div class="col-md-4"><div class="detail-label">Date</div><div class="detail-value">@ou.InChargeFinanceDate</div></div>
+                            <div class="col-md-4"><div class="detail-label">CEO</div><div class="detail-value">@ou.CEO</div></div>
+                            <div class="col-md-4"><div class="detail-label">Signature</div><div class="detail-value">@if (!string.IsNullOrEmpty(ou.CEOSignature)) { <a class="attachment-link" href="@ResolveUrl(ou.CEOSignature)" target="_blank"><i class="bi bi-file-earmark-text"></i>@System.IO.Path.GetFileName(ou.CEOSignature)</a> } else { <span class="text-muted">—</span> }</div></div>
+                            <div class="col-md-4"><div class="detail-label">Date</div><div class="detail-value">@ou.CEODate</div></div>
+
+                            <div class="col-12"><hr class="my-2" /></div>
+                            <div class="col-12"><div class="text-uppercase text-muted small mb-1">Payment</div></div>
+                            <div class="col-md-3"><div class="detail-label">Paid By</div><div class="detail-value">@ou.PaidByName</div></div>
+                            <div class="col-md-3"><div class="detail-label">Signature</div><div class="detail-value">@if (!string.IsNullOrEmpty(ou.PaidBySignature)) { <a class="attachment-link" href="@ResolveUrl(ou.PaidBySignature)" target="_blank"><i class="bi bi-file-earmark-text"></i>@System.IO.Path.GetFileName(ou.PaidBySignature)</a> } else { <span class="text-muted">—</span> }</div></div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Document Preview Modal -->
+<div class="modal fade" id="docPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header py-2 px-3">
+                <span class="modal-title h6 text-truncate" id="docPreviewLabel" style="max-width:65%"></span>
+                <div class="ms-auto d-flex gap-2 align-items-center">
+                    <a id="docPreviewExtLink" href="#" target="_blank" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-box-arrow-up-right me-1"></i>Open in new tab
+                    </a>
+                    <button type="button" class="btn-close ms-1" data-bs-dismiss="modal"></button>
+                </div>
+            </div>
+            <div class="modal-body p-0" style="height:82vh;background:#1a1a1a;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                <iframe id="docPreviewFrame" src="about:blank" style="width:100%;height:100%;border:none;display:block;background:#fff;"></iframe>
+                <img id="docPreviewImg" src="" alt="Preview" style="display:none;max-width:100%;max-height:100%;object-fit:contain;" />
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.querySelectorAll('[data-doc-preview]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var url  = btn.getAttribute('data-url');
+            var type = (btn.getAttribute('data-type') || '').toLowerCase();
+            var name = btn.getAttribute('data-name') || 'Document';
+            var ext  = url.split('?')[0].split('.').pop().toLowerCase();
+            var isImg = type.startsWith('image/') || ['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext);
+            document.getElementById('docPreviewLabel').textContent = name;
+            document.getElementById('docPreviewExtLink').href = url;
+            var frame = document.getElementById('docPreviewFrame');
+            var img   = document.getElementById('docPreviewImg');
+            if (isImg) {
+                frame.style.display = 'none'; frame.src = 'about:blank';
+                img.style.display = 'block';  img.src  = url;
+            } else {
+                img.style.display  = 'none';  img.src  = '';
+                frame.style.display = 'block'; frame.src = url;
+            }
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('docPreviewModal')).show();
+        });
+    });
+    document.getElementById('docPreviewModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('docPreviewFrame').src = 'about:blank';
+        document.getElementById('docPreviewImg').src   = '';
+    });
+</script>

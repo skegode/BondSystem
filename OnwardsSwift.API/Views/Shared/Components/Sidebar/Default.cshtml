@@ -40,3 +40,29 @@
         </a>
     }
 }
+
+
+
+<div class="sidebar-section">Reports</div>
+<a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Reports" ? "active" : "")"
+   asp-controller="Reports" asp-action="UserCommissions">
+    <i class="bi bi-cash-coin"></i>
+    <span>User Commissions</span>
+</a>
+<a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Reports" && ViewContext.RouteData.Values["action"]?.ToString() == "TradeFinance" ? "active" : "")"
+   asp-controller="Reports" asp-action="TradeFinance">
+    <i class="bi bi-file-earmark-bar-graph"></i>
+    <span>Trade Finance Report</span>
+</a>
+<a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Reports" && ViewContext.RouteData.Values["action"]?.ToString() == "PendingClientCharges" ? "active" : "")"
+   asp-controller="Reports" asp-action="PendingClientCharges">
+    <i class="bi bi-hourglass-split"></i>
+    <span>Pending Client Charges</span>
+</a>
+
+<div class="sidebar-section">Finance</div>
+<a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Commissions" ? "active" : "")"
+   asp-controller="Commissions" asp-action="Payments">
+    <i class="bi bi-credit-card"></i>
+    <span>Commission Payments</span>
+</a>

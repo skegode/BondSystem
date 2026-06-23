@@ -21,9 +21,13 @@ namespace OnwardsSwift.API.Services
     {
         public string InvoiceNumber { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        public string ProductItem { get; set; } = string.Empty;
         public decimal Quantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal Amount { get; set; }
+        public decimal ChargedAmount { get; set; }
+        public decimal PaidAmount { get; set; }
+        public decimal OutstandingAmount { get; set; }
         public DateTime InvoiceDate { get; set; }
         public DateTime DueDate { get; set; }
     }

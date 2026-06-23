@@ -1,0 +1,360 @@
+@model OnwardsSwift.Core.DTOs.BondApplicationReviewViewModel
+@{
+    ViewData["Title"] = "Bond Profile — " + Model.Data.ApplicantName;
+    var d = Model.Data;
+
+    string ResolveUrl(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return "#";
+        if (path.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            return path;
+        var trimmed = path.TrimStart('/');
+        if (!trimmed.StartsWith("uploads/", StringComparison.OrdinalIgnoreCase))
+            trimmed = "uploads/" + trimmed;
+        return Url.Content("~/" + trimmed) ?? ("/" + trimmed);
+    }
+}
+
+<style>
+    .section-card {
+        border-radius: 1rem;
+        border: 1px solid #e7edf5;
+        overflow: hidden;
+    }
+    .section-card .card-header {
+        background: #f8fbff;
+        border-bottom: 1px solid #e9eff8;
+    }
+    .detail-label {
+        font-size: 0.75rem;
+        color: #6c757d;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.15rem;
+    }
+    .detail-value {
+        font-size: 0.93rem;
+        color: #111827;
+        font-weight: 500;
+    }
+    .detail-group {
+        margin-bottom: 1rem;
+    }
+    .attachment-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: #0b4da2;
+        text-decoration: none;
+    }
+    .attachment-link:hover {
+        text-decoration: underline;
+    }
+    .status-pill {
+        border-radius: 999px;
+        padding: 0.35rem 0.85rem;
+        font-size: 0.78rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    .source-banner {
+        background: #d1f0e0;
+        border: 1px solid #a3d9b8;
+        border-radius: 8px;
+        padding: 0.5rem 0.9rem;
+        font-size: 0.8rem;
+        color: #155724;
+        font-weight: 600;
+    }
+</style>
+
+<div class="container-fluid py-3">
+    <div class="d-flex flex-column flex-md-row align-items-start gap-2 mb-3">
+        <a href="@Url.Action("Index","Transactions")" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>All Submissions
+        </a>
+        <span class="text-muted small">›</span>
+        <div class="bg-success bg-opacity-10 border border-success rounded-3 px-3 py-2">
+            <span class="text-success small fw-semibold"><i class="bi bi-shield-check me-1"></i>Onboarding Portal › Bank Guarantee / Bond Request Wizard</span>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4 rounded-4 overflow-hidden">
+        <div class="card-body d-flex flex-column flex-lg-row align-items-start align-items-lg-center gap-3"
+             style="background:linear-gradient(135deg,#155724 0%,#28a745 100%);">
+            <div class="rounded-circle bg-white d-flex align-items-center justify-content-center"
+                 style="width:56px;height:56px;flex-shrink:0;">
+                <i class="bi bi-shield-check text-success fs-4"></i>
+            </div>
+            <div class="flex-grow-1 text-white">
+                <h1 class="h5 mb-1">@d.ApplicantName</h1>
+                <div class="d-flex flex-column flex-sm-row flex-wrap gap-2 small opacity-75">
+                    <span>Procuring: @d.Procuring</span>
+                    <span>Submitted by: @Model.CreatedBy</span>
+                    <span>@Model.CreatedAt.ToString("dd MMM yyyy HH:mm")</span>
+                </div>
+            </div>
+            <div class="d-flex gap-2 ms-auto">
+                <a href="@Url.Action("FullApplication","Forms", new { step = 2, requestId = Model.Id })" class="btn btn-sm btn-outline-light">
+                    <i class="bi bi-pencil-square me-1"></i>Edit in Wizard
+                </a>
+                <form asp-action="DeleteBond" asp-controller="Transactions" method="post" onsubmit="return confirm('Permanently delete this submission?');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button type="submit" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-trash me-1"></i>Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-2">
+        <div class="col-xl-8">
+            <div class="card section-card border-0 shadow-sm">
+                <div class="card-header px-3 py-2">
+                    <div class="d-flex align-items-center justify-content-between flex-column flex-md-row gap-3">
+                        <div>
+                            <span class="badge bg-success rounded-pill text-uppercase small">Step 1</span>
+                            <h2 class="h6 mb-0 mt-2">Application Details</h2>
+                        </div>
+                        <span class="status-pill bg-info text-dark">Bond Request</span>
+                    </div>
+                </div>
+                <div class="card-body px-4 py-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="detail-group"><div class="detail-label">Applicant Name</div><div class="detail-value">@d.ApplicantName</div></div>
+                            <div class="detail-group"><div class="detail-label">Applicant Address</div><div class="detail-value">@d.ApplicantAddress</div></div>
+                            <div class="detail-group"><div class="detail-label">Applicant Code/Town</div><div class="detail-value">@d.ApplicantCode / @d.ApplicantTown</div></div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="detail-group"><div class="detail-label">Procuring Name</div><div class="detail-value">@d.Procuring</div></div>
+                            <div class="detail-group"><div class="detail-label">Procuring Address</div><div class="detail-value">@d.ProcAddress</div></div>
+                            <div class="detail-group"><div class="detail-label">Procuring Code/Town</div><div class="detail-value">@d.ProcCode / @d.ProcTown</div></div>
+                        </div>
+                    </div>
+
+                    <hr class="my-2" />
+                    <div class="row g-2">
+                        <div class="col-md-6"><div class="detail-group"><div class="detail-label">Guarantee (Figures)</div><div class="detail-value">@d.GuaranteeFigures</div></div></div>
+                        <div class="col-md-6"><div class="detail-group"><div class="detail-label">Guarantee (Words)</div><div class="detail-value">@d.GuaranteeWords</div></div></div>
+                        <div class="col-md-4"><div class="detail-group"><div class="detail-label">Tender Ref</div><div class="detail-value">@d.TenderRef</div></div></div>
+                        <div class="col-md-4"><div class="detail-group"><div class="detail-label">From</div><div class="detail-value">@(d.GuaranteeFrom?.ToString("dd MMM yyyy") ?? "—")</div></div></div>
+                        <div class="col-md-4"><div class="detail-group"><div class="detail-label">To</div><div class="detail-value">@(d.GuaranteeTo?.ToString("dd MMM yyyy") ?? "—")</div></div></div>
+                    </div>
+
+                    <div class="detail-group"><div class="detail-label">Bond Type(s)</div>
+                        <div class="detail-value">
+                            @if (d.TypeBid) { <span class="badge text-bg-primary me-1">Bid/Tender Bond</span> }
+                            @if (d.TypePerformance) { <span class="badge text-bg-success me-1">Performance Bond</span> }
+                            @if (d.TypeAdvance) { <span class="badge text-bg-info me-1">Advance Payment Guarantee</span> }
+                            @if (d.TypeRetention) { <span class="badge text-bg-warning me-1">Retention Bond</span> }
+                            @if (!string.IsNullOrWhiteSpace(d.TypeOther)) { <span class="badge text-bg-secondary me-1">@d.TypeOther</span> }
+                        </div>
+                    </div>
+
+                    <hr class="my-2" />
+                    <div class="row g-2">
+                        <div class="col-md-4"><div class="detail-group"><div class="detail-label">Signatory 1 Name</div><div class="detail-value">@d.SigName1</div></div></div>
+                        <div class="col-md-4"><div class="detail-group"><div class="detail-label">Signature</div><div class="detail-value">@if (!string.IsNullOrEmpty(d.SigSignature1)) { <a class="attachment-link" href="@ResolveUrl(d.SigSignature1)" target="_blank"><i class="bi bi-file-earmark-text"></i>@System.IO.Path.GetFileName(d.SigSignature1)</a> } else { <span class="text-muted">—</span> }</div></div></div>
+                        <div class="col-md-4"><div class="detail-group"><div class="detail-label">Signatory 2 Name</div><div class="detail-value">@d.SigName2</div></div></div>
+                        <div class="col-md-4"><div class="detail-group"><div class="detail-label">Signature</div><div class="detail-value">@if (!string.IsNullOrEmpty(d.SigSignature2)) { <a class="attachment-link" href="@ResolveUrl(d.SigSignature2)" target="_blank"><i class="bi bi-file-earmark-text"></i>@System.IO.Path.GetFileName(d.SigSignature2)</a> } else { <span class="text-muted">—</span> }</div></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card section-card border-0 shadow-sm">
+                <div class="card-header px-3 py-2">
+                    <div class="d-flex align-items-center justify-content-between flex-column flex-md-row gap-3">
+                        <div>
+                            <span class="badge bg-secondary rounded-pill text-uppercase small">Step 2</span>
+                            <h2 class="h6 mb-0 mt-2">Counter Guarantee / Indemnity</h2>
+                        </div>
+                        <span class="status-pill bg-light text-dark">Authorized Signatories</span>
+                    </div>
+                </div>
+                <div class="card-body px-3 py-2">
+                    <div class="row g-2">
+                        <div class="col-md-4"><div class="detail-group"><div class="detail-label">Date</div><div class="detail-value">@d.IndemnityDateDay / @d.IndemnityDateMonth / 20@d.IndemnityDateYear</div></div></div>
+                        <div class="col-md-8"><div class="detail-group"><div class="detail-label">Company Seal/Stamp</div><div class="detail-value">@d.CompanySealStamp</div></div></div>
+                        <div class="col-md-4"><div class="detail-group"><div class="detail-label">Auth Sig 1 Name</div><div class="detail-value">@d.IndemnityName1</div></div></div>
+                        <div class="col-md-4"><div class="detail-group"><div class="detail-label">Signature</div><div class="detail-value">@if (!string.IsNullOrEmpty(d.IndemnitySignature1)) { <a class="attachment-link" href="@ResolveUrl(d.IndemnitySignature1)" target="_blank"><i class="bi bi-file-earmark-text"></i>@System.IO.Path.GetFileName(d.IndemnitySignature1)</a> } else { <span class="text-muted">—</span> }</div></div></div>
+                        <div class="col-md-4"><div class="detail-group"><div class="detail-label">Auth Sig 2 Name</div><div class="detail-value">@d.IndemnityName2</div></div></div>
+                        <div class="col-md-4"><div class="detail-group"><div class="detail-label">Signature</div><div class="detail-value">@if (!string.IsNullOrEmpty(d.IndemnitySignature2)) { <a class="attachment-link" href="@ResolveUrl(d.IndemnitySignature2)" target="_blank"><i class="bi bi-file-earmark-text"></i>@System.IO.Path.GetFileName(d.IndemnitySignature2)</a> } else { <span class="text-muted">—</span> }</div></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card section-card border-0 shadow-sm mb-3">
+                <div class="card-header px-3 py-2">
+                    <span class="badge bg-secondary rounded-pill text-uppercase small">Status</span>
+                    <h2 class="h6 mb-0 mt-2">Workflow</h2>
+                </div>
+                <div class="card-body px-3 py-3">
+                    <p class="mb-3">
+                        <span class="badge bg-info text-dark fs-6">@((FacilityStatus)Model.CurrentStatus)</span>
+                    </p>
+                    <form asp-action="UpdateBondStatus" asp-controller="Transactions" method="post" class="mb-3">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <div class="mb-2">
+                            <label class="form-label small">Set status</label>
+                            <select name="status" class="form-select form-select-sm">
+                                @foreach (var s in Enum.GetValues(typeof(FacilityStatus)).Cast<FacilityStatus>())
+                                {
+                                    <option value="@s" selected="@(s == (FacilityStatus)Model.CurrentStatus)">@s</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small">Note (optional, visible to client)</label>
+                            <textarea name="note" class="form-control form-control-sm" rows="2"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-primary w-100">Update Status</button>
+                    </form>
+                    @if (Model.StatusHistory.Count > 0)
+                    {
+                        <h3 class="h6">History</h3>
+                        <ul class="list-unstyled small mb-0">
+                            @foreach (var entry in Model.StatusHistory.AsEnumerable().Reverse())
+                            {
+                                <li class="mb-2 pb-2 border-bottom">
+                                    <div class="fw-semibold">@entry.Status</div>
+                                    @if (!string.IsNullOrWhiteSpace(entry.StatusNote))
+                                    {
+                                        <div class="text-muted">@entry.StatusNote</div>
+                                    }
+                                    <div class="text-muted" style="font-size:0.72rem">
+                                        @entry.ChangedAtUtc.ToString("dd MMM yyyy HH:mm") UTC
+                                        @(string.IsNullOrWhiteSpace(entry.ChangedBy) ? "" : $"· {entry.ChangedBy}")
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+
+            <div class="card section-card border-0 shadow-sm h-100">
+                <div class="card-header px-3 py-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-paperclip"></i>
+                        <div>
+                            <span class="badge bg-secondary rounded-pill text-uppercase small">Attachments</span>
+                            <h2 class="h6 mb-0 mt-2">Files</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body px-3 py-3">
+                    @if (!Model.Attachments.Any())
+                    {
+                        <div class="text-muted small">No attachments saved.</div>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column gap-2">
+                        @foreach (var att in Model.Attachments)
+                        {
+                            var bUrl = ResolveUrl(att);
+                            var bFn  = System.IO.Path.GetFileName(att);
+                            var bExt = System.IO.Path.GetExtension(att).TrimStart('.').ToLowerInvariant();
+                            var bIsImg = new[]{"jpg","jpeg","png","gif","webp","bmp","svg"}.Contains(bExt);
+                            var bIsPdf = bExt == "pdf";
+                            <div class="d-flex align-items-center gap-2 p-2 border rounded-3" style="background:#f8fbff">
+                                <div class="flex-shrink-0 d-flex align-items-center justify-content-center rounded-2 overflow-hidden"
+                                     style="width:44px;height:44px;background:#e9ecef;">
+                                    @if (bIsImg)
+                                    {
+                                        <img src="@bUrl" alt="" style="width:100%;height:100%;object-fit:cover;" />
+                                    }
+                                    else if (bIsPdf)
+                                    {
+                                        <i class="bi bi-file-earmark-pdf fs-5 text-danger"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-file-earmark fs-5 text-secondary"></i>
+                                    }
+                                </div>
+                                <div class="flex-grow-1 text-truncate" style="min-width:0">
+                                    <div class="small fw-semibold text-truncate">@bFn</div>
+                                    <div class="text-muted" style="font-size:0.68rem">@bExt</div>
+                                </div>
+                                <div class="d-flex gap-1 flex-shrink-0">
+                                    <button type="button" class="btn btn-sm btn-outline-primary"
+                                            data-doc-preview
+                                            data-url="@bUrl"
+                                            data-type="@(bIsImg ? "image/" + bExt : bIsPdf ? "application/pdf" : "application/octet-stream")"
+                                            data-name="@bFn"
+                                            title="Preview">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <a href="@bUrl" target="_blank" class="btn btn-sm btn-outline-secondary" title="Open in new tab">
+                                        <i class="bi bi-box-arrow-up-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Document Preview Modal -->
+<div class="modal fade" id="docPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header py-2 px-3">
+                <span class="modal-title h6 text-truncate" id="docPreviewLabel" style="max-width:65%"></span>
+                <div class="ms-auto d-flex gap-2 align-items-center">
+                    <a id="docPreviewExtLink" href="#" target="_blank" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-box-arrow-up-right me-1"></i>Open in new tab
+                    </a>
+                    <button type="button" class="btn-close ms-1" data-bs-dismiss="modal"></button>
+                </div>
+            </div>
+            <div class="modal-body p-0" style="height:82vh;background:#1a1a1a;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                <iframe id="docPreviewFrame" src="about:blank" style="width:100%;height:100%;border:none;display:block;background:#fff;"></iframe>
+                <img id="docPreviewImg" src="" alt="Preview" style="display:none;max-width:100%;max-height:100%;object-fit:contain;" />
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.querySelectorAll('[data-doc-preview]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var url  = btn.getAttribute('data-url');
+            var type = (btn.getAttribute('data-type') || '').toLowerCase();
+            var name = btn.getAttribute('data-name') || 'Document';
+            var ext  = url.split('?')[0].split('.').pop().toLowerCase();
+            var isImg = type.startsWith('image/') || ['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext);
+            document.getElementById('docPreviewLabel').textContent = name;
+            document.getElementById('docPreviewExtLink').href = url;
+            var frame = document.getElementById('docPreviewFrame');
+            var img   = document.getElementById('docPreviewImg');
+            if (isImg) {
+                frame.style.display = 'none'; frame.src = 'about:blank';
+                img.style.display = 'block';  img.src  = url;
+            } else {
+                img.style.display  = 'none';  img.src  = '';
+                frame.style.display = 'block'; frame.src = url;
+            }
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('docPreviewModal')).show();
+        });
+    });
+    document.getElementById('docPreviewModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('docPreviewFrame').src = 'about:blank';
+        document.getElementById('docPreviewImg').src   = '';
+    });
+</script>

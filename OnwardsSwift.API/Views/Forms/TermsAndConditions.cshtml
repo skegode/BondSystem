@@ -1,0 +1,45 @@
+@{
+    ViewData["Title"] = "Terms and Conditions";
+    Layout = null;
+}
+
+<div class="container py-4" style="max-width: 920px;">
+    <div class="card shadow-sm border-0 mb-3 text-center py-3">
+        <img src="@Url.Content("~/images/onwards-logo.jpg")" alt="Onwards Swift" class="mx-auto d-block" style="height:54px;width:auto;object-fit:contain;" />
+        <div class="mt-2">
+            <p class="text-muted mb-0 small">Read the indemnity terms before accepting Step 2.</p>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-4 p-md-5">
+            <h1 class="h3 mb-3">Terms &amp; Conditions - Cheque Encashment</h1>
+            <p class="text-muted">For collection by themselves and hereby agree and undertake that:</p>
+
+            <ol class="mb-4">
+                <li class="mb-2">I confirm and undertake that if the cheque(s) above is/are not honored for whatever reason I shall upon demand of not less than seven (7) days from the date of such demand repay the cash collected plus interest at 5% for every 2 weeks and any other charges incurred in respect to the cheque(s) not being honored to Onwards Swift Company Limited.</li>
+                <li class="mb-2">I agree and undertake that if the cheque(s) mentioned is/are not honored for whatever reason, I hereby give a personal guarantee and pledge my personal and or family household assets namely: refrigerator, television set, radio and other electronics, microwave, dining table and chairs, gas cooker, beds and/or any other additional assets as may be sufficient to repay the cash advanced to me such as motor vehicles and I hereby waive any claims of ownership of the said assets by any third party whatsoever, PROVIDED THAT any attachment of my assets a seven (7) days' notice shall be given before sale is made by private treaty and/or public auction whichever Onwards Swift Company Limited may deem fit.</li>
+                <li class="mb-2">Any request and demand made upon ONWARDS SWIFT COMPANY LIMITED by any person(s) legally entitled to the cheque(s) shall be sufficient authority to ONWARDS SWIFT COMPANY LIMITED to make good such proceeds through recovery from myself.</li>
+                <li class="mb-2">I indemnify ONWARDS SWIFT COMPANY LIMITED from and against all action, proceeding, damages, costs, claims, demands or losses which you may suffer, incur or sustain or are made to you by reason or on your account having agreed that the cheque(s) be endorsed to you or otherwise in the premises however.</li>
+                <li class="mb-2">Cheque(s) represent genuine trade transactions and I shall be fully responsible for any discrepancies in the cheque(s).</li>
+                <li class="mb-2">THAT in the event of bankruptcy liquidation, analogous proceedings, or any other reason, or the inability of myself, or the drawer, at any time to any the cheque(s) as and of when it falls due (such occurrence to be decided by ONWARDS SWIFT COMPANY LIMITED at its discretion), I will become liable to pay you the face value of the cheque(s) together with all charges and penalties as per clause (i) above.</li>
+                <li class="mb-2">In case the amount of the cheque(s) is/are attached or held by a court of law for any reason, I shall repay you all due sums on first demand.</li>
+                <li class="mb-2">I have read and fully understood the terms and conditions of this letter of indemnity without any coercion whatsoever and undertake to abide strictly by the said terms and conditions.</li>
+                <li class="mb-0">I acknowledge and consent that the information provided, pursuant to this transaction, shall be handled, processed, stored in accordance with ONWARDS SWIFT Data Privacy statement available in our website www.onwardsswift.co.ke from time to time.</li>
+            </ol>
+
+            <h2 class="h5 mb-2">ACCEPTANCE</h2>
+            <p class="small mb-0">
+                I, <strong>@(ViewData["TermsName"] as string ?? "_______________________________")</strong>, of I.D Number <strong>@(ViewData["TermsIdNumber"] as string ?? "__________________________")</strong>, being an adult of sound mind and legal capacity,
+                do hereby appoint Onwards Swift Limited to act as debt collection agent in case of default by the drawer. I also hereby confirm
+                acceptance of the above indemnity having read and had a chance to seek independent advise thereof and fully understood the terms
+                and conditions thereof. I further acknowledge that I have not been induced to sign this indemnity by any representations made to me
+                by the said firm aforesaid and/or its agents and I will not be entitled to a cancellation or variation of this indemnity on any grounds whatsoever,
+                except a herein provided or by further mutual agreement.
+            </p>
+            <div class="alert alert-light border small mt-3 mb-0">
+                By checking the terms acceptance checkbox in Step 2, you confirm you have read and accepted these terms.
+            </div>
+        </div>
+    </div>
+</div>

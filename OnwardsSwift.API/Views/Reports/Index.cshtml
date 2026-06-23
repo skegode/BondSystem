@@ -1,0 +1,53 @@
+@{
+    ViewData["Title"] = "Reports";
+}
+
+<div class="page-header d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 fw-bold mb-1 text-navy">Reports</h1>
+        <p class="text-muted mb-0">Operational previews for revenue, charges, and user commissions.</p>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <a asp-action="Revenue" class="text-decoration-none">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="card-title text-navy">Revenue Report</h5>
+                    <p class="card-text text-muted">View invoiced revenue and ledger-backed income.</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a asp-action="BankCharges" class="text-decoration-none">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="card-title text-navy">Bank Charges</h5>
+                    <p class="card-text text-muted">Review bank charge postings and reconciliation detail.</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a asp-action="UserCommissions" class="text-decoration-none">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="card-title text-navy">User Commissions</h5>
+                    <p class="card-text text-muted">Preview commission per application and total earned per user.</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a asp-action="TradeFinance" class="text-decoration-none">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="card-title text-navy">Trade Finance Report</h5>
+                    <p class="card-text text-muted">Detailed bond application analysis with charges, tax, and net profit by date range.</p>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>

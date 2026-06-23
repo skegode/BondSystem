@@ -1,0 +1,77 @@
+@{
+    ViewData["Title"] = "Possible Duplicates";
+    var cheques = (List<dynamic>)ViewBag.ChequeDuplicates;
+    var bonds = (List<dynamic>)ViewBag.BondDuplicates;
+}
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div>
+        <h1>Possible Duplicate Submissions</h1>
+        <div class="subtitle">Same applicant + same purpose/entity, created within an hour of each other &mdash; usually caused by a failed mobile sync retry. Nothing here is deleted automatically; review before removing.</div>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back to Submissions</a>
+</div>
+
+<div class="content-body">
+<div class="card mb-3">
+    <div class="card-header"><strong>Cheque Encashment</strong> <span class="badge bg-secondary ms-2">@cheques.Count flagged row(s)</span></div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead><tr><th>Id</th><th>Applicant</th><th>Phone</th><th>ID Number</th><th>Purpose</th><th>Created</th><th>Created By</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var r in cheques)
+                {
+                    <tr>
+                        <td>#@r.Id</td>
+                        <td>@r.ApplicantName</td>
+                        <td class="small">@r.Phone</td>
+                        <td class="small">@r.IdNumber</td>
+                        <td class="small">@r.Purpose</td>
+                        <td class="small text-muted">@((DateTime)r.CreatedAt).ToString("dd MMM yyyy HH:mm:ss")</td>
+                        <td class="small text-muted">@r.CreatedBy</td>
+                        <td class="text-nowrap">
+                            <a asp-action="OnboardingDetail" asp-route-id="@r.Id" class="btn btn-sm btn-outline-secondary">View</a>
+                            <form asp-action="DeleteCheque" asp-route-id="@r.Id" method="post" class="d-inline" onsubmit="return confirm('Permanently delete cheque request #' + @r.Id + '?');">
+                                @Html.AntiForgeryToken()
+                                <button class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                @if (!cheques.Any())
+                { <tr><td colspan="8" class="text-center text-muted py-4">No likely duplicate cheque requests found</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><strong>Bond Applications</strong> <span class="badge bg-secondary ms-2">@bonds.Count flagged row(s)</span></div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead><tr><th>Id</th><th>Applicant</th><th>Phone</th><th>Procuring Entity</th><th>Created</th><th>Created By</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var b in bonds)
+                {
+                    <tr>
+                        <td>#@b.Id</td>
+                        <td>@b.ApplicantName</td>
+                        <td class="small">@b.Phone</td>
+                        <td class="small">@b.Procuring</td>
+                        <td class="small text-muted">@((DateTime)b.CreatedAt).ToString("dd MMM yyyy HH:mm:ss")</td>
+                        <td class="small text-muted">@b.CreatedBy</td>
+                        <td class="text-nowrap">
+                            <form asp-action="DeleteBond" asp-route-id="@b.Id" method="post" class="d-inline" onsubmit="return confirm('Permanently delete bond application #' + @b.Id + '?');">
+                                @Html.AntiForgeryToken()
+                                <button class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                @if (!bonds.Any())
+                { <tr><td colspan="7" class="text-center text-muted py-4">No likely duplicate bond applications found</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>

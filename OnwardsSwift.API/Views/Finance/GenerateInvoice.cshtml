@@ -1,0 +1,291 @@
+@model IEnumerable<OnwardsSwift.API.Services.InvoicePdfLine>
+@{
+    var client = ViewBag.Client;
+    ViewData["Title"] = "Invoice Preview - " + (client?.Name ?? "Client");
+    string dateFrom = ((DateTime)ViewBag.From).ToString("yyyy-MM-dd");
+    string dateTo = ((DateTime)ViewBag.To).ToString("yyyy-MM-dd");
+    var selectedBondTypeIds = (ViewBag.SelectedBondTypeIds as List<int>) ?? new List<int>();
+    decimal total = ViewBag.Total != null ? (decimal)ViewBag.Total : 0m;
+    decimal totalCharged = ViewBag.TotalCharged != null ? (decimal)ViewBag.TotalCharged : 0m;
+    decimal totalPaid = ViewBag.TotalPaid != null ? (decimal)ViewBag.TotalPaid : 0m;
+}
+
+<style>
+    .invoice-sheet {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .invoice-sheet::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: url('@Url.Content("~/images/onwards-logo.jpg")');
+        background-repeat: no-repeat;
+        background-position: center 40%;
+        background-size: 45%;
+        opacity: 0.08;
+        pointer-events: none;
+    }
+
+    .invoice-sheet > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .brand-logo {
+        max-height: 96px;
+        width: auto;
+        object-fit: contain;
+    }
+
+    .invoice-for-card {
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        background: #f5f8ff;
+        padding: 14px 16px;
+    }
+
+    .details-card {
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        background: rgba(248, 249, 250, 0.9);
+        padding: 14px 16px;
+    }
+
+    .details-card .label {
+        width: 140px;
+        color: #6c757d;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.74rem;
+        letter-spacing: 0.04em;
+    }
+
+    .details-card .value {
+        color: #0f1c2e;
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="card border-0 shadow-sm mb-4 no-print">
+        <div class="card-body p-3">
+            <div class="row align-items-center">
+                <div class="col-lg-2 mb-2 mb-lg-0">
+                    <button onclick="history.back()" class="btn btn-light btn-sm w-100">
+                        <i class="bi bi-arrow-left"></i> Back
+                    </button>
+                </div>
+                <div class="col-lg-7 mb-2 mb-lg-0">
+                    <div class="small text-muted fw-bold">Invoice Preview</div>
+                    <div class="small">Period: @dateFrom to @dateTo</div>
+                </div>
+                <div class="col-lg-3 text-end">
+                    <button id="btnExportPdf" type="button" class="btn btn-danger btn-sm">
+                        <i class="bi bi-file-earmark-pdf"></i> Export Invoice PDF
+                    </button>
+                    <!-- Hidden filter form so Export always uses exact preview filters -->
+                    <form id="filterForm" method="get" style="display:none;">
+                        <input type="hidden" name="clientId" value="@(ViewBag.ClientId ?? 0)" />
+                        <input type="hidden" name="from" value="@dateFrom" />
+                        <input type="hidden" name="to" value="@dateTo" />
+                        @foreach (var id in selectedBondTypeIds)
+                        {
+                            <input type="hidden" name="bondTypeIds" value="@id" />
+                        }
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm p-4 p-lg-5 invoice-sheet">
+        <!-- watermark removed -->
+        <div class="row mb-4">
+            <div class="col-7">
+                <img src="@Url.Content("~/images/onwards-logo.jpg")" alt="Onwards Swift" class="brand-logo" />
+                <p class="text-muted small mb-0">Invoice Preview</p>
+            </div>
+            <div class="col-5 text-end">
+                <p class="mb-0 text-muted small">IPS Building, 4th Floor</p>
+                <p class="mb-0 text-muted small">Kimathi Street, Nairobi CBD</p>
+                <p class="mb-0 text-muted small">P.O Box 104322-00100 NRB</p>
+                <p class="mb-0 text-muted small">Website: onwardsswift.com</p>
+                <h3 class="fw-bold text-uppercase mb-1">Invoice</h3>
+                <p class="mb-0 text-muted small">Period: <strong>@(((DateTime)ViewBag.From).ToString("dd-MMM-yyyy"))</strong> to <strong>@(((DateTime)ViewBag.To).ToString("dd-MMM-yyyy"))</strong></p>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <label class="text-muted small text-uppercase fw-bold">Invoice For:</label>
+                <div class="invoice-for-card">
+                    <h5 class="fw-bold text-dark mb-2">@client?.Name</h5>
+                    @if (!string.IsNullOrWhiteSpace((string?)client?.ContactPerson))
+                    {
+                        <div class="small mb-1"><span class="text-muted">Contact Person:</span> <span class="fw-semibold">@client.ContactPerson</span></div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace((string?)client?.Email))
+                    {
+                        <div class="small mb-1"><span class="text-muted">Email:</span> <span class="fw-semibold">@client.Email</span></div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace((string?)client?.PhoneNumber))
+                    {
+                        <div class="small mb-1"><span class="text-muted">Phone:</span> <span class="fw-semibold">@client.PhoneNumber</span></div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace((string?)client?.KraPin))
+                    {
+                        <div class="small mb-1"><span class="text-muted">KRA PIN:</span> <span class="fw-semibold">@client.KraPin</span></div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace((string?)client?.BusinessRegNumber))
+                    {
+                        <div class="small mb-1"><span class="text-muted">Business Reg No:</span> <span class="fw-semibold">@client.BusinessRegNumber</span></div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace((string?)client?.PhysicalAddress))
+                    {
+                        <div class="small mb-1"><span class="text-muted">Physical Address:</span> <span class="fw-semibold">@client.PhysicalAddress</span></div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace((string?)client?.PostalAddress))
+                    {
+                        <div class="small"><span class="text-muted">Postal Address:</span> <span class="fw-semibold">@client.PostalAddress</span></div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-2 mb-3">
+            <div class="col-md-4">
+                <div class="p-3 border rounded bg-light">
+                    <div class="small text-muted">Charged</div>
+                    <div class="fw-bold">KES @totalCharged.ToString("N2")</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 border rounded bg-light">
+                    <div class="small text-muted">Paid</div>
+                    <div class="fw-bold text-success">KES @totalPaid.ToString("N2")</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 border rounded bg-light">
+                    <div class="small text-muted">Outstanding</div>
+                    <div class="fw-bold text-danger">KES @total.ToString("N2")</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 18%">Date</th>
+                        <th style="width: 22%">Reference</th>
+                        <th style="width: 20%">Product Item</th>
+                        <th style="width: 26%">Procuring Entity</th>
+                        <th class="text-end" style="width: 12%">Bond Amount</th>
+                        <th class="text-end" style="width: 12%">Outstanding</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var row in Model)
+                        {
+                            <tr>
+                                <td>@row.InvoiceDate.ToString("dd-MMM-yyyy")</td>
+                                <td>@row.InvoiceNumber</td>
+                                <td>@(string.IsNullOrWhiteSpace(row.ProductItem) ? "-" : row.ProductItem)</td>
+                                <td>@row.Description</td>
+                                <td class="text-end">@row.Quantity.ToString("N2")</td>
+                                <td class="text-end fw-bold text-danger">@row.OutstandingAmount.ToString("N2")</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">No invoice lines found for the selected filters.</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    @{ var totalOut = Model?.Sum(m => m.OutstandingAmount) ?? 0m; }
+                    <tr>
+                        <th colspan="5" class="text-end">Totals</th>
+                        <th class="text-end text-danger">@totalOut.ToString("N2")</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="details-card">
+                    <div class="small text-uppercase fw-bold text-muted mb-2" style="letter-spacing:.08em;">Payment Details</div>
+                    <div class="d-flex mt-1">
+                        <div class="label">Account Name</div>
+                        <div class="value">ONWARDS SWIFT COMPANY LIMITED</div>
+                    </div>
+                    <div class="d-flex">
+                        <div class="label">Account No</div>
+                        <div class="value">9783894509</div>
+                    </div>
+                    <div class="d-flex">
+                        <div class="label">Bank Code</div>
+                        <div class="value">61</div>
+                    </div>
+                    <div class="d-flex">
+                        <div class="label">Branch Code</div>
+                        <div class="value">200</div>
+                    </div>
+                    <div class="d-flex">
+                        <div class="label">Swift</div>
+                        <div class="value">HFCOKENA</div>
+                    </div>
+                    <div class="d-flex mb-1">
+                        <div class="label">Paybill</div>
+                        <div class="value">100400</div>
+                    </div>
+                    <div class="d-flex">
+                        <div class="label">Acc No</div>
+                        <div class="value">OnwardsSwift</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function(){
+        const btn = document.getElementById('btnExportPdf');
+        if (!btn) return;
+        btn.addEventListener('click', function(e){
+            const filterForm = document.getElementById('filterForm');
+            let pdfUrl = '@Url.Action("GenerateInvoicePdf", "Finance")';
+            if (filterForm) {
+                const formData = new FormData(filterForm);
+                const params = new URLSearchParams();
+                for (const pair of formData.entries()) {
+                    params.append(pair[0], pair[1]);
+                }
+                pdfUrl += '?' + params.toString();
+            } else {
+                // Build URL from server-side values when the filter form isn't present on this page
+                const clientId = '@(ViewBag.ClientId ?? 0)';
+                const from = '@dateFrom';
+                const to = '@dateTo';
+                pdfUrl += `?clientId=${encodeURIComponent(clientId)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+                // append bondTypeIds if any
+                const bondTypeIds = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(selectedBondTypeIds));
+                if (Array.isArray(bondTypeIds) && bondTypeIds.length > 0) {
+                    bondTypeIds.forEach(id => { pdfUrl += `&bondTypeIds=${encodeURIComponent(id)}`; });
+                }
+            }
+
+            window.open(pdfUrl, '_blank');
+        });
+    })();
+</script>

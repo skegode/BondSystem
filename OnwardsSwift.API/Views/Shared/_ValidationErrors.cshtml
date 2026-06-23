@@ -1,0 +1,111 @@
+@*
+    Reusable validation error banner component.
+    Displays field-specific validation errors with descriptive messages.
+    Usage: @await Html.PartialAsync("_ValidationErrors")
+*@
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+        <div class="d-flex gap-3 align-items-start">
+            <div style="flex-shrink: 0; margin-top: 2px;">
+                <i class="bi bi-exclamation-triangle-fill" style="font-size: 1.25rem;"></i>
+            </div>
+            <div style="flex-grow: 1;">
+                <h5 class="alert-heading mb-3 fw-bold">Please fix the following errors:</h5>
+                
+                @{
+                    var fieldErrors = new Dictionary<string, List<string>>();
+                    
+                    foreach (var kvp in ViewData.ModelState)
+                    {
+                        var fieldName = kvp.Key;
+                        var errors = kvp.Value.Errors;
+                        
+                        if (errors.Count > 0)
+                        {
+                            var errorMessages = new List<string>();
+                            var seenErrors = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                            foreach (var error in errors)
+                            {
+                                if (string.IsNullOrEmpty(error.ErrorMessage))
+                                {
+                                    continue;
+                                }
+
+                                var normalized = NormalizeErrorMessage(error.ErrorMessage);
+                                if (seenErrors.Add(normalized))
+                                {
+                                    errorMessages.Add(error.ErrorMessage);
+                                }
+                            }
+                            
+                            if (errorMessages.Count > 0)
+                            {
+                                fieldErrors[fieldName] = errorMessages;
+                            }
+                        }
+                    }
+                }
+                
+                @if (fieldErrors.Count > 0)
+                {
+                    <ul class="mb-0 ps-3">
+                        @foreach (var kvp in fieldErrors)
+                        {
+                            foreach (var errorMsg in kvp.Value)
+                            {
+                                <li class="mb-2">
+                                    <span class="fw-semibold">@ConvertFieldName(kvp.Key):</span>
+                                    @errorMsg
+                                </li>
+                            }
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="mb-0">Please ensure all required fields are properly filled in.</p>
+                }
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@functions {
+    private string ConvertFieldName(string fieldName)
+    {
+        // Remove "Model." prefix if present
+        var cleanName = fieldName.StartsWith("Model.") ? fieldName.Substring(6) : fieldName;
+        
+        // Convert camelCase/PascalCase to readable text
+        var result = System.Text.RegularExpressions.Regex.Replace(cleanName, "(?<!^)(?=[A-Z])", " ");
+        
+        return result.Trim();
+    }
+
+    private string NormalizeErrorMessage(string errorMessage)
+    {
+        if (string.IsNullOrWhiteSpace(errorMessage))
+        {
+            return string.Empty;
+        }
+
+        var normalized = errorMessage.Trim();
+
+        // Collapse generic required messages such as "The Purpose field is required." and "Purpose is required." into a single canonical form.
+        if (normalized.StartsWith("The ", StringComparison.OrdinalIgnoreCase) && normalized.EndsWith(" field is required.", StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = normalized.Substring(4, normalized.Length - 4 - " field is required.".Length);
+        }
+
+        normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"[\s\.]+", " ").Trim();
+        normalized = System.Text.RegularExpressions.Regex.Replace(normalized, "(?<!^)(?=[A-Z])", " ");
+        normalized = normalized.ToLowerInvariant();
+
+        return normalized;
+    }
+}
+

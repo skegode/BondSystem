@@ -98,6 +98,14 @@
                             <span class="kv-val">@(Model.BondTypeName ?? "—")</span>
                         </div>
                         <div class="kv-row">
+                            <span class="kv-key">Application Status</span>
+                            <span class="kv-val">@(string.IsNullOrWhiteSpace(Model.ApplicationStatus) ? "New Application" : Model.ApplicationStatus)</span>
+                        </div>
+                        <div class="kv-row">
+                            <span class="kv-key">Amendment Fee</span>
+                            <span class="kv-val">KES @Model.AmendmentFee.ToString("N2")</span>
+                        </div>
+                        <div class="kv-row">
                             <span class="kv-key">Procuring Entity</span>
                             <span class="kv-val">@Model.ProcuringEntity</span>
                         </div>
@@ -124,15 +132,19 @@
                             <span class="kv-val">@Model.TenderClosingDate.ToString("dd MMM yyyy")</span>
                         </div>
                         <div class="kv-row">
+                            <span class="kv-key">Processing Date</span>
+                            <span class="kv-val">@(Model.ProcessingDate?.ToString("dd MMM yyyy") ?? "—")</span>
+                        </div>
+                        <div class="kv-row">
                             <span class="kv-key">Submitted</span>
                             <span class="kv-val">@Model.CreatedAt.ToString("dd MMM yyyy")</span>
                         </div>
                         <div class="kv-row">
                             <span class="kv-key">Payment</span>
                             <span class="kv-val">
-                                @if (Model.IsDeferredPayment)
+                                @if (Model.OutstandingAmount > 0)
                                 {
-                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Deferred</span>
+                                    <span class="badge bg-warning text-dark">Unpaid</span>
                                 }
                                 else
                                 {
@@ -323,16 +335,40 @@
                 </div>
                 <hr class="my-2" />
                 <div class="kv-row">
-                    <span class="kv-key">Application Fee</span>
-                    <span class="kv-val text-success">KES @Model.ApplicationFee.ToString("N2")</span>
+                    <span class="kv-key">Client Charge</span>
+                    <span class="kv-val">KES @Model.ClientCharge.ToString("N2")</span>
                 </div>
                 <div class="kv-row">
-                    <span class="kv-key">Bank Commission</span>
+                    <span class="kv-key">Bank Charge</span>
                     <span class="kv-val">KES @Model.BankCharge.ToString("N2")</span>
                 </div>
+                <div class="kv-row">
+                    <span class="kv-key">Tax Percentage</span>
+                    <span class="kv-val">@Model.TaxPercentage.ToString("N2")%</span>
+                </div>
+                <div class="kv-row">
+                    <span class="kv-key">Tax Calculation</span>
+                    <span class="kv-val">KES @Model.TaxCalculation.ToString("N2")</span>
+                </div>
+                <div class="kv-row">
+                    <span class="kv-key">Total Bank Charge</span>
+                    <span class="kv-val">KES @Model.TotalBankCharge.ToString("N2")</span>
+                </div>
+                <div class="kv-row">
+                    <span class="kv-key text-success">Net Profit</span>
+                    <span class="kv-val text-success">KES @Model.NetProfit.ToString("N2")</span>
+                </div>
                 <div class="kv-row" style="border-top:2px solid #e2e8f0; padding-top:.75rem; margin-top:.25rem;">
-                    <span class="kv-key fw-bold">Total Payable</span>
-                    <span class="kv-val fw-bold" style="color:var(--navy);">KES @Model.PayableCharge.ToString("N2")</span>
+                    <span class="kv-key fw-bold">Total Charged</span>
+                    <span class="kv-val fw-bold" style="color:var(--navy);">KES @Model.ClientCharge.ToString("N2")</span>
+                </div>
+                <div class="kv-row">
+                    <span class="kv-key fw-bold">Total Paid</span>
+                    <span class="kv-val fw-bold text-success">KES @Model.PaidAmount.ToString("N2")</span>
+                </div>
+                <div class="kv-row">
+                    <span class="kv-key fw-bold">Outstanding</span>
+                    <span class="kv-val fw-bold @(Model.OutstandingAmount > 0 ? "text-danger" : "text-success")">KES @Model.OutstandingAmount.ToString("N2")</span>
                 </div>
                 @if (!string.IsNullOrEmpty(Model.PaymentReference))
                 {

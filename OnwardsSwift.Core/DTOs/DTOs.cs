@@ -1,5 +1,6 @@
 using OnwardsSwift.Core.Enums;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 
 namespace OnwardsSwift.Core.DTOs
@@ -46,6 +47,7 @@ namespace OnwardsSwift.Core.DTOs
         [Required, EmailAddress] public string Email       { get; set; } = string.Empty;
         [Required]               public string ResetToken  { get; set; } = string.Empty;
         [Required, MinLength(8)] public string NewPassword { get; set; } = string.Empty;
+        [Required, Compare("NewPassword")] public string ConfirmPassword { get; set; } = string.Empty;
     }
 
     public class EmailSendResult
@@ -112,12 +114,12 @@ public class CreateClientRequest
         public string ContactPerson { get; set; } = string.Empty;
 
         [EmailAddress]
-        public string Email { get; set; } = string.Empty;
+        public string? Email { get; set; }
 
         [Required, Phone]
         public string Phone { get; set; } = string.Empty;
 
-        public string PhoneAlt { get; set; } = string.Empty;
+        public string? PhoneAlt { get; set; }
 
         public ClientType ClientType { get; set; }
 
@@ -129,14 +131,20 @@ public class CreateClientRequest
         // --- Corporate Specific Fields ---
         public string BusinessRegNumber { get; set; } = string.Empty;
 
-        [Range(0, double.MaxValue)]
-        public decimal CreditLimit { get; set; }
+        public bool IprsVerified { get; set; }
+        public string? IprsReference { get; set; }
 
         // --- KYC File Uploads (Not mapped to DB directly) ---
         public IFormFile? IdFrontFile { get; set; }
         public IFormFile? IdBackFile { get; set; }
         public IFormFile? PassportPhotoFile { get; set; }
         public IFormFile? RegCertFile { get; set; }
+
+        // On edit, allow explicit removal of an existing document path.
+        public bool RemoveIdFrontFile { get; set; }
+        public bool RemoveIdBackFile { get; set; }
+        public bool RemovePassportPhotoFile { get; set; }
+        public bool RemoveRegCertFile { get; set; }
     }
 
     public class ClientResponse
@@ -147,8 +155,18 @@ public class CreateClientRequest
         public string   ContactPerson   { get; set; } = string.Empty;
         public string   Email           { get; set; } = string.Empty;
         public string   Phone           { get; set; } = string.Empty;
+        public string?  PhoneAlt        { get; set; }
         public string   ClientType      { get; set; } = string.Empty;
         public string   PhysicalAddress { get; set; } = string.Empty;
+        public string?  PostalAddress   { get; set; }
+        public string?  BusinessRegNumber { get; set; }
+        public string?  IdNumber        { get; set; }
+        public int?     Gender          { get; set; }
+        public int?     Category        { get; set; }
+        public string?  KycIdFrontPath  { get; set; }
+        public string?  KycIdBackPath   { get; set; }
+        public string?  KycPassportPhotoPath { get; set; }
+        public string?  KycRegCertPath  { get; set; }
         public decimal  CreditLimit     { get; set; }
         public decimal  UtilisedLimit   { get; set; }
         public decimal  AvailableLimit  { get; set; }
@@ -166,6 +184,168 @@ public class CreateClientRequest
     {
         [Required] public string  Status          { get; set; } = string.Empty;
         public string? RejectionReason { get; set; }
+    }
+
+    public class BondRequest
+    {
+        public int? Id { get; set; }
+
+        public string PrincipalName { get; set; } = string.Empty;
+        public string PrincipalEmail { get; set; } = string.Empty;
+        public string PrincipalPhone { get; set; } = string.Empty;
+        public string PrincipalAddress { get; set; } = string.Empty;
+
+        public string BeneficiaryName { get; set; } = string.Empty;
+        public string BeneficiaryAddress { get; set; } = string.Empty;
+
+        public string GuaranteeAmount { get; set; } = string.Empty;
+        public string GuaranteeAmountWords { get; set; } = string.Empty;
+
+        public List<BondType> BondTypes { get; set; } = new();
+        public string OtherBondType { get; set; } = string.Empty;
+
+        public string TenderReference { get; set; } = string.Empty;
+
+        public DateTime? EffectiveDate { get; set; }
+        public DateTime? ExpiryDate { get; set; }
+
+        public string Signatory1Name { get; set; } = string.Empty;
+        public string Signatory1SignaturePath { get; set; } = string.Empty;
+        public string Signatory2Name { get; set; } = string.Empty;
+        public string Signatory2SignaturePath { get; set; } = string.Empty;
+
+        public List<Attachment> Attachments { get; set; } = new();
+        public string Status { get; set; } = string.Empty;
+        public string? StatusNote { get; set; }
+    }
+
+    public class BondIndemnity
+    {
+        public int? Id { get; set; }
+        public int RequestId { get; set; }
+        public DateTime IndemnityDate { get; set; }
+        public string AuthorizedSignatoryName { get; set; } = string.Empty;
+        public string AuthorizedSignatorySignaturePath { get; set; } = string.Empty;
+        public string CompanySealPath { get; set; } = string.Empty;
+        public string IndemnityText { get; set; } = string.Empty;
+    }
+
+    public class Attachment
+    {
+        public string FileName { get; set; } = string.Empty;
+        public string FilePath { get; set; } = string.Empty;
+    }
+
+    public class BondRequestStatusUpdate
+    {
+        [Required] public string Status { get; set; } = string.Empty;
+        public string? Note { get; set; }
+    }
+
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public enum BondType
+    {
+        BidTender,
+        Performance,
+        AdvancePaymentGuarantee,
+        Retention,
+        Other
+    }
+
+    // View model for Onboarding wizard server view
+    public class OnboardingWizardViewModel
+    {
+        public CreateClientRequest NewClient { get; set; } = new();
+        public PagedResult<ClientResponse> ExistingClients { get; set; } = new();
+        public ChequeEncashmentViewModel ChequeEncashment { get; set; } = new();
+        public OfficialUseViewModel OfficialUse { get; set; } = new();
+    }
+
+    // View model for Cheque Encashment form (Step 2)
+    public class ChequeEncashmentViewModel
+    {
+        public int? Id { get; set; }
+        public int? ClientId { get; set; }
+        public string ApplicantName { get; set; } = string.Empty;
+        public string IdNumber { get; set; } = string.Empty;
+        public string PostalAddress { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+
+        // Applicant category drives the disbursement method: Individual -> M-Pesa, Company -> Bank
+        public string Category { get; set; } = "Individual";
+        public string PaymentMethod { get; set; } = "MPESA";
+        public string? DisburseBank { get; set; }
+        public string? DisburseAccount { get; set; }
+
+        // Structured cheques list for model binding
+        public List<ChequeItem> Cheques { get; set; } = new();
+
+        // File uploads for attachments (multiple)
+        public IFormFile[]? Attachments { get; set; }
+        public List<AttachmentItem> ExistingAttachments { get; set; } = new();
+
+        public string Purpose { get; set; } = string.Empty;
+        public bool TermsAccepted { get; set; }
+        
+        // Declaration fields
+        public string DeclarantName { get; set; } = string.Empty;
+        public string DeclarantRole { get; set; } = string.Empty;
+        public string DeclarantDate { get; set; } = string.Empty;
+    }
+
+    public class ChequeItem
+    {
+        public string? Number { get; set; }
+        public decimal? Amount { get; set; }
+        public string? Dated { get; set; }
+        public string? Drawer { get; set; }
+        public string? Bank { get; set; }
+        public string? Branch { get; set; }
+        public string? Payee { get; set; }
+    }
+
+    // View model for Official Use (Step 3)
+    public class OfficialUseViewModel
+    {
+        public int? RequestId { get; set; }
+
+        // Checked by
+        public string CheckedBy { get; set; } = string.Empty;
+        public string CheckedSignature { get; set; } = string.Empty;
+        public IFormFile? CheckedSignatureFile { get; set; }
+        public string CheckedDate { get; set; } = string.Empty;
+
+        // Drawer's verification
+        public string ConfirmedWith { get; set; } = string.Empty;
+        public string Designation { get; set; } = string.Empty;
+        public string BuildingStreet { get; set; } = string.Empty;
+        public string DrawerStatus { get; set; } = string.Empty;
+        public string ReasonForPayment { get; set; } = string.Empty;
+
+        // Account confirmation
+        public string AccountConfirmedBy { get; set; } = string.Empty;
+        public string AccountStatus { get; set; } = string.Empty;
+
+        // Approval process
+        public string? HeadOfTradeFinance { get; set; }
+        public string? HeadOfTradeSignature { get; set; }
+        public IFormFile? HeadOfTradeSignatureFile { get; set; }
+        public string? HeadOfTradeDate { get; set; }
+
+        public string? InChargeFinance { get; set; }
+        public string? InChargeFinanceSignature { get; set; }
+        public IFormFile? InChargeFinanceSignatureFile { get; set; }
+        public string? InChargeFinanceDate { get; set; }
+
+        public string? CEO { get; set; }
+        public string? CEOSignature { get; set; }
+        public IFormFile? CEOSignatureFile { get; set; }
+        public string? CEODate { get; set; }
+
+        // Payment process
+        public string? PaidByName { get; set; }
+        public string? PaidBySignature { get; set; }
+        public IFormFile? PaidBySignatureFile { get; set; }
     }
 
     // ─────────────────────────────────────────────
@@ -472,6 +652,7 @@ public class CreateClientRequest
         public string?   Phone      { get; set; }
         public string    Role       { get; set; } = string.Empty;
         public string?   Department { get; set; }
+        public decimal   CommissionPercent { get; set; }
         public bool      IsActive   { get; set; }
         public DateTime? LastLoginAt{ get; set; }
         public DateTime  CreatedAt  { get; set; }
@@ -485,6 +666,7 @@ public class CreateClientRequest
         public string?   Phone      { get; set; }
         public UserRole  Role       { get; set; } = UserRole.RelationshipManager;
         public string?   Department { get; set; }
+        [Range(0, 100)] public decimal CommissionPercent { get; set; }
     }
 
     public class UpdateUserRequest
@@ -493,6 +675,7 @@ public class CreateClientRequest
         public string?   Phone      { get; set; }
         public UserRole  Role       { get; set; }
         public string?   Department { get; set; }
+        [Range(0, 100)] public decimal CommissionPercent { get; set; }
         public bool      IsActive   { get; set; } = true;
     }
 

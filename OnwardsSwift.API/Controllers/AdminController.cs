@@ -15,22 +15,59 @@ namespace OnwardsSwift.API.Controllers
     {
         private readonly DapperContext _ctx;
         private readonly IConfiguration _configuration;
-        public AdminController(DapperContext ctx, IConfiguration configuration)
+        private readonly OnwardsSwift.Infrastructure.Services.PermissionService _permissions;
+        private readonly OnwardsSwift.Infrastructure.Services.ApplicationErrorLogger _errorLogger;
+        public AdminController(DapperContext ctx, IConfiguration configuration, OnwardsSwift.Infrastructure.Services.PermissionService permissions, OnwardsSwift.Infrastructure.Services.ApplicationErrorLogger errorLogger)
         {
             _ctx = ctx;
             _configuration = configuration;
+            _permissions = permissions;
+            _errorLogger = errorLogger;
 
         }
+
+        public async Task<IActionResult> Errors()
+        {
+            var rows = await _errorLogger.GetRecentAsync(200);
+            return View(rows);
+        }
         private SqlConnection GetConnection() => new SqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+
         public async Task<IActionResult> Users(string? search, int page = 1)
         {
             using var conn = _ctx.Create();
             var w     = string.IsNullOrWhiteSpace(search) ? "IsDeleted=0" : "IsDeleted=0 AND (FullName LIKE @S OR Email LIKE @S)";
             var total = await conn.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM SystemUsers WHERE {w}", new { S=$"%{search}%" });
-            var rows  = await conn.QueryAsync<dynamic>($"SELECT Id,FullName,Email,Phone,Role,Department,IsActive,LastLoginAt,CreatedAt FROM SystemUsers WHERE {w} ORDER BY FullName OFFSET @Skip ROWS FETCH NEXT 20 ROWS ONLY",
-                new { S=$"%{search}%", Skip=(page-1)*20 });
+            var rows  = await conn.QueryAsync<dynamic>($@"
+SELECT u.Id, u.FullName, u.Email, u.Phone, u.Role, u.Department, ISNULL(u.CommissionPercent,0) AS CommissionPercent,
+       u.IsActive, u.LastLoginAt, u.CreatedAt,
+       CASE WHEN up.Id IS NULL THEN 0 ELSE 1 END AS HasMobileLogin
+FROM SystemUsers u
+LEFT JOIN UserPermissions up ON up.UserId = u.Id
+    AND up.PermissionId = (SELECT Id FROM Permissions WHERE Code = @MobileLoginCode)
+WHERE {w}
+ORDER BY u.FullName OFFSET @Skip ROWS FETCH NEXT 20 ROWS ONLY",
+                new { S=$"%{search}%", Skip=(page-1)*20, MobileLoginCode = OnwardsSwift.Infrastructure.Services.PermissionService.MobileLogin });
             ViewBag.Search = search; ViewBag.Page = page; ViewBag.Total = total;
             return View(rows.ToList());
+        }
+
+        // Mobile app sign-in is gated per-client (Role = Client) via dbo.UserPermissions /
+        // PermissionService.MobileLogin -- a new signup cannot use their PIN until granted here.
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> GrantMobileAccess(int id)
+        {
+            await _permissions.GrantUserPermissionAsync(id, OnwardsSwift.Infrastructure.Services.PermissionService.MobileLogin, CurrentUserEmail);
+            Success("Mobile app access granted.");
+            return RedirectToAction(nameof(Users));
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> RevokeMobileAccess(int id)
+        {
+            await _permissions.RevokeUserPermissionAsync(id, OnwardsSwift.Infrastructure.Services.PermissionService.MobileLogin);
+            Success("Mobile app access revoked.");
+            return RedirectToAction(nameof(Users));
         }
 
         [HttpGet]
@@ -41,53 +78,57 @@ namespace OnwardsSwift.API.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateUser(string fullName, string email, string password, string role, string? phone, string? department)
+        public async Task<IActionResult> CreateUser(string fullName, string email, string password, string role, string? phone, string? department, decimal commissionPercent)
         {
             using var conn = _ctx.Create();
             var exists = await conn.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM SystemUsers WHERE Email=@E AND IsDeleted=0", new { E=email });
             if (exists > 0) { Error("Email already exists."); ViewBag.Roles = RoleList(); return View(); }
             if (!Enum.TryParse<UserRole>(role, out var roleEnum)) { Error("Invalid role."); ViewBag.Roles = RoleList(); return View(); }
-            await conn.ExecuteAsync("INSERT INTO SystemUsers(FullName,Email,Phone,Role,Department,IsActive,PasswordHash,CreatedAt,CreatedBy,IsDeleted) VALUES(@Fn,@Em,@Ph,@Role,@Dept,1,@Pw,GETUTCDATE(),@By,0)",
-                new { Fn=fullName, Em=email, Ph=phone, Role=(int)roleEnum, Dept=department, Pw=Hash(password), By=CurrentUserEmail });
+            await conn.ExecuteAsync("INSERT INTO SystemUsers(FullName,Email,Phone,Role,Department,CommissionPercent,IsActive,PasswordHash,CreatedAt,CreatedBy,IsDeleted) VALUES(@Fn,@Em,@Ph,@Role,@Dept,@CommissionPercent,1,@Pw,GETUTCDATE(),@By,0)",
+                new { Fn=fullName, Em=email, Ph=phone, Role=(int)roleEnum, Dept=department, CommissionPercent = commissionPercent, Pw=Hash(password), By=CurrentUserEmail });
             Success($"User '{fullName}' created.");
             return RedirectToAction(nameof(Users));
         }
 
         [HttpGet]
-        public async Task<IActionResult> EditUser(Guid id)
+        public async Task<IActionResult> EditUser(string id)
         {
+            if (string.IsNullOrWhiteSpace(id)) return NotFound();
             using var conn = _ctx.Create();
-            var r = await conn.QueryFirstOrDefaultAsync<dynamic>("SELECT Id,FullName,Email,Phone,Role,Department,IsActive FROM SystemUsers WHERE Id=@Id AND IsDeleted=0", new { Id=id });
+            var r = await conn.QueryFirstOrDefaultAsync<dynamic>("SELECT Id,FullName,Email,Phone,Role,Department,ISNULL(CommissionPercent,0) AS CommissionPercent,IsActive FROM SystemUsers WHERE CAST(Id AS NVARCHAR(50))=@Id AND IsDeleted=0", new { Id=id });
             if (r == null) return NotFound();
             ViewBag.Roles = RoleList(); return View(r);
         }
 
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditUser(Guid id, string fullName, string? phone, string role, string? department, bool isActive)
+        public async Task<IActionResult> EditUser(string id, string fullName, string? phone, string role, string? department, decimal commissionPercent, bool isActive)
         {
+            if (string.IsNullOrWhiteSpace(id)) return RedirectToAction(nameof(Users));
             if (!Enum.TryParse<UserRole>(role, out var roleEnum)) { Error("Invalid role."); return RedirectToAction(nameof(Users)); }
             using var conn = _ctx.Create();
-            await conn.ExecuteAsync("UPDATE SystemUsers SET FullName=@Fn,Phone=@Ph,Role=@Role,Department=@Dept,IsActive=@Active,UpdatedAt=GETUTCDATE(),UpdatedBy=@By WHERE Id=@Id",
-                new { Id=id, Fn=fullName, Ph=phone, Role=(int)roleEnum, Dept=department, Active=isActive, By=CurrentUserEmail });
+            await conn.ExecuteAsync("UPDATE SystemUsers SET FullName=@Fn,Phone=@Ph,Role=@Role,Department=@Dept,CommissionPercent=@CommissionPercent,IsActive=@Active,UpdatedAt=GETUTCDATE(),UpdatedBy=@By WHERE CAST(Id AS NVARCHAR(50))=@Id",
+                new { Id=id, Fn=fullName, Ph=phone, Role=(int)roleEnum, Dept=department, CommissionPercent = commissionPercent, Active=isActive, By=CurrentUserEmail });
             Success("User updated."); return RedirectToAction(nameof(Users));
         }
 
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> ResetPassword(Guid id, string newPassword)
+        public async Task<IActionResult> ResetPassword(string id, string newPassword)
         {
+            if (string.IsNullOrWhiteSpace(id)) return RedirectToAction(nameof(Users));
             using var conn = _ctx.Create();
-            await conn.ExecuteAsync("UPDATE SystemUsers SET PasswordHash=@Pw,UpdatedAt=GETUTCDATE() WHERE Id=@Id",
+            await conn.ExecuteAsync("UPDATE SystemUsers SET PasswordHash=@Pw,UpdatedAt=GETUTCDATE() WHERE CAST(Id AS NVARCHAR(50))=@Id",
                 new { Id=id, Pw=Hash(newPassword) });
             Success("Password reset."); return RedirectToAction(nameof(Users));
         }
 
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> ToggleUser(Guid id)
+        public async Task<IActionResult> ToggleUser(string id)
         {
+            if (string.IsNullOrWhiteSpace(id)) return RedirectToAction(nameof(Users));
             using var conn = _ctx.Create();
-            var cur = await conn.ExecuteScalarAsync<bool?>("SELECT IsActive FROM SystemUsers WHERE Id=@Id", new { Id=id });
+            var cur = await conn.ExecuteScalarAsync<bool?>("SELECT IsActive FROM SystemUsers WHERE CAST(Id AS NVARCHAR(50))=@Id", new { Id=id });
             if (cur == null) return RedirectToAction(nameof(Users));
-            await conn.ExecuteAsync("UPDATE SystemUsers SET IsActive=@V,UpdatedAt=GETUTCDATE() WHERE Id=@Id", new { Id=id, V=!cur });
+            await conn.ExecuteAsync("UPDATE SystemUsers SET IsActive=@V,UpdatedAt=GETUTCDATE() WHERE CAST(Id AS NVARCHAR(50))=@Id", new { Id=id, V=!cur });
             Success(cur.Value ? "User deactivated." : "User activated.");
             return RedirectToAction(nameof(Users));
         }
@@ -480,6 +521,72 @@ namespace OnwardsSwift.API.Controllers
             await conn.ExecuteAsync(sql, model);
             TempData["Success"] = "Menu updated successfully!";
             return RedirectToAction("ManageMenus");
+        }
+
+        // Product Types -- required documents per type, consumed by the mobile app's Bond
+        // Application wizard (GET /api/bonds/types) so the checkbox list and the documents a
+        // client must upload for each bond type are configured here instead of hardcoded.
+        public async Task<IActionResult> ProductTypes()
+        {
+            using var conn = _ctx.Create();
+            var rows = await conn.QueryAsync<dynamic>(@"
+SELECT pt.Id, pt.ProductName, pt.ProductType,
+       (SELECT COUNT(1) FROM dbo.ProductTypeDocuments d WHERE d.ProductTypeId = pt.Id) AS DocumentCount
+FROM dbo.ProductTypes pt
+ORDER BY pt.ProductName;");
+            return View(rows.ToList());
+        }
+
+        public async Task<IActionResult> ProductTypeDocuments(int id)
+        {
+            using var conn = _ctx.Create();
+            var productType = await conn.QuerySingleOrDefaultAsync<dynamic>(
+                "SELECT Id, ProductName FROM dbo.ProductTypes WHERE Id = @id", new { id });
+            if (productType == null) return RedirectToAction(nameof(ProductTypes));
+
+            var documents = await conn.QueryAsync<dynamic>(@"
+SELECT Id, ProductTypeId, DocumentKey, Label, Description, Required, SortOrder
+FROM dbo.ProductTypeDocuments
+WHERE ProductTypeId = @id
+ORDER BY SortOrder, Id;", new { id });
+
+            ViewBag.ProductType = productType;
+            return View(documents.ToList());
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddProductTypeDocument(int productTypeId, string documentKey, string label, string? description, bool required, int sortOrder)
+        {
+            if (string.IsNullOrWhiteSpace(documentKey) || string.IsNullOrWhiteSpace(label))
+            {
+                Error("Document key and label are required.");
+                return RedirectToAction(nameof(ProductTypeDocuments), new { id = productTypeId });
+            }
+
+            using var conn = _ctx.Create();
+            try
+            {
+                await conn.ExecuteAsync(@"
+INSERT INTO dbo.ProductTypeDocuments (ProductTypeId, DocumentKey, Label, Description, Required, SortOrder)
+VALUES (@productTypeId, @documentKey, @label, @description, @required, @sortOrder);",
+                    new { productTypeId, documentKey = documentKey.Trim(), label = label.Trim(), description, required, sortOrder });
+                Success("Document requirement added.");
+            }
+            catch (Exception ex)
+            {
+                Error("Could not add document: " + ex.Message);
+            }
+
+            return RedirectToAction(nameof(ProductTypeDocuments), new { id = productTypeId });
+        }
+
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteProductTypeDocument(int id, int productTypeId)
+        {
+            using var conn = _ctx.Create();
+            await conn.ExecuteAsync("DELETE FROM dbo.ProductTypeDocuments WHERE Id = @id", new { id });
+            Success("Document requirement removed.");
+            return RedirectToAction(nameof(ProductTypeDocuments), new { id = productTypeId });
         }
 
         private async Task PopulateBanks()

@@ -10,129 +10,30 @@
 
 <form asp-action="Create" method="post" enctype="multipart/form-data" id="registrationForm">
     @Html.AntiForgeryToken()
-    <div asp-validation-summary="ModelOnly" class="alert alert-danger shadow-sm"></div>
+    
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger shadow-sm mb-4" role="alert">
+            <h5 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> Error</h5>
+            <div asp-validation-summary="ModelOnly"></div>
+            @if (ViewData.ModelState.Values.Any(v => v.Errors.Count > 0))
+            {
+                <ul class="mb-0">
+                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <li>@error.ErrorMessage</li>
+                    }
+                </ul>
+            }
+        </div>
+    }
 
     <div class="row">
         <div class="col-lg-8">
-            <div class="card mb-4 border-primary shadow-sm">
-                <div class="card-body">
-                    <label class="form-label fw-bold d-block mb-3 text-primary">Registration Category</label>
-                    <div class="d-flex gap-5">
-                        <div class="form-check custom-radio">
-                            <input class="form-check-input" type="radio" asp-for="Category" value="1" id="catInd" checked>
-                            <label class="form-check-label fw-bold" for="catInd">Individual</label>
-                        </div>
-                        <div class="form-check custom-radio">
-                            <input class="form-check-input" type="radio" asp-for="Category" value="2" id="catCorp">
-                            <label class="form-check-label fw-bold" for="catCorp">Corporate / Company</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div class="card mb-4 shadow-sm border-0">
                 <div class="card-header bg-white py-3 border-bottom"><h5 class="mb-0 fw-bold">Identity Details</h5></div>
                 <div class="card-body row g-3">
-                    <div class="col-md-12">
-                        <label class="form-label fw-bold" id="nameLabel">Full Name (As per ID) *</label>
-                        <input asp-for="CompanyName" id="txtClientName" class="form-control form-control-lg" placeholder="Enter name" required />
-                        <span asp-validation-for="CompanyName" class="text-danger small"></span>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">KRA PIN *</label>
-                        <input asp-for="KraPin" class="form-control" placeholder="A000...X" required />
-                        <span asp-validation-for="KraPin" class="text-danger small"></span>
-                    </div>
-
-                    <div class="col-md-6 ind-field">
-                        <label class="form-label fw-bold">ID / Passport Number *</label>
-                        <input asp-for="IdNumber" class="form-control" placeholder="Enter ID number" />
-                    </div>
-                    <div class="col-md-6 ind-field">
-                        <label class="form-label fw-bold">Gender</label>
-                        <select asp-for="Gender" class="form-select">
-                            <option value="">-- Select --</option>
-                            <option value="1">Male</option>
-                            <option value="2">Female</option>
-                            <option value="3">Other</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-6 corp-field" style="display:none;">
-                        <label class="form-label fw-bold">Business Registration No. *</label>
-                        <input asp-for="BusinessRegNumber" class="form-control" placeholder="PVT/..." />
-                    </div>
-                    <div class="col-md-6 corp-field" style="display:none;">
-                        <label class="form-label fw-bold">Client Type</label>
-                        <select asp-for="ClientType" class="form-select"
-                                asp-items="Html.GetEnumSelectList<OnwardsSwift.Core.Enums.ClientType>()"></select>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Credit Limit (KSh)</label>
-                        <div class="input-group">
-                            <span class="input-group-text">KES</span>
-                            <input asp-for="CreditLimit" class="form-control" placeholder="0.00" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card mb-4 shadow-sm border-0">
-                <div class="card-header bg-white py-3 border-bottom"><h5 class="mb-0 fw-bold">Contact & Communication</h5></div>
-                <div class="card-body row g-3">
-                    <div class="col-md-12 corp-field" style="display:none;">
-                        <label class="form-label fw-bold">Designated Contact Person *</label>
-                        <input asp-for="ContactPerson" id="txtContactPerson" class="form-control" placeholder="Full name of representative" />
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Email Address</label>
-                        <input asp-for="Email" type="email" class="form-control" placeholder="name@domain.com" />
-                        <span asp-validation-for="Email" class="text-danger small"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Phone Number *</label>
-                        <input asp-for="Phone" class="form-control" placeholder="0712345678" required />
-                        <span asp-validation-for="Phone" class="text-danger small"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Alternative Phone</label>
-                        <input asp-for="PhoneAlt" class="form-control" />
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label fw-bold">Physical Office / Residence Address</label>
-                        <textarea asp-for="PhysicalAddress" class="form-control" rows="2" placeholder="Building, Street, City"></textarea>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card mb-4 shadow-sm border-0">
-                <div class="card-header bg-light py-3 fw-bold border-bottom">KYC Document Uploads</div>
-                <div class="card-body">
-                    <div class="row g-3 ind-field">
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">ID Front Side</label>
-                            <input asp-for="IdFrontFile" type="file" class="form-control form-control-sm" accept="image/*,.pdf" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">ID Back Side</label>
-                            <input asp-for="IdBackFile" type="file" class="form-control form-control-sm" accept="image/*,.pdf" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Passport Photo</label>
-                            <input asp-for="PassportPhotoFile" type="file" class="form-control form-control-sm" accept="image/*" />
-                        </div>
-                    </div>
-
-                    <div class="corp-field" style="display:none;">
-                        <label class="form-label small fw-bold">Certificate of Incorporation</label>
-                        <input asp-for="RegCertFile" type="file" class="form-control" accept="image/*,.pdf" />
-                    </div>
-                    <div class="mt-2">
-                        <small class="text-muted"><i class="bi bi-info-circle"></i> Max file size: 5MB. Accepted: JPG, PNG, PDF.</small>
-                    </div>
+                    @Html.Partial("_ClientForm", Model)
                 </div>
             </div>
 
@@ -148,46 +49,4 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    <script>
-        $(document).ready(function() {
-            function toggleFields() {
-                const category = $('input[name="Category"]:checked').val();
-                const isCorp = category === "2";
-
-                // Toggle visibility
-                $('.ind-field').toggle(!isCorp);
-                $('.corp-field').toggle(isCorp);
-
-                // Update Labels
-                $('#nameLabel').text(isCorp ? "Registered Company Name *" : "Full Name (As per ID) *");
-
-                // Toggle logical requirements
-                if (isCorp) {
-                    $('#txtContactPerson').prop('required', true);
-                    $('#IdNumber').prop('required', false);
-                } else {
-                    $('#txtContactPerson').prop('required', false);
-                    $('#IdNumber').prop('required', true);
-
-                    // Mirror Name to Contact Person for Individuals
-                    // (Satisfies DB 'NOT NULL' constraints silently)
-                    const currentName = $('#txtClientName').val();
-                    $('#txtContactPerson').val(currentName);
-                }
-            }
-
-            // Sync names for individuals in real-time
-            $('#txtClientName').on('input', function() {
-                const category = $('input[name="Category"]:checked').val();
-                if (category === "1") {
-                    $('#txtContactPerson').val($(this).val());
-                }
-            });
-
-            $('input[name="Category"]').on('change', toggleFields);
-
-            // Initial run
-            toggleFields();
-        });
-    </script>
 }

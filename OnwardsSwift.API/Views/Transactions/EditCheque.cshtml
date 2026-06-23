@@ -1,0 +1,130 @@
+@model OnwardsSwift.Core.DTOs.ChequeEncashmentViewModel
+@{
+    ViewData["Title"] = "Edit Cheque Encashment Request";
+}
+
+<div class="container-fluid py-3">
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+            <div>
+                <h1 class="h4 mb-1">Edit Cheque Encashment Request</h1>
+                <p class="text-muted mb-0">Update requester details, cheque lines, and upload new attachments.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a class="btn btn-outline-secondary" href="@Url.Action("ChequeDetails", "Transactions", new { id = Model.Id })">Back to Profile</a>
+                <a class="btn btn-outline-primary" href="@Url.Action("Index", "Transactions")">All Transactions</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <form asp-action="EditCheque" asp-controller="Transactions" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Id" />
+
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="ApplicantName" class="form-label"></label>
+                        <input asp-for="ApplicantName" class="form-control" />
+                        <span asp-validation-for="ApplicantName" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="IdNumber" class="form-label"></label>
+                        <input asp-for="IdNumber" class="form-control" />
+                        <span asp-validation-for="IdNumber" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="PostalAddress" class="form-label"></label>
+                        <input asp-for="PostalAddress" class="form-control" />
+                        <span asp-validation-for="PostalAddress" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Phone" class="form-label"></label>
+                        <input asp-for="Phone" class="form-control" />
+                        <span asp-validation-for="Phone" class="text-danger"></span>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Purpose" class="form-label"></label>
+                        <textarea asp-for="Purpose" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="Purpose" class="text-danger"></span>
+                    </div>
+                    <div class="col-12 form-check">
+                        <input asp-for="TermsAccepted" class="form-check-input" />
+                        <label asp-for="TermsAccepted" class="form-check-label"></label>
+                        <span asp-validation-for="TermsAccepted" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header bg-light">Cheque Lines</div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Number</th>
+                                        <th>Amount</th>
+                                        <th>Dated</th>
+                                        <th>Drawer</th>
+                                        <th>Bank</th>
+                                        <th>Branch</th>
+                                        <th>Payee</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{ var rowCount = Math.Max(4, Model.Cheques.Count); }
+                                    @for (var i = 0; i < rowCount; i++)
+                                    {
+                                        var cheque = i < Model.Cheques.Count ? Model.Cheques[i] : new OnwardsSwift.Core.DTOs.ChequeItem();
+                                        <tr>
+                                            <td>@(i + 1)</td>
+                                            <td><input name="Cheques[@i].Number" value="@cheque.Number" class="form-control form-control-sm" /></td>
+                                            <td><input name="Cheques[@i].Amount" value="@cheque.Amount" class="form-control form-control-sm" /></td>
+                                            <td><input name="Cheques[@i].Dated" value="@cheque.Dated" class="form-control form-control-sm" /></td>
+                                            <td><input name="Cheques[@i].Drawer" value="@cheque.Drawer" class="form-control form-control-sm" /></td>
+                                            <td><input name="Cheques[@i].Bank" value="@cheque.Bank" class="form-control form-control-sm" /></td>
+                                            <td><input name="Cheques[@i].Branch" value="@cheque.Branch" class="form-control form-control-sm" /></td>
+                                            <td><input name="Cheques[@i].Payee" value="@cheque.Payee" class="form-control form-control-sm" /></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header bg-light">Attachments</div>
+                    <div class="card-body">
+                        @if (Model.ExistingAttachments.Any())
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Existing attachments</label>
+                                <ul class="list-group">
+                                    @foreach (var item in Model.ExistingAttachments)
+                                    {
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>@item.FileName</span>
+                                            <small class="text-muted">@item.ContentType</small>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                        <div class="mb-3">
+                            <label asp-for="Attachments" class="form-label">Upload additional attachments</label>
+                            <input asp-for="Attachments" type="file" class="form-control" multiple />
+                            <span asp-validation-for="Attachments" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </div>
+</div>

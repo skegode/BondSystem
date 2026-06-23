@@ -77,6 +77,68 @@
             letter-spacing: -1px;
         }
 
+        .brand-logo-img {
+            max-width: 320px;
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.22));
+        }
+
+        .brand-onboarding-card {
+            max-width: 560px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 14px;
+            padding: 1.5rem;
+            backdrop-filter: blur(2px);
+        }
+
+        .brand-onboarding-title {
+            font-size: 1.45rem;
+            font-weight: 700;
+            margin-bottom: 0.6rem;
+        }
+
+        .brand-onboarding-list {
+            list-style: none;
+            padding-left: 0;
+            margin-bottom: 1.25rem;
+        }
+
+        .brand-onboarding-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.55rem;
+            margin-bottom: 0.7rem;
+            opacity: 0.95;
+        }
+
+        .brand-onboarding-list i {
+            color: #4cd7ff;
+            margin-top: 0.1rem;
+        }
+
+        .btn-onboarding-link {
+            background: #fff;
+            color: var(--navy);
+            border: 0;
+            font-weight: 700;
+            padding: 0.62rem 1rem;
+        }
+
+        .btn-onboarding-link:hover {
+            background: #e8f1ff;
+            color: #001f4d;
+        }
+
+        .form-logo-img {
+            max-width: 210px;
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+
         @@media (max-width: 992px) {
             .brand-side {
                 display: none;
@@ -93,31 +155,25 @@
 
     <div class="split-container">
         <div class="brand-side">
-            <div class="mb-4">
-                <i class="bi bi-shield-check" style="font-size: 3rem;"></i>
-            </div>
-            <h1 class="display-5 fw-bold mb-3">Onwards Swift</h1>
-            <p class="lead opacity-75 mb-5">Enterprise Trade Finance & Bond Management System.</p>
+            <div class="brand-onboarding-card">
+                <h2 class="brand-onboarding-title">Client Onboarding Wizard</h2>
+                <p class="opacity-75 mb-3">
+                    This portal offers two guided workflows: the <a href="@Url.Action("OnboardingWizard", "Forms")" class="text-white text-decoration-underline">Client Onboarding Wizard</a>
+                    — used to register clients, capture KYC and cheque-encashment details, and complete internal approvals; and the
+                    <a href="@Url.Action("FullApplication", "Forms")" class="text-white text-decoration-underline">Bank Guarantee / Bond Request Wizard</a>
+                    — used to submit bond applications, attach supporting documents, and confirm counter-guarantee/indemnity terms.
+                </p>
 
-            <div class="mt-4">
-                <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-check-circle-fill me-3 text-info"></i>
-                    <span>Automated Bond Issuance & Tracking</span>
-                </div>
-                <div class="d-flex align-items-center mb-3">
-                    <i class="bi bi-check-circle-fill me-3 text-info"></i>
-                    <span>Real-time Portfolio Performance Analytics</span>
-                </div>
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-check-circle-fill me-3 text-info"></i>
-                    <span>Secure Multi-Stage Approval Workflows</span>
+                <div class="d-flex gap-2">
+                    <a class="btn btn-onboarding-link" href="@Url.Action("Landing", "Forms")">Open Onboarding Portal <i class="bi bi-arrow-right ms-1"></i></a>
+                    <a class="btn btn-outline-light" href="@Url.Action("FullApplication", "Forms")">Open Bond Request Wizard</a>
                 </div>
             </div>
         </div>
 
         <div class="form-side">
             <div class="mb-5">
-                <div class="login-logo mb-1">Onwards Swift</div>
+                <img src="@Url.Content("~/images/onwards-logo.jpg")" alt="Onwards Swift" class="form-logo-img mb-2" />
                 <p class="text-muted">Welcome back. Please sign in to your account.</p>
             </div>
 

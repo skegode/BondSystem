@@ -15,23 +15,37 @@
     </div>
     <div class="table-responsive">
         <table class="table table-hover">
-            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Status</th><th>Last Login</th><th></th></tr></thead>
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Commission %</th><th>Status</th><th>Mobile App</th><th>Last Login</th><th></th></tr></thead>
             <tbody>
                 @foreach (var u in (List<dynamic>)Model)
                 {
+                    bool isClient = u.Role != null && (int)u.Role == 4;
+                    bool hasMobileLogin = u.HasMobileLogin != null && (int)u.HasMobileLogin == 1;
                     <tr>
                         <td>@u.FullName</td>
                         <td class="small">@u.Email</td>
                         <td><span class="badge bg-secondary">@(u.Role == null ? "" : ((OnwardsSwift.Core.Enums.UserRole)(int)u.Role).ToString())</span></td>
                         <td class="small text-muted">@u.Department</td>
+                        <td><span class="badge bg-primary-subtle text-primary">@(((decimal)u.CommissionPercent).ToString("N2"))%</span></td>
                         <td>
                             @if (u.IsActive != null && (bool)u.IsActive)
                             { <span class="text-success small">Active</span> }
                             else
                             { <span class="text-muted small">Inactive</span> }
                         </td>
-                        <td class="small text-muted">@(u.LastLoginAt == null ? "Never" : ((DateTime)u.LastLoginAt).ToString("dd MMM yyyy"))</td>
                         <td>
+                            @if (isClient)
+                            {
+                                @if (hasMobileLogin)
+                                { <span class="badge bg-success-subtle text-success">Granted</span> }
+                                else
+                                { <span class="badge bg-warning-subtle text-warning">Pending</span> }
+                            }
+                            else
+                            { <span class="text-muted small">&mdash;</span> }
+                        </td>
+                        <td class="small text-muted">@(u.LastLoginAt == null ? "Never" : ((DateTime)u.LastLoginAt).ToString("dd MMM yyyy"))</td>
+                        <td class="text-nowrap">
                             <a asp-action="EditUser" asp-route-id="@u.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
                             <form asp-action="ToggleUser" asp-route-id="@u.Id" method="post" class="d-inline">
                                 @Html.AntiForgeryToken()
@@ -39,11 +53,20 @@
                                     @(u.IsActive != null && (bool)u.IsActive ? "Deactivate" : "Activate")
                                 </button>
                             </form>
+                            @if (isClient)
+                            {
+                                <form asp-action="@(hasMobileLogin ? "RevokeMobileAccess" : "GrantMobileAccess")" asp-route-id="@u.Id" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button class="btn btn-sm @(hasMobileLogin ? "btn-outline-danger" : "btn-outline-primary")">
+                                        @(hasMobileLogin ? "Revoke App Access" : "Grant App Access")
+                                    </button>
+                                </form>
+                            }
                         </td>
                     </tr>
                 }
                 @if (!((List<dynamic>)Model).Any())
-                { <tr><td colspan="7" class="text-center text-muted py-4">No users found</td></tr> }
+                { <tr><td colspan="9" class="text-center text-muted py-4">No users found</td></tr> }
             </tbody>
         </table>
     </div>

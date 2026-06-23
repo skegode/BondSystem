@@ -10,8 +10,16 @@ namespace OnwardsSwift.Core.DTOs
     {
         public DateTime TransactionDate { get; set; }
         public string Description { get; set; } = string.Empty;
+        public string ProductItem { get; set; } = string.Empty;
+        public string ProcuringEntity { get; set; } = string.Empty;
+        public string ReferenceNo { get; set; } = string.Empty;
+        public decimal BondAmount { get; set; }
+        public decimal CashCoverAmount { get; set; }
         public decimal Debit { get; set; }
         public decimal Credit { get; set; }
-        public decimal RunningBalance { get; set; } // Now we have a real property to set!
+        public decimal RunningBalance { get; set; }
+        public bool IsPaymentLine { get; set; }
+        public int? ParentBondId { get; set; }
+        public int DisplayOrder { get; set; }
     }
 }

@@ -1,0 +1,217 @@
+@model OnwardsSwift.Core.DTOs.PortalProfileIndexViewModel
+@{
+    ViewData["Title"] = "Onboarding Portal Submissions";
+}
+
+<style>
+    .portal-source-badge {
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        padding: 0.28rem 0.65rem;
+        border-radius: 50px;
+    }
+    .wizard-tab-header {
+        border-bottom: 3px solid #dee2e6;
+    }
+    .wizard-tab-header .nav-link {
+        font-weight: 600;
+        color: #495057;
+        border-radius: 0;
+        border-bottom: 3px solid transparent;
+        margin-bottom: -3px;
+    }
+    .wizard-tab-header .nav-link.active {
+        color: #002D72;
+        border-bottom-color: #002D72;
+        background: transparent;
+    }
+    .submission-count {
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 0.2rem 0.5rem;
+        border-radius: 50px;
+        background: #e9ecef;
+        color: #495057;
+    }
+</style>
+
+<div class="container-fluid py-3">
+
+    <!-- Header -->
+    <div class="card border-0 shadow-sm mb-3" style="background:linear-gradient(135deg,#002D72 0%,#0b4da2 100%);">
+        <div class="card-body d-flex align-items-center gap-3 py-3">
+            <i class="bi bi-person-lines-fill text-white fs-2"></i>
+            <div>
+                <h1 class="h5 text-white mb-0">Onboarding Portal Submissions</h1>
+                <small class="text-white-50">All data submitted through the Onwards Swift Onboarding Portal wizards</small>
+            </div>
+            <div class="ms-auto d-flex gap-2">
+                <a asp-action="PossibleDuplicates" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-files me-1"></i>Possible Duplicates
+                </a>
+                <a href="@Url.Action("Landing","Forms")" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-plus-circle me-1"></i>New Submission
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wizard Tabs -->
+    <ul class="nav wizard-tab-header mb-0 px-2" id="wizardTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active px-3 py-2" id="tab-onboarding" data-bs-toggle="tab" data-bs-target="#pane-onboarding" type="button" role="tab">
+                <i class="bi bi-person-badge me-1"></i>
+                Client Onboarding Wizard
+                <span class="submission-count ms-2">@Model.ChequeSubmissions.Count</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link px-3 py-2" id="tab-bond" data-bs-toggle="tab" data-bs-target="#pane-bond" type="button" role="tab">
+                <i class="bi bi-shield-check me-1"></i>
+                Bank Guarantee / Bond Request Wizard
+                <span class="submission-count ms-2">@Model.BondSubmissions.Count</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content border border-top-0 rounded-bottom shadow-sm bg-white">
+
+        <!-- Tab 1: Client Onboarding Wizard -->
+        <div class="tab-pane fade show active p-3" id="pane-onboarding" role="tabpanel">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="portal-source-badge text-bg-primary">Onboarding Portal › Client Onboarding Wizard</span>
+                <small class="text-muted ms-auto">Cheque encashment requests with official-use processing</small>
+            </div>
+
+            @if (!Model.ChequeSubmissions.Any())
+            {
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>
+                    No client onboarding submissions yet.
+                    <br />
+                    <a href="@Url.Action("OnboardingWizard","Forms")" class="btn btn-sm btn-primary mt-3">Start Client Onboarding</a>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:42px">#</th>
+                                <th>Applicant Name</th>
+                                <th>Submitted By</th>
+                                <th>Date</th>
+                                <th>Purpose / Summary</th>
+                                <th style="width:180px"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var item in Model.ChequeSubmissions)
+                        {
+                            <tr>
+                                <td class="text-muted small">@item.Id</td>
+                                <td class="fw-semibold">
+                                    @item.Reference
+                                    @if (item.IsNew)
+                                    {
+                                        <span class="badge bg-success ms-2">New</span>
+                                    }
+                                </td>
+                                <td class="text-muted small">@item.SubmittedBy</td>
+                                <td class="text-muted small text-nowrap">@item.CreatedAt.ToString("dd MMM yyyy HH:mm")</td>
+                                <td class="text-muted small">@item.Summary</td>
+                                <td>
+                                    <div class="d-flex gap-2 justify-content-end">
+                                        <a class="btn btn-sm btn-outline-primary" href="@Url.Action("OnboardingDetail","Transactions",new{id=item.Id})">
+                                            <i class="bi bi-eye me-1"></i>Profile
+                                        </a>
+                                        <form asp-action="DeleteCheque" asp-controller="Transactions" method="post"
+                                              onsubmit="return confirm('Delete this submission?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash me-1"></i>Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <!-- Tab 2: Bond Request Wizard -->
+        <div class="tab-pane fade p-3" id="pane-bond" role="tabpanel">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="portal-source-badge text-bg-success">Onboarding Portal › Bank Guarantee / Bond Request Wizard</span>
+                <small class="text-muted ms-auto">Bond and bank guarantee applications</small>
+            </div>
+
+            @if (!Model.BondSubmissions.Any())
+            {
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>
+                    No bond / guarantee submissions yet.
+                    <br />
+                    <a href="@Url.Action("FullApplication","Forms")" class="btn btn-sm btn-success mt-3">Start Bond Request</a>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:42px">#</th>
+                                <th>Applicant / Procuring Entity</th>
+                                <th>Submitted By</th>
+                                <th>Date</th>
+                                <th>Guarantee Amount</th>
+                                <th style="width:180px"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var item in Model.BondSubmissions)
+                        {
+                            <tr>
+                                <td class="text-muted small">@item.Id</td>
+                                <td class="fw-semibold">
+                                    @item.Reference
+                                    @if (item.IsNew)
+                                    {
+                                        <span class="badge bg-success ms-2">New</span>
+                                    }
+                                </td>
+                                <td class="text-muted small">@item.SubmittedBy</td>
+                                <td class="text-muted small text-nowrap">@item.CreatedAt.ToString("dd MMM yyyy HH:mm")</td>
+                                <td class="text-muted small">@item.Summary</td>
+                                <td>
+                                    <div class="d-flex gap-2 justify-content-end">
+                                        <a class="btn btn-sm btn-outline-success" href="@Url.Action("BondDetails","Transactions",new{id=item.Id})">
+                                            <i class="bi bi-eye me-1"></i>Profile
+                                        </a>
+                                        <form asp-action="DeleteBond" asp-controller="Transactions" method="post"
+                                              onsubmit="return confirm('Delete this submission?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash me-1"></i>Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+    </div>
+</div>

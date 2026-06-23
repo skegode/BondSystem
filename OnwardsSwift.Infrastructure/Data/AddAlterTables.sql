@@ -85,6 +85,15 @@ BEGIN
 END
 GO
 
+-- ── SystemUsers: add CommissionPercent if missing ──
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='SystemUsers')
+AND NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='SystemUsers' AND COLUMN_NAME='CommissionPercent')
+BEGIN
+    ALTER TABLE SystemUsers ADD CommissionPercent DECIMAL(5,2) NOT NULL CONSTRAINT DF_SystemUsers_CommissionPercent DEFAULT 0;
+    PRINT 'Added SystemUsers.CommissionPercent';
+END
+GO
+
 -- ── InvoiceDiscounts: add DebtorPaymentAmount if missing ──
 IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='InvoiceDiscounts')
 AND NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='InvoiceDiscounts' AND COLUMN_NAME='DebtorPaymentAmount')

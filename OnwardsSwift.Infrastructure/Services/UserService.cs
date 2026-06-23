@@ -24,6 +24,7 @@ namespace OnwardsSwift.Infrastructure.Services
                     Email, 
                     Phone, 
                     Role, 
+                    ISNULL(CommissionPercent, 0) AS CommissionPercent,
                     IsActive, 
                     IsDeleted 
                 FROM SystemUsers 
@@ -43,6 +44,7 @@ namespace OnwardsSwift.Infrastructure.Services
                     Email, 
                     Phone, 
                     Role, 
+                    ISNULL(CommissionPercent, 0) AS CommissionPercent,
                     IsActive, 
                     IsDeleted 
                 FROM SystemUsers 

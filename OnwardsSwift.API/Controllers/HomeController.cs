@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using OnwardsSwift.Core.DTOs;
 using OnwardsSwift.Core.Interfaces;
 using OnwardsSwift.Infrastructure.Data;
+using OnwardsSwift.Infrastructure.Services;
 using Dapper;
 
 namespace OnwardsSwift.API.Controllers
@@ -12,9 +14,11 @@ namespace OnwardsSwift.API.Controllers
     public class HomeController : Controller
     {
         private readonly DapperContext _ctx;
-        public HomeController(IClientService clients, DapperContext ctx, IWebHostEnvironment webHostEnvironment)
+        private readonly ApplicationErrorLogger _errorLogger;
+        public HomeController(IClientService clients, DapperContext ctx, IWebHostEnvironment webHostEnvironment, ApplicationErrorLogger errorLogger)
         {
             _ctx = ctx;
+            _errorLogger = errorLogger;
         }
 
 
@@ -125,6 +129,16 @@ namespace OnwardsSwift.API.Controllers
             return View(vm);
         }
 
-        public IActionResult Error() => View();
+        [AllowAnonymous]
+        public async Task<IActionResult> Error()
+        {
+            var exception = HttpContext.Features.Get<IExceptionHandlerPathFeature>();
+            if (exception?.Error != null)
+            {
+                await _errorLogger.LogAsync(exception.Error, exception.Path, User.Identity?.Name);
+            }
+
+            return View();
+        }
     }
 }

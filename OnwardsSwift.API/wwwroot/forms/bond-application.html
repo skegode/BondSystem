@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Bond Application — Fill Form</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    :root{--bg:#f4f6f8;--card:#ffffff;--muted:#6b7280;--accent:#123a70;--accent-2:#0b5bd7;--surface-shadow:0 6px 18px rgba(16,24,40,0.08)}
+    body{font-family:Inter,Segoe UI,Segoe,Roboto,Helvetica,Arial,sans-serif;margin:28px;background:var(--bg);color:#111827}
+    .container{max-width:980px;margin:0 auto;background:transparent;padding:0}
+    .card{background:var(--card);padding:18px;border-radius:12px;box-shadow:var(--surface-shadow);overflow:hidden}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    label{display:block;font-weight:600;margin-bottom:6px;color:#0f172a;font-size:13px}
+    input[type=text],input[type=date],input[type=number],select,textarea{width:100%;padding:10px;border:1px solid #e6eef6;border-radius:8px;background:#fbfdff;border-radius:8px;font-size:14px}
+    .line-input{border:0;border-bottom:1px dotted rgba(17,24,39,0.6);padding:6px 4px;background:transparent;width:100%;outline:none;font-size:14px}
+    .line-input:focus{box-shadow:none;border-bottom:2px solid var(--accent-2)}
+    .col{flex:1 1 240px;min-width:180px}
+    .actions{display:flex;gap:12px;justify-content:flex-end;margin-top:16px}
+    button{padding:10px 14px;border-radius:8px;border:0;background:linear-gradient(180deg,var(--accent),#0b4b9a);color:#fff;cursor:pointer;box-shadow:0 6px 12px rgba(11,75,154,0.12);font-weight:600}
+    button.secondary{background:#eef2f7;color:#0f172a;box-shadow:none}
+    .notice{background:#eef6ff;border-left:4px solid var(--accent);padding:10px;margin-bottom:12px}
+    h4{margin:18px 0 8px;font-size:14px;color:var(--accent)}
+    .header-title{display:flex;align-items:center;gap:12px;padding:14px 18px;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;border-radius:8px}
+    .header-title h1{margin:0;font-size:15px;letter-spacing:0.6px}
+    .muted{color:var(--muted);font-size:13px}
+    input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent-2)}
+    @media (max-width:720px){.row{flex-direction:column}.header-title{flex-direction:column;align-items:flex-start}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="background:#fff;padding:0 18px;border-radius:6px">
+      <div style="background:#123a70;color:#fff;padding:12px 18px;border-radius:6px 6px 0 0;text-transform:uppercase;font-weight:700">REQUEST FOR A BANK GUARANTEE/BOND ON OUR BEHALF</div>
+      <form id="bondForm" class="document-form" style="padding:18px">
+        <p style="margin:8px 0 16px;color:#333;font-size:13px">I/we hereby request Onwards Swift Company Limited to apply for a bank guarantee/bond on our behalf through Onwards partner bank/s, against our counter guarantee/Indemnity, in accordance with the following details:</p>
+
+        <h4 style="margin:12px 0 6px">PRINCIPAL/APPLICANT</h4>
+        <div style="margin-bottom:8px">
+          <label>Name:</label>
+          <input class="line-input" type="text" id="applicantName" name="applicantName" />
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:12px">
+          <div style="flex:1">
+            <label>Postal Address:</label>
+            <input class="line-input" type="text" id="applicantAddress" name="applicantAddress" />
+          </div>
+          <div style="width:160px">
+            <label>Code:</label>
+            <input class="line-input" type="text" id="applicantCode" name="applicantCode" />
+          </div>
+          <div style="width:220px">
+            <label>Town/City:</label>
+            <input class="line-input" type="text" id="applicantTown" name="applicantTown" />
+          </div>
+        </div>
+
+        <h4 style="margin:12px 0 6px">BENEFICIARY / PROCURING ENTITY</h4>
+        <div style="margin-bottom:8px">
+          <label>Name:</label>
+          <input class="line-input" type="text" id="procuring" name="procuring" />
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:12px">
+          <div style="flex:1">
+            <label>Postal Address:</label>
+            <input class="line-input" type="text" id="procAddress" name="procAddress" />
+          </div>
+          <div style="width:160px">
+            <label>Code:</label>
+            <input class="line-input" type="text" id="procCode" name="procCode" />
+          </div>
+          <div style="width:220px">
+            <label>Town/County:</label>
+            <input class="line-input" type="text" id="procTown" name="procTown" />
+          </div>
+        </div>
+
+        <h4 style="margin:12px 0 6px">GUARANTEE AMOUNT</h4>
+        <div style="margin-bottom:8px">
+          <label>(In Figures):</label>
+          <input class="line-input" type="text" id="guaranteeFigures" name="guaranteeFigures" />
+        </div>
+        <div style="margin-bottom:12px">
+          <label>(In Words):</label>
+          <input class="line-input" type="text" id="guaranteeWords" name="guaranteeWords" />
+        </div>
+
+        <h4 style="margin:12px 0 6px">TYPE OF BOND / GUARANTEE (Tick as appropriate)</h4>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:12px">
+          <label><input type="checkbox" name="typeBid" value="Bid/Tender bond" /> Bid/Tender bond</label>
+          <label><input type="checkbox" name="typePerformance" value="Performance bond" /> Performance bond</label>
+          <label><input type="checkbox" name="typeAdvance" value="Advance Payment Guarantee (APG)" /> Advance Payment Guarantee (APG)</label>
+          <label><input type="checkbox" name="typeRetention" value="Retention bond" /> Retention bond</label>
+          <label style="flex-basis:100%">Other (specify): <input class="line-input" type="text" name="typeOther" style="width:50%" /></label>
+        </div>
+
+        <h4 style="margin:12px 0 6px">TENDER / CONTRACT DETAILS: (Attach Invitation to bid or Award letter)</h4>
+        <div style="display:flex;gap:12px;margin-bottom:8px;align-items:center">
+          <div style="flex:1">
+            <label>Tender Reference No:</label>
+            <input class="line-input" type="text" id="tenderRef" name="tenderRef" />
+          </div>
+          <div style="width:220px">
+            <label>Guarantee Effective date:</label>
+            <input class="line-input" type="date" id="guaranteeFrom" name="guaranteeFrom" />
+          </div>
+          <div style="width:220px">
+            <label>Guarantee expiry date:</label>
+            <input class="line-input" type="date" id="guaranteeTo" name="guaranteeTo" />
+          </div>
+        </div>
+
+        <p style="font-size:13px;color:#333;margin:12px 0">I/We are fully mandated to enter into contract on the bank guarantee sought. I/We shall remain fully liable and abide by the terms and conditions that govern this product as per the guarantee Indemnity terms and conditions at the back of this application form.<br />This letter is governed by Kenya laws and any dispute relating to its validity, construction or performance shall be brought before the Kenya courts.</p>
+
+        <div style="display:flex;gap:18px;margin-top:18px;align-items:flex-end">
+          <div style="flex:1">
+            <label>Name:</label>
+            <input class="line-input" type="text" id="sigName1" name="sigName1" />
+          </div>
+          <div style="width:260px">
+            <label>Signature:</label>
+            <div style="height:28px;border-bottom:1px dotted #000"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:18px;margin-top:12px;align-items:flex-end">
+          <div style="flex:1">
+            <label>Name:</label>
+            <input class="line-input" type="text" id="sigName2" name="sigName2" />
+          </div>
+          <div style="width:260px">
+            <label>Signature:</label>
+            <div style="height:28px;border-bottom:1px dotted #000"></div>
+          </div>
+        </div>
+
+        <h4 style="margin:18px 0 8px">Attachments</h4>
+        <div style="display:flex;gap:18px;align-items:flex-start">
+          <div style="flex:1">
+            <div style="font-size:13px;color:#444;margin-bottom:8px">Attach Invitation to bid / Award letter and any supporting KYC documents — PDF / JPG / PNG. Max 10MB each.</div>
+            <input type="file" id="attachment1" name="attachments" accept="application/pdf,image/*" multiple />
+            <div id="attachmentList" style="margin-top:8px;font-size:13px;color:#374151"></div>
+          </div>
+          <div style="width:360px">
+            <div class="card" style="background:#f8fafc;border:1px solid #e6eef6;padding:12px;border-radius:8px;color:#0f172a;font-size:14px;line-height:1.45">
+              <strong>Bid Bond</strong>
+              <p style="margin:6px 0;color:#333">The documents required for the processing of a bid-bond include:</p>
+              <ol style="margin:6px 0 10px 18px">
+                <li>The procuring entity/beneficiary/the employer and their address</li>
+                <li>The bidder/the tenderer name and address</li>
+                <li>The tender number</li>
+                <li>The tender name-the description of the tender</li>
+                <li>The amount</li>
+                <li>The closing date</li>
+                <li>The tender validity</li>
+                <li>The format to be used</li>
+              </ol>
+
+              <strong>Performance bonds and advance payment guarantee</strong>
+              <p style="margin:6px 0;color:#333">The documents required for PB and APG to be processed include:</p>
+              <ol style="margin:6px 0 0 18px">
+                <li>The award letter.</li>
+                <li>The certificate of incorporation</li>
+                <li>Copy of company KRA pin</li>
+                <li>Directors' national identity card and KRA pin</li>
+                <li>6-months recent bank statements</li>
+                <li>On-going and completed certificates of previous jobs done.</li>
+                <li>CR-12</li>
+                <li>Company profile</li>
+                <li>Duly filled application form</li>
+                <li>Board resolution</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top:22px">
+          <button type="button" id="preview">Preview</button>
+          <button type="submit">Submit Application</button>
+          <button type="button" class="secondary" id="resetBtn">Reset</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // basic behaviors: reset, submit to server, preview (simple printable)
+    const form = document.getElementById('bondForm');
+    const attachmentInput = document.getElementById('attachment1');
+    const attachmentList = document.getElementById('attachmentList');
+    const attachmentsStore = [];
+
+    document.getElementById('resetBtn').addEventListener('click', ()=>{ form.reset(); attachmentsStore.length = 0; renderAttachmentList(); });
+
+    function renderAttachmentList(){
+      if(!attachmentList) return;
+      if(attachmentsStore.length === 0){ attachmentList.innerHTML = '<span class="small">No files selected</span>'; return; }
+      attachmentList.innerHTML = attachmentsStore.map((f,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #eef2f7"><div>${i+1}. ${f.name} (${Math.round(f.size/1024)} KB)</div><button data-idx="${i}" class="remove-attachment" style="background:#ef4444;color:#fff;border:0;border-radius:6px;padding:4px 8px">Remove</button></div>`).join('');
+    }
+    if(attachmentInput){
+      attachmentInput.addEventListener('change', (e)=>{
+        const files = Array.from(e.target.files || []);
+        files.forEach(f=> attachmentsStore.push(f));
+        renderAttachmentList();
+        attachmentInput.value = '';
+      });
+      attachmentList.addEventListener('click', (ev)=>{
+        const btn = ev.target.closest('.remove-attachment');
+        if(!btn) return;
+        const idx = Number(btn.getAttribute('data-idx'));
+        if(!Number.isFinite(idx)) return;
+        attachmentsStore.splice(idx,1);
+        renderAttachmentList();
+      });
+    }
+
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(form);
+      const data = {};
+      fd.forEach((v,k)=>{ if(v instanceof File) return; data[k]=v; });
+
+      try{
+        // if attachments present, submit multipart
+        const files = attachmentsStore.slice();
+        if(files.length){
+          const mf = new FormData();
+          Object.entries(data).forEach(([k,v])=> mf.append(k, v ?? ''));
+          mf.append('formType', 'bond-application');
+          // append files
+          files.forEach(f=> mf.append('files', f, f.name));
+          const res = await fetch('/api/forms/submit-multipart', { method:'POST', body: mf });
+          if(res.ok){ alert('Application submitted with attachments'); form.reset(); attachmentsStore.length = 0; renderAttachmentList(); }
+          else { const txt = await res.text(); alert('Server error: '+txt); }
+        } else {
+          const res = await fetch('/api/forms/submit', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+          if(res.ok){ alert('Application submitted'); form.reset(); }
+          else { const txt = await res.text(); alert('Server error: '+txt); }
+        }
+      }catch(err){ alert('Network error: '+err.message); }
+    });
+
+    document.getElementById('preview').addEventListener('click', ()=>{
+      const fd = new FormData(form);
+      const rows = [];
+      fd.forEach((v,k)=> rows.push(`<tr><th style="text-align:left;padding:6px">${k}</th><td style="padding:6px">${v}</td></tr>`));
+      // attachments from store
+      const atts = attachmentsStore.length ? attachmentsStore.map(f=>`${f.name} (${Math.round(f.size/1024)} KB)`).join('<br/>') : 'No attachments';
+      rows.push(`<tr><th style="text-align:left;padding:6px">Attachments</th><td style="padding:6px">${atts}</td></tr>`);
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>Bond Application Preview</title></head><body style="font-family:Arial,Helvetica,sans-serif"><h2>Bond Application Preview</h2><table style="border-collapse:collapse;border:1px solid #ddd">${rows.join('')}</table></body></html>`;
+      const w = window.open('','_blank'); w.document.write(html); w.document.close();
+    });
+  </script>
+</body>
+</html>

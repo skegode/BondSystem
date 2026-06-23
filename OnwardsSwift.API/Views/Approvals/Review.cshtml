@@ -4,6 +4,11 @@
     var bond     = Model.Bond;
     var workflow = Model.Workflow;
     bool canAct  = Model.IsCurrentApprover && workflow != null && workflow.IsActive;
+    string sessionRole = (Context.Session.GetString("UserRole") ?? string.Empty).Trim();
+    bool isAdmin = User.IsInRole("Admin") || string.Equals(sessionRole, "Admin", StringComparison.OrdinalIgnoreCase);
+    bool canChangePaymentStatus = isAdmin || canAct;
+    bool showDecisionPanel = workflow != null && workflow.IsActive;
+    bool approveBlockedByDocs = workflow != null && workflow.HasMissingRequiredDocs;
 }
 
 <style>
@@ -19,6 +24,7 @@
     .kv-row:last-child { border-bottom: none; }
     .kv-key { color:#64748b; font-weight:500; }
     .kv-val { font-weight:600; text-align:right; }
+    .amount-hero   { font-size:2rem; font-weight:800; letter-spacing:-.03em; }
     .stage-step.is-past    { color:#16a34a; }
     .stage-step.is-current { color:var(--navy); font-weight:700; }
     .stage-step.is-future  { color:#94a3b8; }
@@ -102,22 +108,28 @@
                     </div>
 
                     <div class="row g-2 mt-2">
-                        <div class="col-4">
+                        <div class="col-3">
                             <div class="text-center p-3 rounded-3 border">
                                 <div class="text-muted small mb-1">Bond Amount</div>
                                 <div class="fw-bold" style="color:var(--navy);">KES @bond.Amount.ToString("N0")</div>
                             </div>
                         </div>
-                        <div class="col-4">
+                        <div class="col-3">
                             <div class="text-center p-3 rounded-3 border">
                                 <div class="text-muted small mb-1">Tenor</div>
                                 <div class="fw-bold">@bond.TenorDays days</div>
                             </div>
                         </div>
-                        <div class="col-4">
+                        <div class="col-3">
                             <div class="text-center p-3 rounded-3 border">
                                 <div class="text-muted small mb-1">Closing Date</div>
                                 <div class="fw-bold text-danger small">@bond.TenderClosingDate.ToString("dd MMM yyyy")</div>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="text-center p-3 rounded-3 border">
+                                <div class="text-muted small mb-1">Processing Date</div>
+                                <div class="fw-bold small">@(bond.ProcessingDate?.ToString("dd MMM yyyy") ?? "—")</div>
                             </div>
                         </div>
                     </div>
@@ -271,22 +283,198 @@
         @* ── RIGHT column ── *@
         <div class="col-lg-4">
 
-            @* Charges card *@
-            <div class="card border-0 shadow-sm mb-3" style="background:var(--navy);">
-                <div class="card-body py-4 text-white">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div class="small text-uppercase fw-bold opacity-75">Processing Charge</div>
-                        <i class="bi bi-cash-coin fs-3 opacity-40"></i>
+            @* Pricing summary *@
+            <div class="card border-0 shadow-sm mb-3" style="border-top:4px solid var(--navy);">
+                <div class="card-body p-4">
+                    <div class="small text-uppercase fw-bold text-muted mb-2" style="letter-spacing:.08em;">Pricing Summary</div>
+                    <div class="text-center py-3">
+                        <div class="text-muted small text-uppercase fw-semibold mb-1" style="letter-spacing:.07em;">Bond Amount</div>
+                        <div class="amount-hero" style="color:var(--navy);">KES @bond.Amount.ToString("N0")</div>
                     </div>
-                    <div class="fw-800 mb-1" style="font-size:1.75rem;">KES @bond.PayableCharge.ToString("N2")</div>
-                    @if (bond.IsDeferredPayment)
-                    {
-                        <span class="badge bg-warning text-dark mt-1"><i class="bi bi-clock-history me-1"></i>Payment Deferred</span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-white text-success mt-1"><i class="bi bi-check-circle-fill me-1"></i>Paid</span>
-                    }
+                    <hr class="my-2" />
+                    <div class="kv-row">
+                        <span class="kv-key">Client Charge</span>
+                        <span class="kv-val">KES @bond.ClientCharge.ToString("N2")</span>
+                    </div>
+                    <div class="kv-row">
+                        <span class="kv-key">Bank Charge</span>
+                        <span class="kv-val">KES @bond.BankCharge.ToString("N2")</span>
+                    </div>
+                    <div class="kv-row">
+                        <span class="kv-key">Tax Percentage</span>
+                        <span class="kv-val">@bond.TaxPercentage.ToString("N2")%</span>
+                    </div>
+                    <div class="kv-row">
+                        <span class="kv-key">Tax Calculation</span>
+                        <span class="kv-val">KES @bond.TaxCalculation.ToString("N2")</span>
+                    </div>
+                    <div class="kv-row">
+                        <span class="kv-key">Total Bank Charge</span>
+                        <span class="kv-val">KES @bond.TotalBankCharge.ToString("N2")</span>
+                    </div>
+                    <div class="kv-row">
+                        <span class="kv-key text-success">Net Profit</span>
+                        <span class="kv-val text-success">KES @bond.NetProfit.ToString("N2")</span>
+                    </div>
+                    <div class="kv-row" style="border-top:2px solid #e2e8f0; padding-top:.75rem; margin-top:.25rem;">
+                        <span class="kv-key fw-bold">Total Charged</span>
+                        <span class="kv-val fw-bold" style="color:var(--navy);">KES @bond.ClientCharge.ToString("N2")</span>
+                    </div>
+                    <div class="kv-row">
+                        <span class="kv-key fw-bold">Total Paid</span>
+                        <span class="kv-val fw-bold text-success">KES @bond.PaidAmount.ToString("N2")</span>
+                    </div>
+                    <div class="kv-row">
+                        <span class="kv-key fw-bold">Outstanding</span>
+                        <span class="kv-val fw-bold @(bond.OutstandingAmount > 0 ? "text-danger" : "text-success")">KES @bond.OutstandingAmount.ToString("N2")</span>
+                    </div>
+
+                    <div class="mt-3 pt-3" style="border-top:1px solid #e2e8f0;">
+                        <div class="small text-uppercase fw-bold text-muted mb-2" style="letter-spacing:.08em;">Payment Status</div>
+                        <div class="mb-2">
+                            @if (bond.IsDeferredPayment)
+                            {
+                                <span class="badge bg-warning text-dark"><i class="bi bi-x-circle me-1"></i>Unpaid</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle-fill me-1"></i>Paid</span>
+                            }
+                        </div>
+
+                        <div class="kv-row">
+                            <span class="kv-key">Total Charged</span>
+                            <span class="kv-val">KES @bond.ClientCharge.ToString("N2")</span>
+                        </div>
+                        <div class="kv-row">
+                            <span class="kv-key">Total Paid</span>
+                            <span class="kv-val text-success">KES @bond.PaidAmount.ToString("N2")</span>
+                        </div>
+                        <div class="kv-row mb-2">
+                            <span class="kv-key">Outstanding</span>
+                            <span class="kv-val @(bond.OutstandingAmount > 0 ? "text-danger" : "text-success")">
+                                KES @bond.OutstandingAmount.ToString("N2")
+                            </span>
+                        </div>
+
+                        <div class="small text-muted mb-2">
+                            <div><strong>Reference:</strong> @(string.IsNullOrWhiteSpace(bond.PaymentReference) ? "—" : bond.PaymentReference)</div>
+                            <div><strong>Method:</strong> @(string.IsNullOrWhiteSpace(bond.PaymentMethod) ? "—" : bond.PaymentMethod)</div>
+                        </div>
+
+                        <form asp-action="SavePaymentDetails" method="post" class="d-grid gap-2">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="bondId" value="@bond.Id" />
+
+                            <div class="input-group input-group-sm">
+                                <label class="input-group-text" for="paymentStatusSelect">Set Status</label>
+                                <select id="paymentStatusSelect" name="isPaid" class="form-select" @(canChangePaymentStatus ? "" : "disabled")>
+                                    @if (!bond.IsDeferredPayment)
+                                    {
+                                        <option value="true" selected>Paid</option>
+                                        <option value="false">Unpaid</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="true">Paid</option>
+                                        <option value="false" selected>Unpaid</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <input type="number"
+                                name="amountPaid"
+                                class="form-control form-control-sm"
+                                step="0.01"
+                                min="0.01"
+                                max="@bond.OutstandingAmount"
+                                placeholder="Amount paid (optional)"
+                                @(canChangePaymentStatus && bond.OutstandingAmount > 0 ? "" : "disabled") />
+
+                            <input type="text"
+                                name="paymentReference"
+                                class="form-control form-control-sm"
+                                value="@bond.PaymentReference"
+                                placeholder="Payment reference"
+                                maxlength="100"
+                                @(canChangePaymentStatus ? "" : "disabled") />
+
+                            <select name="paymentMethod" class="form-select form-select-sm" @(canChangePaymentStatus ? "" : "disabled")>
+                                @if (string.Equals(bond.PaymentMethod, "MPESA", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <option value="">Select payment method</option>
+                                    <option value="MPESA" selected>Mpesa</option>
+                                    <option value="BANK">Bank</option>
+                                    <option value="CHEQUE">Cheque</option>
+                                }
+                                else if (string.Equals(bond.PaymentMethod, "BANK", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <option value="">Select payment method</option>
+                                    <option value="MPESA">Mpesa</option>
+                                    <option value="BANK" selected>Bank</option>
+                                    <option value="CHEQUE">Cheque</option>
+                                }
+                                else if (string.Equals(bond.PaymentMethod, "CHEQUE", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <option value="">Select payment method</option>
+                                    <option value="MPESA">Mpesa</option>
+                                    <option value="BANK">Bank</option>
+                                    <option value="CHEQUE" selected>Cheque</option>
+                                }
+                                else
+                                {
+                                    <option value="" selected>Select payment method</option>
+                                    <option value="MPESA">Mpesa</option>
+                                    <option value="BANK">Bank</option>
+                                    <option value="CHEQUE">Cheque</option>
+                                }
+                            </select>
+
+                            <textarea name="notes"
+                                      class="form-control form-control-sm"
+                                      rows="2"
+                                      maxlength="300"
+                                      placeholder="Notes (optional)"
+                                      @(canChangePaymentStatus ? "" : "disabled")></textarea>
+
+                            <button type="submit" class="btn btn-outline-primary btn-sm" @(canChangePaymentStatus ? "" : "disabled")>
+                                Save Payment Details
+                            </button>
+                        </form>
+
+                        @{
+                            var paymentHistory = ViewBag.PaymentHistory as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+                        }
+                        @if (paymentHistory.Any())
+                        {
+                            <div class="mt-3">
+                                <div class="small text-uppercase fw-bold text-muted mb-2" style="letter-spacing:.08em;">Recent Payments</div>
+                                <div class="list-group list-group-flush border rounded">
+                                    @foreach (var p in paymentHistory)
+                                    {
+                                        <div class="list-group-item small">
+                                            <div class="d-flex justify-content-between">
+                                                <strong class="text-success">KES @(((decimal)p.AmountPaid).ToString("N2"))</strong>
+                                                <span class="text-muted">@(((DateTime)p.PaymentDate).ToString("dd MMM yyyy HH:mm"))</span>
+                                            </div>
+                                            <div>
+                                                <span class="text-muted">Method:</span> @(p.PaymentMethod ?? "—")
+                                                <span class="text-muted ms-2">Ref:</span> @(p.PaymentReference ?? "—")
+                                            </div>
+                                            @if (p.Notes != null && !string.IsNullOrWhiteSpace((string)p.Notes))
+                                            {
+                                                <div class="text-muted fst-italic">@p.Notes</div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        @if (!canChangePaymentStatus)
+                        {
+                            <div class="small text-muted mt-2">Only Admin or the current stage approver can change payment status.</div>
+                        }
+                    </div>
                 </div>
             </div>
 
@@ -395,7 +583,7 @@
             }
 
             @* Action panel *@
-            @if (canAct)
+            @if (showDecisionPanel)
             {
                 <div class="card border-0 shadow-sm" style="border-top:4px solid var(--navy) !important;">
                     <div class="card-header bg-white py-3">
@@ -417,27 +605,45 @@
                                           placeholder="Add notes or reason..."></textarea>
                             </div>
 
+                            @if (!canAct)
+                            {
+                                <div class="alert alert-light border small py-2">
+                                    <i class="bi bi-lock me-1"></i>
+                                    You can view this stage, but only the assigned current approver can submit an approve/reject action.
+                                </div>
+                            }
+
                             <div class="d-grid gap-2">
                                 <button type="button" class="btn btn-success fw-bold py-2"
-                                        @(workflow.HasMissingRequiredDocs ? "disabled" : "")
+                                        @(!canAct || approveBlockedByDocs ? "disabled title=\"Upload all required stage documents before approving.\"" : "")
                                         onclick="submitAction('APPROVED')">
                                     <i class="bi bi-check-circle-fill me-2"></i>
-                                    @(workflow.IsFinalStage ? "Final Approve" : "Approve & Advance")
+                                    @(workflow.IsFinalStage ? "Final Approve" : "Approve")
                                 </button>
 
                                 @if (workflow.CanReturn)
                                 {
                                     <button type="button" class="btn btn-warning fw-bold py-2"
+                                            @(!canAct ? "disabled" : "")
                                             onclick="submitAction('RETURNED')">
                                         <i class="bi bi-arrow-return-left me-2"></i>Return for Revision
                                     </button>
                                 }
 
                                 <button type="button" class="btn btn-outline-danger py-2"
+                                        @(!canAct ? "disabled" : "")
                                         onclick="submitAction('REJECTED')">
                                     <i class="bi bi-x-circle me-2"></i>Reject Application
                                 </button>
                             </div>
+
+                            @if (approveBlockedByDocs)
+                            {
+                                <div class="alert alert-warning mt-3 mb-0 py-2 small">
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                    Approval is currently blocked because required stage documents are missing.
+                                </div>
+                            }
                         </form>
                     </div>
                 </div>
@@ -446,13 +652,6 @@
             {
                 <div class="alert alert-secondary border-0 shadow-sm">
                     <i class="bi bi-info-circle me-2"></i>No workflow has been configured for this application.
-                </div>
-            }
-            else if (!Model.IsCurrentApprover && workflow.IsActive)
-            {
-                <div class="alert alert-light border shadow-sm">
-                    <i class="bi bi-lock me-2 text-muted"></i>
-                    <span class="text-muted small">This stage is awaiting action from the assigned approver.</span>
                 </div>
             }
 
@@ -492,6 +691,19 @@
 @section Scripts {
 <script>
 function submitAction(actionType) {
+    const actionForm = document.getElementById('actionForm');
+    if (!actionForm) return;
+
+    const disabledButton = actionType === 'APPROVED'
+        ? actionForm.querySelector("button[onclick=\"submitAction('APPROVED')\"]")
+        : actionType === 'RETURNED'
+            ? actionForm.querySelector("button[onclick=\"submitAction('RETURNED')\"]")
+            : actionForm.querySelector("button[onclick=\"submitAction('REJECTED')\"]");
+
+    if (disabledButton && disabledButton.disabled) {
+        return;
+    }
+
     const comment = document.getElementById('Comment').value.trim();
     if ((actionType === 'REJECTED' || actionType === 'RETURNED') && comment.length < 3) {
         alert('Please provide a reason before ' +

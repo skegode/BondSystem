@@ -27,8 +27,15 @@ namespace OnwardsSwift.Infrastructure.Services
         ISNULL(c.Phone, '') AS Phone,
         ISNULL(c.PhoneAlt, '') AS PhoneAlt,
         c.ClientType,
+        c.Category,
+        ISNULL(c.IdNumber, '') AS IdNumber,
+        c.Gender,
         ISNULL(c.PhysicalAddress, '') AS PhysicalAddress,
         ISNULL(c.PostalAddress, '') AS PostalAddress,
+        c.KycIdFrontPath,
+        c.KycIdBackPath,
+        c.KycPassportPhotoPath,
+        c.KycRegCertPath,
         ISNULL(c.CreditLimit, 0) AS CreditLimit,
         ISNULL(c.UtilisedLimit, 0) AS UtilisedLimit,
         (ISNULL(c.CreditLimit, 0) - ISNULL(c.UtilisedLimit, 0)) AS AvailableLimit,
@@ -82,7 +89,7 @@ namespace OnwardsSwift.Infrastructure.Services
         {
             var where = string.IsNullOrWhiteSpace(search)
                 ? "c.IsDeleted = 0"
-                : "c.IsDeleted = 0 AND (c.CompanyName LIKE @S OR c.KraPin LIKE @S OR c.Email LIKE @S)";
+                : "c.IsDeleted = 0 AND (c.CompanyName LIKE @S OR c.KraPin LIKE @S OR c.Email LIKE @S OR c.IdNumber LIKE @S OR c.BusinessRegNumber LIKE @S OR c.Phone LIKE @S)";
 
             var param = new
             {

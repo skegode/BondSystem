@@ -9,9 +9,24 @@ obj/
 *.userosscache
 *.sln.docstates
 
-# Publish output
+# Publish output — always publish to a folder OUTSIDE this repo to avoid this entirely
 publish/
 PublishProfiles/
+artifacts/
+Onwards/
+onwards/
+OnwardsSwift/
+Updated/
+update/
+Pub/
+pub/
+Sample/
+Wiz/
+onboarding/
+onboardingg/
+
+# Packaged build/publish artifacts — never belong in source control
+*.zip
 
 # User-uploaded files
 **/wwwroot/uploads/

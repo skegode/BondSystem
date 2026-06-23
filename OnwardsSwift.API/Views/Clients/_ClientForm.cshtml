@@ -1,0 +1,126 @@
+@model OnwardsSwift.Core.DTOs.CreateClientRequest
+<div class="row">
+    <div class="col-12 mb-3">
+        <label class="form-label fw-bold d-block mb-2 text-primary">Registration Category</label>
+        <div class="d-flex gap-4">
+            <div class="form-check">
+                <input class="form-check-input" type="radio" asp-for="Category" value="1" id="catInd" />
+                <label class="form-check-label fw-bold" for="catInd">Individual</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" asp-for="Category" value="2" id="catCorp" />
+                <label class="form-check-label fw-bold" for="catCorp">Corporate / Company</label>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-12">
+        <label class="form-label fw-bold" id="nameLabel">Full Name (As per ID) *</label>
+        <input asp-for="CompanyName" id="txtClientName" class="form-control form-control-lg" placeholder="Enter name" required />
+        <span asp-validation-for="CompanyName" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label fw-bold">KRA PIN *</label>
+        <input asp-for="KraPin" class="form-control" placeholder="A000...X" required />
+        <span asp-validation-for="KraPin" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6 ind-field">
+        <label class="form-label fw-bold">ID / Passport Number *</label>
+        <input asp-for="IdNumber" class="form-control" placeholder="Enter ID number" />
+    </div>
+    <div class="col-md-6 ind-field">
+        <label class="form-label fw-bold">Gender</label>
+        <select asp-for="Gender" class="form-select">
+            <option value="">-- Select --</option>
+            <option value="1">Male</option>
+            <option value="2">Female</option>
+            <option value="3">Other</option>
+        </select>
+    </div>
+
+    <div class="col-md-6 corp-field" style="display:none;">
+        <label class="form-label fw-bold">Business Registration No. *</label>
+        <input asp-for="BusinessRegNumber" class="form-control" placeholder="PVT/..." />
+    </div>
+    <div class="col-md-6 corp-field" style="display:none;">
+        <label class="form-label fw-bold">Client Type</label>
+        <select asp-for="ClientType" class="form-select" asp-items="Html.GetEnumSelectList<OnwardsSwift.Core.Enums.ClientType>()"></select>
+    </div>
+
+    <div class="col-md-12 corp-field" style="display:none;">
+        <label class="form-label fw-bold">Designated Contact Person *</label>
+        <input asp-for="ContactPerson" id="txtContactPerson" class="form-control" placeholder="Full name of representative" />
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label fw-bold">Email Address</label>
+        <input asp-for="Email" type="email" class="form-control" placeholder="name@domain.com" />
+        <span asp-validation-for="Email" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label fw-bold">Phone Number *</label>
+        <input asp-for="Phone" class="form-control" placeholder="0712345678" required />
+        <span asp-validation-for="Phone" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label fw-bold">Alternative Phone</label>
+        <input asp-for="PhoneAlt" class="form-control" />
+    </div>
+    <div class="col-md-6">
+        <label class="form-label fw-bold">Postal Address</label>
+        <input asp-for="PostalAddress" class="form-control" />
+    </div>
+    <div class="col-12">
+        <label class="form-label fw-bold">Physical Office / Residence Address</label>
+        <textarea asp-for="PhysicalAddress" class="form-control" rows="2" placeholder="Building, Street, City"></textarea>
+    </div>
+</div>
+<script>
+    (function() {
+        function toggleFields(context) {
+            const ctx = context || document;
+            const category = ctx.querySelector('input[name="Category"]:checked')?.value || '1';
+            const isCorp = category === "2";
+
+            // Toggle visibility
+            ctx.querySelectorAll('.ind-field').forEach(el => el.style.display = isCorp ? 'none' : '');
+            ctx.querySelectorAll('.corp-field').forEach(el => el.style.display = isCorp ? '' : 'none');
+
+            // Update Labels
+            const nameLabel = ctx.querySelector('#nameLabel');
+            if (nameLabel) nameLabel.textContent = isCorp ? "Registered Company Name *" : "Full Name (As per ID) *";
+
+            // Toggle logical requirements
+            const txtContact = ctx.querySelector('#txtContactPerson');
+            const idNumber = ctx.querySelector('#IdNumber');
+            if (isCorp) {
+                if (txtContact) txtContact.required = true;
+                if (idNumber) idNumber.required = false;
+            } else {
+                if (txtContact) txtContact.required = false;
+                if (idNumber) idNumber.required = true;
+
+                // Mirror Name to Contact Person for Individuals
+                const currentName = ctx.querySelector('#txtClientName')?.value || '';
+                if (txtContact) txtContact.value = currentName;
+            }
+        }
+
+        // Bind events for dynamically loaded partials
+        document.querySelectorAll('input[name="Category"]').forEach(r => r.addEventListener('change', () => toggleFields(document)));
+        const clientNameInput = document.getElementById('txtClientName');
+        if (clientNameInput) {
+            clientNameInput.addEventListener('input', function() {
+                const category = document.querySelector('input[name="Category"]:checked')?.value || '1';
+                if (category === '1') {
+                    const contact = document.getElementById('txtContactPerson');
+                    if (contact) contact.value = this.value;
+                }
+            });
+        }
+
+        // Initial run once DOM is ready
+        document.addEventListener('DOMContentLoaded', function() { toggleFields(document); });
+    })();
+</script>

@@ -137,23 +137,21 @@ namespace OnwardsSwift.Infrastructure.Services
         {
             using var conn = _ctx.Create();
 
-            var firstStage = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                "SELECT TOP 1 Id FROM WorkflowStages WHERE ModuleType = @moduleType ORDER BY SequenceOrder ASC",
-                new { moduleType });
-
-            if (firstStage == null) return; // No workflow configured — skip
-
             var exists = await conn.ExecuteScalarAsync<int>(
                 "SELECT COUNT(1) FROM FacilityApprovalInstances WHERE ReferenceId = @referenceId AND ModuleType = @moduleType",
                 new { referenceId, moduleType });
 
-            if (exists == 0)
-            {
-                await conn.ExecuteAsync(@"
-                    INSERT INTO FacilityApprovalInstances (ReferenceId, ModuleType, CurrentStageId, Status)
-                    VALUES (@referenceId, @moduleType, @stageId, 'PENDING')",
-                    new { referenceId, moduleType, stageId = (int)firstStage.Id });
-            }
+            if (exists > 0)
+                return;
+
+            var firstStage = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                "SELECT TOP 1 Id FROM WorkflowStages WHERE ModuleType = @moduleType ORDER BY SequenceOrder ASC",
+                new { moduleType });
+
+            await conn.ExecuteAsync(@"
+                INSERT INTO FacilityApprovalInstances (ReferenceId, ModuleType, CurrentStageId, Status)
+                VALUES (@referenceId, @moduleType, @stageId, 'PENDING')",
+                new { referenceId, moduleType, stageId = firstStage != null ? (int?)firstStage.Id : null });
         }
 
         /// <summary>
@@ -279,19 +277,42 @@ namespace OnwardsSwift.Infrastructure.Services
             using var conn = _ctx.Create();
             return moduleType == "BOND"
                 ? (await conn.QueryAsync<ApprovalQueueItem>(@"
-                    SELECT i.Id AS InstanceId, i.ReferenceId, i.ModuleType,
-                           b.TenderNumber AS ReferenceLabel,
-                           c.CompanyName  AS ClientName,
-                           b.Amount,
-                           ISNULL(s.StageName, 'No Stage') AS CurrentStageName,
-                           ISNULL(s.Id, 0)                 AS CurrentStageId,
-                           b.CreatedAt    AS SubmittedAt
-                    FROM FacilityApprovalInstances i
-                    LEFT JOIN WorkflowStages s ON i.CurrentStageId = s.Id
-                    INNER JOIN Bonds b   ON b.Id = i.ReferenceId
-                    INNER JOIN Clients c ON c.Id = b.ClientId
-                    WHERE i.ModuleType = 'BOND' AND i.Status = 'PENDING'
-                    ORDER BY i.InitiatedAt ASC")).ToList()
+                    SELECT * FROM (
+                        SELECT i.Id AS InstanceId, i.ReferenceId, i.ModuleType,
+                               b.TenderNumber AS ReferenceLabel,
+                               c.CompanyName  AS ClientName,
+                               b.Amount,
+                               ISNULL(s.StageName, 'No Stage') AS CurrentStageName,
+                               ISNULL(s.Id, 0)                 AS CurrentStageId,
+                               b.CreatedAt    AS SubmittedAt
+                        FROM FacilityApprovalInstances i
+                        LEFT JOIN WorkflowStages s ON i.CurrentStageId = s.Id
+                        INNER JOIN Bonds b   ON b.Id = i.ReferenceId
+                        INNER JOIN Clients c ON c.Id = b.ClientId
+                        WHERE i.ModuleType = 'BOND' AND i.Status = 'PENDING'
+
+                        UNION ALL
+
+                        SELECT 0 AS InstanceId,
+                               b.Id AS ReferenceId,
+                               'BOND' AS ModuleType,
+                               b.TenderNumber AS ReferenceLabel,
+                               c.CompanyName  AS ClientName,
+                               b.Amount,
+                               'Awaiting Workflow Setup' AS CurrentStageName,
+                               0 AS CurrentStageId,
+                               b.CreatedAt AS SubmittedAt
+                        FROM Bonds b
+                        INNER JOIN Clients c ON c.Id = b.ClientId
+                        WHERE ISNULL(b.isApproved, 0) = 0
+                          AND NOT EXISTS (
+                              SELECT 1
+                              FROM FacilityApprovalInstances i
+                              WHERE i.ReferenceId = b.Id
+                                AND i.ModuleType = 'BOND'
+                          )
+                    ) q
+                    ORDER BY q.SubmittedAt ASC")).ToList()
                 : (await conn.QueryAsync<ApprovalQueueItem>(@"
                     SELECT i.Id AS InstanceId, i.ReferenceId, i.ModuleType,
                            cd.ChequeNumber AS ReferenceLabel,

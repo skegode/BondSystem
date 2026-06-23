@@ -18,6 +18,9 @@ namespace OnwardsSwift.Core.DTOs
         [Required(ErrorMessage = "Please select a bond type")]
         public int BondTypeId { get; set; }
 
+        [Required(ErrorMessage = "Please select application status")]
+        public string ApplicationStatus { get; set; } = "New Application";
+
         [Required(ErrorMessage = "Procuring Entity is required"), MaxLength(300)]
         public string ProcuringEntity { get; set; } = string.Empty;
 
@@ -38,6 +41,8 @@ namespace OnwardsSwift.Core.DTOs
         [Required]
         public DateTime TenderClosingDate { get; set; } // <--- RESTORED FIELD
 
+        public DateTime? ProcessingDate { get; set; }
+
         [Required, Range(30, 1825)]
         public int TenorDays { get; set; }
 
@@ -53,8 +58,12 @@ namespace OnwardsSwift.Core.DTOs
 
         // --- STEP 4: PAYMENT & ATTACHMENTS ---
         public bool IsDeferredPayment { get; set; }
+        public bool IsPaid { get; set; }
+        public decimal? AmountPaid { get; set; }
         public int? PaymentBankId { get; set; }
         public string? PaymentReference { get; set; }
+        public string? PaymentMethod { get; set; }
+        public string? PaymentNotes { get; set; }
         public string? PaymentReceiptPath { get; set; }
 
         // File Upload Paths
@@ -70,7 +79,11 @@ namespace OnwardsSwift.Core.DTOs
         public decimal CommissionAmount { get; set; }
         // Client & Bank charge inputs
         public decimal ClientCharges { get; set; }
+        public decimal AmendmentFee { get; set; }
         public decimal BankCharges { get; set; }
+        public decimal TaxPercentage { get; set; }
+        public decimal TaxCalculation { get; set; }
+        public decimal TotalBankCharge { get; set; }
         // Computed
         public decimal NetProfit { get; set; }
 

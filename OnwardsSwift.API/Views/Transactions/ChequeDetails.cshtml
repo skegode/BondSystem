@@ -1,0 +1,252 @@
+@model OnwardsSwift.Core.DTOs.ChequeEncashmentReviewViewModel
+@{
+    ViewData["Title"] = "Cheque Encashment Details";
+
+    string ResolveUrl(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return "#";
+        if (path.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            return path;
+        var trimmed = path.TrimStart('/');
+        if (!trimmed.StartsWith("uploads/", StringComparison.OrdinalIgnoreCase))
+            trimmed = "uploads/" + trimmed;
+        return Url.Content("~/" + trimmed) ?? ("/" + trimmed);
+    }
+}
+
+<div class="container-fluid py-3">
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+            <div>
+                <h1 class="h4 mb-1">Cheque Encashment Details</h1>
+                <p class="text-muted mb-0">Saved transaction data for review.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a class="btn btn-outline-secondary" href="@Url.Action("Index", "Transactions")">Back to Transactions</a>
+                <a class="btn btn-outline-primary" href="@Url.Action("EditCheque", "Transactions", new { id = Model.Id })">Edit Request</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 mb-3">
+                <div class="card-body">
+                    <h2 class="h5">Applicant Information</h2>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Applicant Name</dt><dd class="col-sm-8">@Model.ApplicantName</dd>
+                        <dt class="col-sm-4">ID / Passport No.</dt><dd class="col-sm-8">@Model.IdNumber</dd>
+                        <dt class="col-sm-4">Postal Address</dt><dd class="col-sm-8">@Model.PostalAddress</dd>
+                        <dt class="col-sm-4">Phone</dt><dd class="col-sm-8">@Model.Phone</dd>
+                        <dt class="col-sm-4">Purpose</dt><dd class="col-sm-8">@Model.Purpose</dd>
+                        <dt class="col-sm-4">Terms Accepted</dt><dd class="col-sm-8">@(Model.TermsAccepted ? "Yes" : "No")</dd>
+                        <dt class="col-sm-4">Created By</dt><dd class="col-sm-8">@Model.CreatedBy</dd>
+                        <dt class="col-sm-4">Created At</dt><dd class="col-sm-8">@Model.CreatedAt.ToString("dd MMM yyyy HH:mm")</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-3">
+                <div class="card-body">
+                    <h2 class="h5">Cheque Lines</h2>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th><th>Cheque Number</th><th>Amount</th><th>Dated</th><th>Drawer</th><th>Bank</th><th>Branch</th><th>Payee</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (var i = 0; i < Model.Cheques.Count; i++)
+                                {
+                                    var line = Model.Cheques[i];
+                                    <tr>
+                                        <td>@(i + 1)</td>
+                                        <td>@line.Number</td>
+                                        <td>@(line.Amount?.ToString("N2") ?? "")</td>
+                                        <td>@line.Dated</td>
+                                        <td>@line.Drawer</td>
+                                        <td>@line.Bank</td>
+                                        <td>@line.Branch</td>
+                                        <td>@line.Payee</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 mb-3">
+                <div class="card-body">
+                    <h2 class="h5">Status</h2>
+                    <p class="mb-3">
+                        <span class="badge bg-info text-dark fs-6">@((FacilityStatus)Model.CurrentStatus)</span>
+                    </p>
+                    <form asp-action="UpdateChequeStatus" asp-controller="Transactions" method="post" class="mb-3">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <div class="mb-2">
+                            <label class="form-label small">Set status</label>
+                            <select name="status" class="form-select form-select-sm">
+                                @foreach (var s in Enum.GetValues(typeof(FacilityStatus)).Cast<FacilityStatus>())
+                                {
+                                    <option value="@s" selected="@(s == (FacilityStatus)Model.CurrentStatus)">@s</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small">Note (optional, visible to client)</label>
+                            <textarea name="note" class="form-control form-control-sm" rows="2"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-primary w-100">Update Status</button>
+                    </form>
+                    @if (Model.StatusHistory.Count > 0)
+                    {
+                        <h3 class="h6">History</h3>
+                        <ul class="list-unstyled small mb-0">
+                            @foreach (var entry in Model.StatusHistory.AsEnumerable().Reverse())
+                            {
+                                <li class="mb-2 pb-2 border-bottom">
+                                    <div class="fw-semibold">@entry.Status</div>
+                                    @if (!string.IsNullOrWhiteSpace(entry.StatusNote))
+                                    {
+                                        <div class="text-muted">@entry.StatusNote</div>
+                                    }
+                                    <div class="text-muted" style="font-size:0.72rem">
+                                        @entry.ChangedAtUtc.ToString("dd MMM yyyy HH:mm") UTC
+                                        @(string.IsNullOrWhiteSpace(entry.ChangedBy) ? "" : $"· {entry.ChangedBy}")
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-3">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h2 class="h5 mb-0">Attachments</h2>
+                        @if (Model.Attachments.Count > 0)
+                        {
+                            <span class="badge bg-primary rounded-pill">@Model.Attachments.Count</span>
+                        }
+                    </div>
+                    @if (Model.Attachments.Count == 0)
+                    {
+                        <p class="text-muted mb-0">No attachments saved.</p>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column gap-2">
+                        @foreach (var att in Model.Attachments)
+                        {
+                            var attUrl = ResolveUrl(att.FilePath);
+                            var attCt  = (att.ContentType ?? "").ToLowerInvariant();
+                            var attExt = System.IO.Path.GetExtension(att.FileName ?? "").TrimStart('.').ToLowerInvariant();
+                            var attIsImg = attCt.StartsWith("image/") || new[]{"jpg","jpeg","png","gif","webp","bmp"}.Contains(attExt);
+                            var attIsPdf = attCt == "application/pdf" || attExt == "pdf";
+                            <div class="d-flex align-items-center gap-2 p-2 border rounded-3" style="background:#f8fbff">
+                                <div class="flex-shrink-0 d-flex align-items-center justify-content-center rounded-2 overflow-hidden"
+                                     style="width:44px;height:44px;background:#e9ecef;">
+                                    @if (attIsImg)
+                                    {
+                                        <img src="@attUrl" alt="" style="width:100%;height:100%;object-fit:cover;" />
+                                    }
+                                    else if (attIsPdf)
+                                    {
+                                        <i class="bi bi-file-earmark-pdf fs-5 text-danger"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-file-earmark fs-5 text-secondary"></i>
+                                    }
+                                </div>
+                                <div class="flex-grow-1 text-truncate" style="min-width:0">
+                                    <div class="small fw-semibold text-truncate">@att.FileName</div>
+                                    <div class="text-muted" style="font-size:0.68rem">@(att.ContentType ?? "file")</div>
+                                </div>
+                                <div class="d-flex gap-1 flex-shrink-0">
+                                    <button type="button" class="btn btn-sm btn-outline-primary"
+                                            data-doc-preview
+                                            data-url="@attUrl"
+                                            data-type="@(att.ContentType ?? "")"
+                                            data-name="@att.FileName"
+                                            title="Preview">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <a href="@attUrl" target="_blank" class="btn btn-sm btn-outline-secondary" title="Open in new tab">
+                                        <i class="bi bi-box-arrow-up-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <form asp-action="DeleteCheque" asp-controller="Transactions" method="post" onsubmit="return confirm('Delete this cheque encashment transaction?');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn btn-danger w-100">Delete Transaction</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Document Preview Modal -->
+<div class="modal fade" id="docPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header py-2 px-3">
+                <span class="modal-title h6 text-truncate" id="docPreviewLabel" style="max-width:65%"></span>
+                <div class="ms-auto d-flex gap-2 align-items-center">
+                    <a id="docPreviewExtLink" href="#" target="_blank" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-box-arrow-up-right me-1"></i>Open in new tab
+                    </a>
+                    <button type="button" class="btn-close ms-1" data-bs-dismiss="modal"></button>
+                </div>
+            </div>
+            <div class="modal-body p-0" style="height:82vh;background:#1a1a1a;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                <iframe id="docPreviewFrame" src="about:blank" style="width:100%;height:100%;border:none;display:block;background:#fff;"></iframe>
+                <img id="docPreviewImg" src="" alt="Preview" style="display:none;max-width:100%;max-height:100%;object-fit:contain;" />
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.querySelectorAll('[data-doc-preview]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var url  = btn.getAttribute('data-url');
+            var type = (btn.getAttribute('data-type') || '').toLowerCase();
+            var name = btn.getAttribute('data-name') || 'Document';
+            var ext  = url.split('?')[0].split('.').pop().toLowerCase();
+            var isImg = type.startsWith('image/') || ['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext);
+            document.getElementById('docPreviewLabel').textContent = name;
+            document.getElementById('docPreviewExtLink').href = url;
+            var frame = document.getElementById('docPreviewFrame');
+            var img   = document.getElementById('docPreviewImg');
+            if (isImg) {
+                frame.style.display = 'none'; frame.src = 'about:blank';
+                img.style.display = 'block';  img.src  = url;
+            } else {
+                img.style.display  = 'none';  img.src  = '';
+                frame.style.display = 'block'; frame.src = url;
+            }
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('docPreviewModal')).show();
+        });
+    });
+    document.getElementById('docPreviewModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('docPreviewFrame').src = 'about:blank';
+        document.getElementById('docPreviewImg').src   = '';
+    });
+</script>

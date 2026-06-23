@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/validation.css" asp-append-version="true" />
     <style>
         :root {
             --sidebar-width: 270px;
@@ -36,6 +37,24 @@
             font-weight: 800;
             color: var(--demo-navy);
             border-bottom: 1px solid #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            align-items: flex-start;
+        }
+
+        .sidebar-brand-logo {
+            max-width: 190px;
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+
+        .sidebar-brand-subtitle {
+            font-size: 0.7rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #6c757d;
         }
 
         .sidebar-content {
@@ -93,6 +112,58 @@
             min-height: 100vh;
         }
 
+        .app-topbar {
+            background: #fff;
+            border-bottom: 1px solid #e9ecef;
+            padding: 0.85rem 1.25rem;
+            margin: -1rem -1rem 1rem -1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 900;
+        }
+
+        .app-topbar-brand {
+            display: flex;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .app-topbar-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #0f1c2e;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 48vw;
+        }
+
+        .app-topbar-user {
+            font-size: 0.82rem;
+            color: #6c757d;
+            white-space: nowrap;
+        }
+
+        @@media (max-width: 768px) {
+            .app-topbar {
+                padding: 0.7rem 0.9rem;
+                margin: -1rem -1rem 0.75rem -1rem;
+            }
+
+            .app-topbar-title {
+                font-size: 0.9rem;
+                max-width: 42vw;
+            }
+
+            .app-topbar-user {
+                display: none;
+            }
+        }
+
         .sidebar-footer {
             padding: 1rem;
             border-top: 1px solid #eee;
@@ -104,7 +175,10 @@
     {
         <div class="d-flex">
             <nav class="sidebar">
-                <div class="sidebar-brand">ONWARDS SWIFT</div>
+                <div class="sidebar-brand">
+                    <img src="@Url.Content("~/images/onwards-logo.jpg")" alt="Onwards Swift" class="sidebar-brand-logo" />
+                    <span class="sidebar-brand-subtitle">Bond Management System</span>
+                </div>
                 <div class="sidebar-content">
                     @await Component.InvokeAsync("Sidebar")
                 </div>
@@ -114,6 +188,15 @@
                 </div>
             </nav>
             <main class="main-content flex-grow-1 p-4">
+                <div class="app-topbar">
+                    <div class="app-topbar-brand">
+                        <span class="app-topbar-title">@(ViewData["Title"]?.ToString() ?? "Dashboard")</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <a class="btn btn-sm btn-outline-secondary" href="@Url.Action("Index", "Transactions")">Transactions</a>
+                        <span class="app-topbar-user">@User.Identity.Name</span>
+                    </div>
+                </div>
                 @RenderBody()
             </main>
         </div>
@@ -126,6 +209,7 @@
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/form-validation.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
